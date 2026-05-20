@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<APIBusinessObjects>
+  <Project>
+      <Id>P-1000</Id>
+      <Name>Nile Tower — Main Construction</Name>
+      <Status>Active</Status>
+      <Client>Sigma Holdings</Client>
+      <Currency>USD</Currency>
+      <PlannedStartDate>2026-01-05</PlannedStartDate>
+      <FinishDate>2026-12-18</FinishDate>
+      <ActualStartDate>2026-01-07</ActualStartDate>
+      <DataDate>2026-05-15</DataDate>
+      <Budget>4200000</Budget>
+    <Activity>
+      <Id>A1000</Id>
+      <WBSCode>1.1</WBSCode>
+      <Name>Site Mobilisation</Name>
+      <Type>Task Dependent</Type>
+      <Status>Completed</Status>
+      <PlannedStartDate>2026-01-05</PlannedStartDate>
+      <PlannedFinishDate>2026-01-16</PlannedFinishDate>
+      <ActualStartDate>2026-01-07</ActualStartDate>
+      <ActualFinishDate>2026-01-19</ActualFinishDate>
+      <PlannedDuration>10</PlannedDuration>
+      <RemainingDuration>0</RemainingDuration>
+      <PercentComplete>100</PercentComplete>
+      <BudgetedCost>80000</BudgetedCost>
+      <ActualCost>86500</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1010</Id>
+      <WBSCode>1.2</WBSCode>
+      <Name>Bulk Excavation</Name>
+      <Type>Task Dependent</Type>
+      <Status>Completed</Status>
+      <PlannedStartDate>2026-01-19</PlannedStartDate>
+      <PlannedFinishDate>2026-02-13</PlannedFinishDate>
+      <ActualStartDate>2026-01-21</ActualStartDate>
+      <ActualFinishDate>2026-02-20</ActualFinishDate>
+      <PlannedDuration>20</PlannedDuration>
+      <RemainingDuration>0</RemainingDuration>
+      <PercentComplete>100</PercentComplete>
+      <BudgetedCost>240000</BudgetedCost>
+      <ActualCost>268000</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1020</Id>
+      <WBSCode>1.3</WBSCode>
+      <Name>Piling &amp; Foundations</Name>
+      <Type>Task Dependent</Type>
+      <Status>In Progress</Status>
+      <PlannedStartDate>2026-02-16</PlannedStartDate>
+      <PlannedFinishDate>2026-04-10</PlannedFinishDate>
+      <ActualStartDate>2026-02-23</ActualStartDate>
+      <PlannedDuration>40</PlannedDuration>
+      <RemainingDuration>8</RemainingDuration>
+      <PercentComplete>80</PercentComplete>
+      <BudgetedCost>620000</BudgetedCost>
+      <ActualCost>540000</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1030</Id>
+      <WBSCode>2.1</WBSCode>
+      <Name>Basement RC Structure</Name>
+      <Type>Task Dependent</Type>
+      <Status>In Progress</Status>
+      <PlannedStartDate>2026-04-13</PlannedStartDate>
+      <PlannedFinishDate>2026-06-19</PlannedFinishDate>
+      <ActualStartDate>2026-04-27</ActualStartDate>
+      <PlannedDuration>50</PlannedDuration>
+      <RemainingDuration>38</RemainingDuration>
+      <PercentComplete>22</PercentComplete>
+      <BudgetedCost>910000</BudgetedCost>
+      <ActualCost>210000</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1040</Id>
+      <WBSCode>2.2</WBSCode>
+      <Name>Superstructure — Cores</Name>
+      <Type>Task Dependent</Type>
+      <Status>Not Started</Status>
+      <PlannedStartDate>2026-06-22</PlannedStartDate>
+      <PlannedFinishDate>2026-09-04</PlannedFinishDate>
+      <PlannedDuration>55</PlannedDuration>
+      <RemainingDuration>55</RemainingDuration>
+      <PercentComplete>0</PercentComplete>
+      <BudgetedCost>1180000</BudgetedCost>
+      <ActualCost>0</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1050</Id>
+      <WBSCode>3.1</WBSCode>
+      <Name>MEP First Fix</Name>
+      <Type>Task Dependent</Type>
+      <Status>Not Started</Status>
+      <PlannedStartDate>2026-08-10</PlannedStartDate>
+      <PlannedFinishDate>2026-10-30</PlannedFinishDate>
+      <PlannedDuration>60</PlannedDuration>
+      <RemainingDuration>60</RemainingDuration>
+      <PercentComplete>0</PercentComplete>
+      <BudgetedCost>540000</BudgetedCost>
+      <ActualCost>0</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1060</Id>
+      <WBSCode>3.2</WBSCode>
+      <Name>Facade Installation</Name>
+      <Type>Task Dependent</Type>
+      <Status>Not Started</Status>
+      <PlannedStartDate>2026-09-07</PlannedStartDate>
+      <PlannedFinishDate>2026-11-27</PlannedFinishDate>
+      <PlannedDuration>60</PlannedDuration>
+      <RemainingDuration>60</RemainingDuration>
+      <PercentComplete>0</PercentComplete>
+      <BudgetedCost>470000</BudgetedCost>
+      <ActualCost>0</ActualCost>
+    </Activity>
+    <Activity>
+      <Id>A1070</Id>
+      <WBSCode>4.1</WBSCode>
+      <Name>Commissioning &amp; Handover</Name>
+      <Type>Task Dependent</Type>
+      <Status>Not Started</Status>
+      <PlannedStartDate>2026-11-30</PlannedStartDate>
+      <PlannedFinishDate>2026-12-18</PlannedFinishDate>
+      <PlannedDuration>15</PlannedDuration>
+      <RemainingDuration>15</RemainingDuration>
+      <PercentComplete>0</PercentComplete>
+      <BudgetedCost>160000</BudgetedCost>
+      <ActualCost>0</ActualCost>
+    </Activity>
+  </Project>
+  <Resource>
+      <Id>R-CIVIL</Id>
+      <ProjectId>P-1000</ProjectId>
+      <Name>Civil Crew A</Name>
+      <Type>labor</Type>
+      <Unit>hours</Unit>
+      <MaxUnitsPerDay>80</MaxUnitsPerDay>
+      <StandardRate>24</StandardRate>
+  </Resource>
+  <Resource>
+      <Id>R-MEP</Id>
+      <ProjectId>P-1000</ProjectId>
+      <Name>MEP Crew</Name>
+      <Type>labor</Type>
+      <Unit>hours</Unit>
+      <MaxUnitsPerDay>48</MaxUnitsPerDay>
+      <StandardRate>30</StandardRate>
+  </Resource>
+  <Resource>
+      <Id>R-EXC</Id>
+      <ProjectId>P-1000</ProjectId>
+      <Name>Excavator 30T</Name>
+      <Type>equipment</Type>
+      <Unit>hours</Unit>
+      <MaxUnitsPerDay>10</MaxUnitsPerDay>
+      <StandardRate>120</StandardRate>
+  </Resource>
+  <Resource>
+      <Id>R-CONC</Id>
+      <ProjectId>P-1000</ProjectId>
+      <Name>Concrete C40</Name>
+      <Type>material</Type>
+      <Unit>m3</Unit>
+      <StandardRate>95</StandardRate>
+  </Resource>
+  <ResourceAssignment>
+      <ActivityId>A1010</ActivityId>
+      <ResourceId>R-EXC</ResourceId>
+      <PlannedUnits>160</PlannedUnits>
+      <ActualUnits>188</ActualUnits>
+      <PlannedCost>19200</PlannedCost>
+      <ActualCost>22560</ActualCost>
+  </ResourceAssignment>
+  <ResourceAssignment>
+      <ActivityId>A1010</ActivityId>
+      <ResourceId>R-CIVIL</ResourceId>
+      <PlannedUnits>1200</PlannedUnits>
+      <ActualUnits>1320</ActualUnits>
+      <PlannedCost>28800</PlannedCost>
+      <ActualCost>31680</ActualCost>
+  </ResourceAssignment>
+  <ResourceAssignment>
+      <ActivityId>A1020</ActivityId>
+      <ResourceId>R-CONC</ResourceId>
+      <PlannedUnits>3200</PlannedUnits>
+      <ActualUnits>2600</ActualUnits>
+      <PlannedCost>304000</PlannedCost>
+      <ActualCost>247000</ActualCost>
+  </ResourceAssignment>
+  <ResourceAssignment>
+      <ActivityId>A1020</ActivityId>
+      <ResourceId>R-CIVIL</ResourceId>
+      <PlannedUnits>2400</PlannedUnits>
+      <ActualUnits>2100</ActualUnits>
+      <PlannedCost>57600</PlannedCost>
+      <ActualCost>50400</ActualCost>
+  </ResourceAssignment>
+  <ResourceAssignment>
+      <ActivityId>A1030</ActivityId>
+      <ResourceId>R-CONC</ResourceId>
+      <PlannedUnits>4100</PlannedUnits>
+      <ActualUnits>900</ActualUnits>
+      <PlannedCost>389500</PlannedCost>
+      <ActualCost>85500</ActualCost>
+  </ResourceAssignment>
+  <ResourceAssignment>
+      <ActivityId>A1030</ActivityId>
+      <ResourceId>R-CIVIL</ResourceId>
+      <PlannedUnits>3000</PlannedUnits>
+      <ActualUnits>700</ActualUnits>
+      <PlannedCost>72000</PlannedCost>
+      <ActualCost>16800</ActualCost>
+  </ResourceAssignment>
+</APIBusinessObjects>

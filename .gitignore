@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+**/dist/
+.next/
+out/
+
+# Environment / secrets
+.env
+*.env
+!.env.example
+!**/.env.example
+
+# Ingested source-file archive & local artifacts
+data/storage/
+data/storage/**
+
+# Logs / caches
+*.log
+npm-debug.log*
+.eslintcache
+*.tsbuildinfo
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# Python (legacy — removed; guard against accidental re-creation)
+.venv/
+__pycache__/

@@ -1,0 +1,29 @@
+ERMHDR	19.12	2026-05-15	Project	SIGMA	Sigma PMO	Khaled	USD
+%T	PROJECT
+%F	proj_id	proj_short_name	status_code	plan_start_date	scd_end_date	last_recalc_date
+%R	P-1000	Nile Tower — Main Construction	Active	2026-01-05 00:00	2026-12-18 00:00	2026-05-15 00:00
+%T	TASK
+%F	task_id	proj_id	task_code	task_name	task_type	status_code	target_start_date	target_end_date	act_start_date	act_end_date	target_drtn_hr_cnt	remain_drtn_hr_cnt	phys_complete_pct
+%R	A1000	P-1000	1.1	Site Mobilisation	Task Dependent	Completed	2026-01-05 00:00	2026-01-16 00:00	2026-01-07 00:00	2026-01-19 00:00	80	0	100
+%R	A1010	P-1000	1.2	Bulk Excavation	Task Dependent	Completed	2026-01-19 00:00	2026-02-13 00:00	2026-01-21 00:00	2026-02-20 00:00	160	0	100
+%R	A1020	P-1000	1.3	Piling & Foundations	Task Dependent	In Progress	2026-02-16 00:00	2026-04-10 00:00	2026-02-23 00:00		320	64	80
+%R	A1030	P-1000	2.1	Basement RC Structure	Task Dependent	In Progress	2026-04-13 00:00	2026-06-19 00:00	2026-04-27 00:00		400	304	22
+%R	A1040	P-1000	2.2	Superstructure — Cores	Task Dependent	Not Started	2026-06-22 00:00	2026-09-04 00:00			440	440	0
+%R	A1050	P-1000	3.1	MEP First Fix	Task Dependent	Not Started	2026-08-10 00:00	2026-10-30 00:00			480	480	0
+%R	A1060	P-1000	3.2	Facade Installation	Task Dependent	Not Started	2026-09-07 00:00	2026-11-27 00:00			480	480	0
+%R	A1070	P-1000	4.1	Commissioning & Handover	Task Dependent	Not Started	2026-11-30 00:00	2026-12-18 00:00			120	120	0
+%T	RSRC
+%F	rsrc_id	rsrc_name	rsrc_type	unit_of_meas
+%R	R-CIVIL	Civil Crew A	RT_Labor	hours
+%R	R-MEP	MEP Crew	RT_Labor	hours
+%R	R-EXC	Excavator 30T	RT_Equip	hours
+%R	R-CONC	Concrete C40	RT_Mat	m3
+%T	TASKRSRC
+%F	taskrsrc_id	task_id	rsrc_id	target_qty	act_reg_qty	target_cost	act_reg_cost
+%R	TR-1	A1010	R-EXC	160	188	19200	22560
+%R	TR-2	A1010	R-CIVIL	1200	1320	28800	31680
+%R	TR-3	A1020	R-CONC	3200	2600	304000	247000
+%R	TR-4	A1020	R-CIVIL	2400	2100	57600	50400
+%R	TR-5	A1030	R-CONC	4100	900	389500	85500
+%R	TR-6	A1030	R-CIVIL	3000	700	72000	16800
+%E

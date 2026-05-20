@@ -1,0 +1,4 @@
+businessKey,projectKey,reportType,reportDate,periodStart,periodEnd,submittedBy,reportedPctComplete,narrative
+RPT-W17,P-1000,weekly,2026-05-01,2026-04-25,2026-05-01,Site Engineer,0.38,Foundations nearing completion; basement RC slipped due to late rebar delivery.
+RPT-W18,P-1000,weekly,2026-05-08,2026-05-02,2026-05-08,Site Engineer,0.41,Basement RC progressing slowly; piling at 80%. Concrete pour rate below plan.
+RPT-W19,P-1000,weekly,2026-05-15,2026-05-09,2026-05-15,Project Manager,0.44,Schedule pressure on basement RC; recovery plan requested for cores start.

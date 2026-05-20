@@ -1,0 +1,34 @@
+import { promises as fs } from 'node:fs';
+import { basename } from 'node:path';
+
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+import { IngestionRun } from '../canonical/entities';
+import { IngestPathDto } from './dto/ingest-path.dto';
+import { IngestionOutcome, IngestionService } from './ingestion.service';
+
+@Controller('ingestion')
+export class IngestionController {
+  constructor(
+    private readonly ingestion: IngestionService,
+    @InjectRepository(IngestionRun)
+    private readonly runs: Repository<IngestionRun>,
+  ) {}
+
+  /** Ingest a file the server can read from disk (internal/back-office use). */
+  @Post('ingest-path')
+  @HttpCode(200)
+  async ingestPath(@Body() body: IngestPathDto): Promise<IngestionOutcome> {
+    const buffer = await fs.readFile(body.path);
+    return this.ingestion.ingest(basename(body.path), buffer);
+  }
+
+  /** Recent ingestion runs (audit trail). */
+  @Get('runs')
+  listRuns(@Query('limit') limit?: string): Promise<IngestionRun[]> {
+    const take = Math.min(Math.max(Number.parseInt(limit ?? '50', 10) || 50, 1), 200);
+    return this.runs.find({ order: { createdAt: 'DESC' }, take });
+  }
+}
