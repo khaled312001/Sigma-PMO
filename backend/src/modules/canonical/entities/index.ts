@@ -2,6 +2,8 @@ import { Activity } from './activity.entity';
 import { Alert } from './alert.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { ExecutiveSummary } from './executive-summary.entity';
+import { GovernanceDecision } from './governance-decision.entity';
+import { GovernancePolicy } from './governance-policy.entity';
 import { IngestionRun } from './ingestion-run.entity';
 import { Project } from './project.entity';
 import { Report } from './report.entity';
@@ -15,6 +17,8 @@ export {
   Alert,
   ConfidenceScore,
   ExecutiveSummary,
+  GovernanceDecision,
+  GovernancePolicy,
   IngestionRun,
   Project,
   Report,
@@ -37,4 +41,6 @@ export const CANONICAL_ENTITIES = [
   RuleEvaluation,
   ConfidenceScore,
   ExecutiveSummary,
+  GovernancePolicy,
+  GovernanceDecision,
 ];
