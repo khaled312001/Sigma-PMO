@@ -1,5 +1,6 @@
 import { Activity } from './activity.entity';
 import { Alert } from './alert.entity';
+import { ConfidenceScore } from './confidence-score.entity';
 import { IngestionRun } from './ingestion-run.entity';
 import { Project } from './project.entity';
 import { Report } from './report.entity';
@@ -11,6 +12,7 @@ import { SourceFile } from './source-file.entity';
 export {
   Activity,
   Alert,
+  ConfidenceScore,
   IngestionRun,
   Project,
   Report,
@@ -31,4 +33,5 @@ export const CANONICAL_ENTITIES = [
   ResourceAssignment,
   Alert,
   RuleEvaluation,
+  ConfidenceScore,
 ];

@@ -9,6 +9,7 @@ import { DataSource } from 'typeorm';
 
 import { IngestionStatus } from '../../common/enums';
 import { IngestionRun, SourceFile } from '../canonical/entities';
+import { ConfidenceService } from '../governance/confidence.service';
 import { ValidationReport } from '../validation/validation.types';
 import { ValidationService } from '../validation/validation.service';
 import { NormalizerService } from './normalizer/normalizer.service';
@@ -22,6 +23,7 @@ export interface IngestionOutcome {
   status: IngestionStatus;
   validation: ValidationReport;
   counts: Record<string, number>;
+  confidence: { completeness: number; consistency: number; sourceReliability: number; overall: number } | null;
 }
 
 /**
@@ -40,6 +42,7 @@ export class IngestionService {
     private readonly validator: ValidationService,
     private readonly normalizer: NormalizerService,
     private readonly storage: StorageService,
+    private readonly confidence: ConfidenceService,
   ) {}
 
   async ingest(filename: string, buffer: Buffer): Promise<IngestionOutcome> {
@@ -87,20 +90,24 @@ export class IngestionService {
           runId: run.id,
           validation,
         });
+        // (confidence is intentionally not scored for failed runs)
       }
 
-      const { counts } = await this.dataSource.transaction((manager) =>
-        this.normalizer.normalize(manager, run, source, dataset),
-      );
+      const { counts, confidenceScore } = await this.dataSource.transaction(async (manager) => {
+        const normalized = await this.normalizer.normalize(manager, run, source, dataset);
+        const score = await this.confidence.record(manager, run, dataset, validation);
+        return { counts: normalized.counts, confidenceScore: score };
+      });
 
       run.status = IngestionStatus.NORMALIZED;
       run.rowCounts = counts;
       run.finishedAt = new Date();
-      run.summary = { validation, parserMeta: dataset.meta };
+      run.summary = { validation, parserMeta: dataset.meta, confidence: { overall: confidenceScore.overall } };
       await runRepo.save(run);
 
       this.logger.log(
-        `Ingestion ${run.id} normalised ${parser.name}: ${JSON.stringify(counts)}.`,
+        `Ingestion ${run.id} normalised ${parser.name}: ${JSON.stringify(counts)}; ` +
+          `confidence=${confidenceScore.overall.toFixed(3)}.`,
       );
 
       return {
@@ -110,6 +117,12 @@ export class IngestionService {
         status: run.status,
         validation,
         counts,
+        confidence: {
+          completeness: confidenceScore.completeness,
+          consistency: confidenceScore.consistency,
+          sourceReliability: confidenceScore.sourceReliability,
+          overall: confidenceScore.overall,
+        },
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;

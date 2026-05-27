@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CanonicalModule } from '../canonical/canonical.module';
+import { GovernanceModule } from '../governance/governance.module';
 import { ValidationModule } from '../validation/validation.module';
 import { IngestionController } from './ingestion.controller';
 import { IngestionService } from './ingestion.service';
@@ -13,7 +14,7 @@ import { ParserRegistry } from './parsers/parser.registry';
 import { StorageService } from './storage/storage.service';
 
 @Module({
-  imports: [CanonicalModule, ValidationModule],
+  imports: [CanonicalModule, ValidationModule, GovernanceModule],
   controllers: [IngestionController],
   providers: [
     IngestionService,
