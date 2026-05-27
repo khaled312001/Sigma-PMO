@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, Query 
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, GovernanceDecision, GovernancePolicy } from '../canonical/entities';
 import { ConfidenceService } from './confidence.service';
 import { DecideDto } from './dto/decide.dto';
@@ -51,12 +52,14 @@ export class GovernanceController {
 
   @Post('policy')
   @HttpCode(200)
+  @RequiresCapability('canEditPolicy')
   upsertPolicy(@Body() body: UpsertPolicyDto) {
     return this.policies.upsert(body.projectKey ?? null, body.config, body.authoredBy ?? null);
   }
 
   @Post('decide')
   @HttpCode(200)
+  @RequiresCapability('canEvaluateRules')
   decide(@Body() body: DecideDto) {
     return this.decisions.decideForEvaluation(body.ruleEvaluationId, body.projectKey ?? null);
   }

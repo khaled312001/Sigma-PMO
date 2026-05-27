@@ -1,5 +1,5 @@
 /** Base URL of the Sigma PMO backend API. */
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:3001/api/v1';
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {

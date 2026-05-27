@@ -5,6 +5,7 @@ import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { RequiresCapability } from '../auth/require-capability.decorator';
 import { IngestionRun } from '../canonical/entities';
 import { IngestPathDto } from './dto/ingest-path.dto';
 import { IngestionOutcome, IngestionService } from './ingestion.service';
@@ -20,6 +21,7 @@ export class IngestionController {
   /** Ingest a file the server can read from disk (internal/back-office use). */
   @Post('ingest-path')
   @HttpCode(200)
+  @RequiresCapability('canIngest')
   async ingestPath(@Body() body: IngestPathDto): Promise<IngestionOutcome> {
     const buffer = await fs.readFile(body.path);
     return this.ingestion.ingest(basename(body.path), buffer);

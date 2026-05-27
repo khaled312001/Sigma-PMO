@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 
+import { RequiresCapability } from '../auth/require-capability.decorator';
 import { ExecutiveSummary } from '../canonical/entities';
 import { GenerateSummaryDto } from './dto/generate-summary.dto';
 import { LlmService } from './llm.service';
@@ -16,6 +17,7 @@ export class SummaryController {
 
   @Post('generate')
   @HttpCode(200)
+  @RequiresCapability('canGenerateSummary')
   generate(@Body() body: GenerateSummaryDto): Promise<ExecutiveSummary> {
     return this.summaries.generate(body);
   }

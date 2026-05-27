@@ -11,6 +11,7 @@ import { Resource } from './resource.entity';
 import { ResourceAssignment } from './resource-assignment.entity';
 import { RuleEvaluation } from './rule-evaluation.entity';
 import { SourceFile } from './source-file.entity';
+import { User } from './user.entity';
 
 export {
   Activity,
@@ -26,6 +27,7 @@ export {
   ResourceAssignment,
   RuleEvaluation,
   SourceFile,
+  User,
 };
 
 /** All canonical ORM entities, for TypeOrmModule.forFeature registration. */
@@ -43,4 +45,5 @@ export const CANONICAL_ENTITIES = [
   ExecutiveSummary,
   GovernancePolicy,
   GovernanceDecision,
+  User,
 ];

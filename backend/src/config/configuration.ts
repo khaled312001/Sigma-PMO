@@ -31,6 +31,10 @@ export interface AppConfiguration {
   llm: LlmConfig;
   /** Comma-separated allowed origins for CORS (or empty for default localhost dev). */
   corsOrigins: string;
+  /** Outbound notification channels (optional). */
+  emailSmtpUrl: string;
+  slackWebhookUrl: string;
+  teamsWebhookUrl: string;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -48,6 +52,9 @@ export default (): AppConfiguration => ({
   port: toInt(process.env.PORT, 3001),
   storageDir: process.env.STORAGE_DIR ?? '../data/storage',
   corsOrigins: process.env.CORS_ORIGINS ?? '',
+  emailSmtpUrl: process.env.EMAIL_SMTP_URL ?? '',
+  slackWebhookUrl: process.env.SLACK_WEBHOOK_URL ?? '',
+  teamsWebhookUrl: process.env.TEAMS_WEBHOOK_URL ?? '',
   llm: {
     apiKey: process.env.LLM_API_KEY ?? '',
     provider: (process.env.LLM_PROVIDER ?? 'anthropic') as 'anthropic' | 'openai',

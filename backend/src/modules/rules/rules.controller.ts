@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, NotFoundException, Post, Query } from 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, Project, RuleEvaluation } from '../canonical/entities';
 import { EvaluateDto } from './dto/evaluate.dto';
 import { RuleEngineService, RuleEvaluationOutcome } from './rule-engine.service';
@@ -22,6 +23,7 @@ export class RulesController {
 
   @Post('evaluate')
   @HttpCode(200)
+  @RequiresCapability('canEvaluateRules')
   async evaluate(@Body() body: EvaluateDto): Promise<RuleEvaluationOutcome> {
     if (body.projectKey) {
       const project = await this.projects.findOne({
