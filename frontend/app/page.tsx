@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, ExecutiveSummary, IngestionRun } from '../lib/api';
+import {
+  IconAlertCritical,
+  IconAlertWarning,
+  IconDatabase,
+  IconReview,
+  IconSparkles,
+} from '../components/Icons';
+import { Card, ConfidenceBar, ErrorBanner, PageHeader, Pill } from '../components/ui';
 
 interface Counts {
   runs: number;
@@ -14,6 +22,7 @@ interface Counts {
 
 export default function Overview() {
   const [counts, setCounts] = useState<Counts | null>(null);
+  const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +31,7 @@ export default function Overview() {
       try {
         const [runs, alerts, summaries] = await Promise.all([
           api<IngestionRun[]>('/ingestion/runs?limit=50'),
-          api<AlertRecord[]>('/rules/alerts?limit=200'),
+          api<AlertRecord[]>('/rules/alerts?limit=300'),
           api<ExecutiveSummary[]>('/summary?limit=1'),
         ]);
         setCounts({
@@ -31,6 +40,7 @@ export default function Overview() {
           critical: alerts.filter((a) => a.severity === 'critical').length,
           warning: alerts.filter((a) => a.severity === 'warning').length,
         });
+        setLatestRun(runs[0] ?? null);
         setSummary(summaries[0] ?? null);
       } catch (e) {
         setError((e as Error).message);
@@ -38,50 +48,104 @@ export default function Overview() {
     })();
   }, []);
 
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold">Overview</h1>
-        <p className="text-xs text-slate-400">Snapshot of the platform across all four standard surfaces.</p>
-      </header>
+  const latestConfidence = (latestRun?.summary?.confidence as { overall?: number } | undefined)?.overall;
 
-      {error && <div className="rounded border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+  return (
+    <div className="space-y-7">
+      <PageHeader
+        eyebrow="Overview"
+        title="Welcome to Sigma PMO"
+        description="Snapshot of the platform across all four standard surfaces (input · review · approval · evidence)."
+      />
+
+      <ErrorBanner message={error} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Ingestion runs" value={counts?.runs ?? '—'} surface="input"    href="/input" />
-        <Stat label="Alerts"         value={counts?.alerts ?? '—'} surface="review"   href="/review" />
-        <Stat label="Critical"       value={counts?.critical ?? '—'} surface="approval" href="/approval" />
-        <Stat label="Warnings"       value={counts?.warning ?? '—'} surface="evidence" href="/evidence" />
+        <StatCard label="Ingestion runs" value={counts?.runs}    icon={<IconDatabase className="h-5 w-5" />}       tone="sky"     href="/input" />
+        <StatCard label="Total alerts"   value={counts?.alerts}  icon={<IconReview className="h-5 w-5" />}         tone="emerald" href="/review" />
+        <StatCard label="Critical"       value={counts?.critical} icon={<IconAlertCritical className="h-5 w-5" />} tone="rose"    href="/approval" />
+        <StatCard label="Warnings"       value={counts?.warning}  icon={<IconAlertWarning className="h-5 w-5" />}  tone="amber"   href="/evidence" />
       </section>
 
-      <section>
-        <header className="mb-2 flex items-baseline justify-between">
-          <h2 className="text-base font-semibold">Latest executive summary</h2>
-          {summary && <span className="text-xs text-slate-500">{summary.periodStart} → {summary.periodEnd}</span>}
-        </header>
-        {summary ? (
-          <article className="rounded border border-slate-800 bg-slate-900/40 p-5">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-              <span>source: <strong className="text-slate-200">{summary.source}</strong>{summary.llmProvider ? ` (${summary.llmProvider}/${summary.llmModel})` : ''}</span>
-              <span>·</span>
-              <span>data confidence {(summary.confidenceAverage * 100).toFixed(1)}%</span>
-            </div>
-            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-200">{summary.narrative}</pre>
-          </article>
-        ) : (
-          <p className="text-xs text-slate-500">No summary yet. <Link href="/review" className="text-sky-400 hover:text-sky-300">Go to Review</Link> to generate one.</p>
-        )}
-      </section>
+      {latestRun && (
+        <Card title="Latest ingestion" hint="Most recent file ingested through the canonical pipeline.">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Pill tone="sky">{latestRun.parser}</Pill>
+            <Pill tone="emerald">{latestRun.status}</Pill>
+            <span className="text-xs text-slate-400">{new Date(latestRun.createdAt).toLocaleString()}</span>
+            <span className="text-xs text-slate-300">
+              {Object.entries(latestRun.rowCounts ?? {}).map(([k, v]) => `${k}:${v}`).join(' · ')}
+            </span>
+            <div className="ml-auto"><ConfidenceBar value={latestConfidence ?? null} /></div>
+          </div>
+        </Card>
+      )}
+
+      {summary ? (
+        <Card
+          title="Latest executive summary"
+          hint={`${summary.periodStart} → ${summary.periodEnd}`}
+          actions={
+            <>
+              <Pill tone={summary.source === 'llm' ? 'violet' : 'slate'}>
+                <IconSparkles className="mr-1 h-3 w-3" /> {summary.source}
+              </Pill>
+              <Pill tone="emerald">{(summary.confidenceAverage * 100).toFixed(1)}% confidence</Pill>
+            </>
+          }
+        >
+          <SummaryNarrative text={summary.narrative} />
+        </Card>
+      ) : (
+        <Card title="Latest executive summary">
+          <p className="text-sm text-slate-400">
+            No summary yet. <Link href="/review" className="text-sky-400 hover:text-sky-300">Go to Review</Link> to generate one.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }
 
-function Stat({ label, value, surface, href }: { label: string; value: number | string; surface: string; href: string }) {
+function StatCard({
+  label, value, icon, tone, href,
+}: { label: string; value: number | undefined; icon: React.ReactNode; tone: 'sky' | 'emerald' | 'rose' | 'amber'; href: string }) {
+  const grad: Record<string, string> = {
+    sky:     'from-sky-500/10 ring-sky-500/30 text-sky-300',
+    emerald: 'from-emerald-500/10 ring-emerald-500/30 text-emerald-300',
+    rose:    'from-rose-500/10 ring-rose-500/30 text-rose-300',
+    amber:   'from-amber-400/10 ring-amber-400/30 text-amber-300',
+  };
   return (
-    <Link href={href} className="rounded border border-slate-800 bg-slate-900/40 px-4 py-3 transition hover:border-slate-600">
-      <p className="text-[10px] uppercase tracking-wider text-slate-400">{surface}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      <p className="text-xs text-slate-300">{label}</p>
+    <Link href={href} className={`group relative overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br ${grad[tone]} to-transparent p-4 transition hover:border-slate-600`}>
+      <div className="flex items-start justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+        <div className={`grid h-8 w-8 place-items-center rounded-lg bg-slate-900/70 ring-1 ${grad[tone].split(' ')[1]} ${grad[tone].split(' ')[2]}`}>{icon}</div>
+      </div>
+      <p className="mt-3 text-3xl font-semibold tabular-nums text-slate-50">{value ?? '—'}</p>
     </Link>
+  );
+}
+
+function SummaryNarrative({ text }: { text: string }) {
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1.5 text-sm leading-relaxed text-slate-200">
+      {lines.map((raw, i) => {
+        const line = raw;
+        if (line.trim() === '') return <div key={i} className="h-1.5" />;
+        if (line.startsWith('  -')) {
+          return <div key={i} className="ml-3 flex gap-2 text-slate-300"><span className="text-slate-500">·</span><span>{line.replace(/^\s*-\s?/, '')}</span></div>;
+        }
+        if (/^[A-Z][^:]*:\s*$/.test(line.trim())) {
+          return <p key={i} className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{line.trim().slice(0, -1)}</p>;
+        }
+        if (/^[^-\s].*:\s*.+$/.test(line)) {
+          const idx = line.indexOf(':');
+          return <p key={i}><span className="text-slate-400">{line.slice(0, idx)}:</span><span className="ml-1">{line.slice(idx + 1).trim()}</span></p>;
+        }
+        return <p key={i}>{line}</p>;
+      })}
+    </div>
   );
 }

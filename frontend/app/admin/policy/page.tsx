@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, GovernancePolicyRecord } from '../../../lib/api';
+import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../../components/ui';
 
 export default function PolicyAdmin() {
   const [policy, setPolicy] = useState<GovernancePolicyRecord | null>(null);
@@ -26,40 +27,43 @@ export default function PolicyAdmin() {
         method: 'POST', body: JSON.stringify({ projectKey: null, config: parsed, authoredBy: 'console' }),
       });
       setPolicy(next);
+      setConfig(JSON.stringify(next.config, null, 2));
       setSavedAt(new Date().toLocaleTimeString());
     } catch (e) { setError((e as Error).message); }
     finally { setSaving(false); }
   };
 
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-semibold">Governance policy</h1>
-        <p className="text-xs text-slate-400">FIDIC mappings, accountability, escalation tiers, and intervention library. Each save creates a new version; the prior version is retired but kept in history.</p>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Admin · Policy"
+        title="Governance policy"
+        description="FIDIC mappings, accountability, escalation tiers, and intervention library. Saves create a new version; prior versions stay in history."
+        actions={policy ? (
+          <>
+            <Pill tone="sky">v{policy.version}</Pill>
+            <Pill tone="slate">{policy.projectKey ?? 'global'}</Pill>
+            {savedAt && <Pill tone="emerald">saved {savedAt}</Pill>}
+          </>
+        ) : null}
+      />
 
-      {error && <div className="rounded border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+      <ErrorBanner message={error} />
 
       {policy && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span>Version <strong className="text-slate-200">{policy.version}</strong></span>
-            <span>·</span>
-            <span>scope: {policy.projectKey ?? 'global default'}</span>
-            <span>·</span>
-            <span>authored by {policy.authoredBy ?? 'system'}</span>
-            {savedAt && <span className="text-emerald-300">· saved {savedAt}</span>}
-          </div>
+        <Card>
           <textarea
             value={config}
             onChange={(e) => setConfig(e.target.value)}
             spellCheck={false}
-            className="h-[70vh] w-full rounded border border-slate-800 bg-black/40 p-3 font-mono text-[12px] leading-snug text-slate-200 focus:border-sky-500 focus:outline-none"
+            className="h-[68vh] w-full rounded-lg border border-slate-800 bg-black/40 p-4 font-mono text-[12px] leading-snug text-slate-200 focus:border-sky-500 focus:outline-none"
           />
-          <button onClick={save} disabled={saving} className="rounded bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
-            {saving ? 'Saving new version…' : 'Save new policy version'}
-          </button>
-        </div>
+          <div className="mt-3 flex justify-end">
+            <Button variant="success" size="sm" disabled={saving} onClick={save}>
+              {saving ? 'Saving new version…' : 'Save new policy version'}
+            </Button>
+          </div>
+        </Card>
       )}
     </div>
   );

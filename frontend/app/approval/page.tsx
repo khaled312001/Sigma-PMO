@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { AlertRecord, api, DecisionReview, GovernanceDecision } from '../../lib/api';
+import { IconCheck, IconX } from '../../components/Icons';
+import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
 interface Row {
   alert: AlertRecord;
@@ -11,7 +13,7 @@ interface Row {
 }
 
 export default function ApprovalPage() {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<Row[] | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,40 +50,60 @@ export default function ApprovalPage() {
     finally { setActing(null); }
   };
 
+  const actionTone = (a: string) => (a === 'approve' ? 'emerald' : a === 'reject' ? 'rose' : 'slate') as 'emerald' | 'rose' | 'slate';
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold">Approval</h1>
-        <p className="text-xs text-slate-400">Approve, reject, or acknowledge governance decisions. Every action is appended to the audit trail.</p>
-      </header>
+    <div className="space-y-7">
+      <PageHeader
+        eyebrow="Approval"
+        title="Approve · Reject · Acknowledge"
+        description="Take action on governance decisions. Every action is appended to the audit trail with actor + timestamp."
+      />
 
-      {error && <div className="rounded border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
+      <ErrorBanner message={error} />
 
-      <div className="space-y-2">
-        {rows.map(({ alert, decision, latestReview }) => (
-          <div key={decision.id} className="rounded border border-slate-800 bg-slate-900/40 p-3 text-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-slate-200">{alert.severity}</span>
-              <span className="font-mono text-xs text-slate-400">{alert.code}</span>
-              <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase tracking-wider text-slate-200">{decision.escalationLevel}</span>
-              <span className="text-xs text-slate-500">→ {decision.responsibleParty}</span>
-              {latestReview && (
-                <span className="ml-auto rounded bg-slate-800 px-2 py-0.5 text-[10px] uppercase tracking-wider text-slate-200">
-                  {latestReview.action} · {latestReview.performedByDisplay ?? 'system'} · {new Date(latestReview.createdAt).toLocaleString()}
-                </span>
+      {!rows ? (
+        <Card><p className="text-sm text-slate-400">Loading…</p></Card>
+      ) : rows.length === 0 ? (
+        <EmptyState title="No decisions yet" description="Run Evaluate + Decide on the Review page first." />
+      ) : (
+        <div className="space-y-2">
+          {rows.map(({ alert, decision, latestReview }) => (
+            <article key={decision.id} className="rounded-xl border border-slate-800 bg-slate-900/40 transition hover:border-slate-700">
+              <header className="flex flex-wrap items-center gap-2 px-4 py-3">
+                <SeverityBadge severity={alert.severity} />
+                <span className="font-mono text-xs text-slate-400">{alert.code}</span>
+                <Pill tone={decision.escalationLevel === 'L3' ? 'rose' : decision.escalationLevel === 'L2' ? 'amber' : 'slate'}>{decision.escalationLevel}</Pill>
+                <Pill tone="slate">→ {decision.responsibleParty}</Pill>
+                {latestReview && (
+                  <span className="ml-auto flex items-center gap-2 text-[11px] text-slate-400">
+                    <Pill tone={actionTone(latestReview.action)}>{latestReview.action}</Pill>
+                    by {latestReview.performedByDisplay ?? 'system'}
+                    · {new Date(latestReview.createdAt).toLocaleString()}
+                  </span>
+                )}
+              </header>
+              <div className="px-4 pb-3 text-sm text-slate-100">{alert.summary}</div>
+              {decision.fidicClause && (
+                <p className="border-t border-slate-800/70 bg-slate-950/40 px-4 py-2 text-xs text-slate-300">
+                  <span className="text-slate-500">FIDIC:</span> <strong className="text-slate-200">{decision.fidicClause}</strong>
+                </p>
               )}
-            </div>
-            <div className="mt-1 text-slate-200">{alert.summary}</div>
-            {decision.fidicClause && <div className="mt-1 text-xs text-slate-400">FIDIC: {decision.fidicClause}</div>}
-            <div className="mt-3 flex gap-2">
-              <button onClick={() => act(decision.id, 'approve')} disabled={acting === decision.id} className="rounded bg-emerald-600 px-3 py-1 text-xs text-white hover:bg-emerald-500 disabled:opacity-50">Approve</button>
-              <button onClick={() => act(decision.id, 'reject')} disabled={acting === decision.id} className="rounded bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-500 disabled:opacity-50">Reject</button>
-              <button onClick={() => act(decision.id, 'acknowledge')} disabled={acting === decision.id} className="rounded border border-slate-700 px-3 py-1 text-xs text-slate-200 hover:border-slate-500">Acknowledge</button>
-            </div>
-          </div>
-        ))}
-        {rows.length === 0 && <div className="rounded border border-slate-800 px-4 py-6 text-center text-sm text-slate-500">No decisions yet. Run <em>Evaluate + Decide</em> from the Review page.</div>}
-      </div>
+              <div className="flex gap-2 border-t border-slate-800/70 px-4 py-3">
+                <Button variant="success" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'approve')}>
+                  <IconCheck className="h-3.5 w-3.5" /> Approve
+                </Button>
+                <Button variant="danger" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'reject')}>
+                  <IconX className="h-3.5 w-3.5" /> Reject
+                </Button>
+                <Button variant="ghost" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'acknowledge')}>
+                  Acknowledge
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

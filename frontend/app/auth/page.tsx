@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { api, MeResponse, setApiKey } from '../../lib/api';
+import { Button, ErrorBanner } from '../../components/ui';
+import { IconActivity, IconLogIn } from '../../components/Icons';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -39,32 +41,41 @@ export default function AuthPage() {
 
   return (
     <div className="mx-auto max-w-md py-12">
-      <h1 className="text-xl font-semibold">Sign in</h1>
-      <p className="mt-1 text-xs text-slate-400">Paste your API key. Issued via <code className="rounded bg-slate-800 px-1 py-0.5">npm run user:create</code>.</p>
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-500/30">
+          <IconActivity className="h-5 w-5 text-sky-300" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+          <p className="text-xs text-slate-400">Paste your API key issued via the user CLI.</p>
+        </div>
+      </div>
 
       {bootstrap && (
-        <div className="mt-4 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          The platform is in <strong>bootstrap mode</strong>: no users exist yet, so all writes are open. Create the first admin from the backend host with:
-          <pre className="mt-2 rounded bg-black/40 p-2 text-[11px]">npm run user:create -- you@example.com sigma_admin "Your Name"</pre>
-          Then return here with the printed API key.
+        <div className="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p className="font-medium">Bootstrap mode</p>
+          <p className="mt-1 text-xs text-amber-100/80">No users exist yet — every endpoint is open. Create the first admin from the backend host:</p>
+          <pre className="mt-2 overflow-auto rounded-lg bg-black/40 p-2 text-[11px] text-amber-50">npm run user:create -- you@example.com sigma_admin &quot;Your Name&quot;</pre>
+          <p className="mt-2 text-xs text-amber-100/80">Then return here with the printed API key.</p>
         </div>
       )}
 
       <form onSubmit={submit} className="mt-6 space-y-3">
-        <label className="block text-xs text-slate-400">API key
+        <label className="block text-xs text-slate-400">
+          API key
           <input
             type="password"
             autoComplete="off"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            className="mt-1 block w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
+            className="mt-1 block w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 focus:border-sky-500 focus:outline-none"
             placeholder="sk_…"
           />
         </label>
-        {error && <p className="text-xs text-red-400">{error}</p>}
-        <button type="submit" disabled={busy || !key} className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50">
-          {busy ? 'Verifying…' : 'Sign in'}
-        </button>
+        <ErrorBanner message={error} />
+        <Button type="submit" variant="primary" disabled={busy || !key}>
+          <IconLogIn className="h-3.5 w-3.5" /> {busy ? 'Verifying…' : 'Sign in'}
+        </Button>
       </form>
     </div>
   );
