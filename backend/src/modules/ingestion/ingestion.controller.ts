@@ -27,6 +27,15 @@ export class IngestionController {
     return this.ingestion.ingest(basename(body.path), buffer);
   }
 
+  /** Browser-friendly upload: { filename, contentBase64 } JSON body. */
+  @Post('upload')
+  @HttpCode(200)
+  @RequiresCapability('canIngest')
+  async upload(@Body() body: { filename: string; contentBase64: string }): Promise<IngestionOutcome> {
+    const buffer = Buffer.from(body.contentBase64, 'base64');
+    return this.ingestion.ingest(body.filename, buffer);
+  }
+
   /** Recent ingestion runs (audit trail). */
   @Get('runs')
   listRuns(@Query('limit') limit?: string): Promise<IngestionRun[]> {

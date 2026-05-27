@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, Query, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
-import { Alert, GovernanceDecision, GovernancePolicy } from '../canonical/entities';
+import { Alert, DecisionReview, GovernanceDecision, GovernancePolicy, User } from '../canonical/entities';
 import { ConfidenceService } from './confidence.service';
+import { DecisionReviewService } from './decision-review.service';
 import { DecideDto } from './dto/decide.dto';
 import { UpsertPolicyDto } from './dto/upsert-policy.dto';
 import { EvidencePackage, EvidenceService } from './evidence.service';
@@ -18,6 +19,7 @@ export class GovernanceController {
     private readonly confidence: ConfidenceService,
     private readonly policies: GovernancePolicyService,
     private readonly decisions: GovernanceDecisionService,
+    private readonly reviews: DecisionReviewService,
     @InjectRepository(GovernanceDecision) private readonly decisionRepo: Repository<GovernanceDecision>,
     @InjectRepository(GovernancePolicy) private readonly policyRepo: Repository<GovernancePolicy>,
     @InjectRepository(Alert) private readonly alertRepo: Repository<Alert>,
@@ -62,6 +64,28 @@ export class GovernanceController {
   @RequiresCapability('canEvaluateRules')
   decide(@Body() body: DecideDto) {
     return this.decisions.decideForEvaluation(body.ruleEvaluationId, body.projectKey ?? null);
+  }
+
+  // ---- Decision review (approve / reject / acknowledge) ---------------
+
+  @Post('decisions/:id/review')
+  @HttpCode(200)
+  async reviewDecision(
+    @Param('id') id: string,
+    @Body() body: { action: string; comment?: string },
+    @Req() req: { user?: User },
+  ): Promise<DecisionReview> {
+    return this.reviews.record(id, body.action, body.comment ?? null, req.user ?? null);
+  }
+
+  @Get('decisions/:id/reviews')
+  reviewsForDecision(@Param('id') id: string): Promise<DecisionReview[]> {
+    return this.reviews.listForDecision(id);
+  }
+
+  @Get('alerts/:id/reviews')
+  reviewsForAlert(@Param('id') id: string): Promise<DecisionReview[]> {
+    return this.reviews.listForAlert(id);
   }
 
   @Get('decisions')

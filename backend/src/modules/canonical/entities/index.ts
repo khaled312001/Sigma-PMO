@@ -1,6 +1,7 @@
 import { Activity } from './activity.entity';
 import { Alert } from './alert.entity';
 import { ConfidenceScore } from './confidence-score.entity';
+import { DecisionReview } from './decision-review.entity';
 import { ExecutiveSummary } from './executive-summary.entity';
 import { GovernanceDecision } from './governance-decision.entity';
 import { GovernancePolicy } from './governance-policy.entity';
@@ -17,6 +18,7 @@ export {
   Activity,
   Alert,
   ConfidenceScore,
+  DecisionReview,
   ExecutiveSummary,
   GovernanceDecision,
   GovernancePolicy,
@@ -45,5 +47,6 @@ export const CANONICAL_ENTITIES = [
   ExecutiveSummary,
   GovernancePolicy,
   GovernanceDecision,
+  DecisionReview,
   User,
 ];
