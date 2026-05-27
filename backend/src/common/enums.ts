@@ -31,3 +31,17 @@ export enum ReportType {
   WEEKLY = 'weekly',
   MONTHLY = 'monthly',
 }
+
+/** Severity classification for rule-engine alerts (Cycle 2). */
+export enum AlertSeverity {
+  INFO = 'info',
+  WARNING = 'warning',
+  CRITICAL = 'critical',
+}
+
+/** Lifecycle of one rule-engine evaluation run. */
+export enum RuleEvaluationStatus {
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}

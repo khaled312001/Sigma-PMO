@@ -6,6 +6,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { RulesModule } from './modules/rules/rules.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
     DatabaseModule,
     CanonicalModule,
     IngestionModule,
+    RulesModule,
   ],
   controllers: [HealthController],
 })
