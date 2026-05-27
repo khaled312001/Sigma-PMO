@@ -14,12 +14,23 @@ export interface DatabaseConfig {
   logging: boolean;
 }
 
+export interface LlmConfig {
+  /** Empty string means LLM augmentation is disabled (deterministic only). */
+  apiKey: string;
+  provider: 'anthropic' | 'openai';
+  model: string;
+  maxTokens: number;
+}
+
 export interface AppConfiguration {
   env: string;
   port: number;
   database: DatabaseConfig;
   /** Directory where ingested source files are archived immutably. */
   storageDir: string;
+  llm: LlmConfig;
+  /** Comma-separated allowed origins for CORS (or empty for default localhost dev). */
+  corsOrigins: string;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -36,6 +47,13 @@ export default (): AppConfiguration => ({
   env: process.env.NODE_ENV ?? 'development',
   port: toInt(process.env.PORT, 3001),
   storageDir: process.env.STORAGE_DIR ?? '../data/storage',
+  corsOrigins: process.env.CORS_ORIGINS ?? '',
+  llm: {
+    apiKey: process.env.LLM_API_KEY ?? '',
+    provider: (process.env.LLM_PROVIDER ?? 'anthropic') as 'anthropic' | 'openai',
+    model: process.env.LLM_MODEL ?? 'claude-sonnet-4-6',
+    maxTokens: toInt(process.env.LLM_MAX_TOKENS, 1024),
+  },
   database: {
     host: process.env.DB_HOST ?? 'localhost',
     port: toInt(process.env.DB_PORT, 3306),

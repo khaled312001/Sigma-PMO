@@ -8,6 +8,7 @@ import { CanonicalModule } from './modules/canonical/canonical.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { RulesModule } from './modules/rules/rules.module';
+import { SummaryModule } from './modules/summary/summary.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { RulesModule } from './modules/rules/rules.module';
     GovernanceModule,
     IngestionModule,
     RulesModule,
+    SummaryModule,
   ],
   controllers: [HealthController],
 })
