@@ -2,20 +2,22 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { api, clearApiKey, MeResponse } from '../lib/api';
-import { Sidebar } from './Sidebar';
+import { MobileSidebar, Sidebar } from './Sidebar';
 import { ROLE_LABEL } from '../lib/capabilities';
 import { Pill } from './ui';
-import { IconLogIn, IconLogOut } from './Icons';
+import { IconLogIn, IconLogOut, IconMenu } from './Icons';
 
 const PROJECT_KEY = 'P-1000';
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -29,6 +31,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
+  // Close mobile menu on route change.
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
   const onSignOut = () => {
     clearApiKey();
     setMe({ authenticated: false, bootstrapMode: false, user: null });
@@ -38,14 +43,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <Sidebar me={me} onSignOut={onSignOut} />
+      <MobileSidebar me={me} onSignOut={onSignOut} open={mobileOpen} onClose={() => setMobileOpen(false)} />
+
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-800/70 bg-slate-950/80 px-6 py-3 backdrop-blur">
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span className="text-slate-500">Project</span>
-            <Pill tone="sky">{PROJECT_KEY} · Nile Tower</Pill>
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-800/70 bg-slate-950/80 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="rounded-lg border border-slate-800 p-1.5 text-slate-300 hover:border-slate-600 hover:text-white md:hidden"
+              aria-label="Open menu"
+            >
+              <IconMenu className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="hidden sm:inline text-slate-500">Project</span>
+              <Pill tone="sky">{PROJECT_KEY} · Nile Tower</Pill>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            {me?.bootstrapMode && <Pill tone="amber">Bootstrap mode</Pill>}
+            {me?.bootstrapMode && <Pill tone="amber" className="hidden sm:inline-flex">Bootstrap mode</Pill>}
             {me?.user ? (
               <AccountChip me={me} onSignOut={onSignOut} />
             ) : (
@@ -59,7 +75,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
-        <main className="flex-1 px-6 py-6 sm:px-10">
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
           {!loaded ? (
             <div className="grid h-64 place-items-center text-sm text-slate-400">Loading workspace…</div>
           ) : (
@@ -74,7 +90,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
 function AccountChip({ me, onSignOut }: { me: MeResponse; onSignOut: () => void }) {
   const [open, setOpen] = useState(false);
 
-  // Close on outside click via keydown Escape — light-weight (no portal needed).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
@@ -107,27 +122,9 @@ function AccountChip({ me, onSignOut }: { me: MeResponse; onSignOut: () => void 
               <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-500">{ROLE_LABEL[me.user.role]}</p>
             </div>
             <div className="my-1 border-t border-slate-800" />
-            <Link
-              href="/account"
-              onClick={() => setOpen(false)}
-              className="block rounded-md px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
-              role="menuitem"
-            >
-              Account details
-            </Link>
-            <Link
-              href="/help"
-              onClick={() => setOpen(false)}
-              className="block rounded-md px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
-              role="menuitem"
-            >
-              Help
-            </Link>
-            <button
-              onClick={() => { setOpen(false); onSignOut(); }}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs text-rose-300 hover:bg-rose-500/10"
-              role="menuitem"
-            >
+            <Link href="/account" onClick={() => setOpen(false)} className="block rounded-md px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800" role="menuitem">Account details</Link>
+            <Link href="/help" onClick={() => setOpen(false)} className="block rounded-md px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800" role="menuitem">Help</Link>
+            <button onClick={() => { setOpen(false); onSignOut(); }} className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-xs text-rose-300 hover:bg-rose-500/10" role="menuitem">
               <IconLogOut className="h-3.5 w-3.5" /> Sign out
             </button>
           </div>

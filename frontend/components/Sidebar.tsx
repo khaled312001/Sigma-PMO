@@ -16,6 +16,7 @@ import {
   IconShield,
   IconUpload,
   IconUsers,
+  IconX,
 } from './Icons';
 
 interface NavLink {
@@ -48,11 +49,12 @@ const SURFACE_ACCENT: Record<NavLink['surface'], string> = {
   admin:    'before:bg-rose-500',
 };
 
-function NavItem({ link, active }: { link: NavLink; active: boolean }) {
+function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean; onNavigate?: () => void }) {
   const Icon = link.icon;
   return (
     <Link
       href={link.href}
+      onClick={onNavigate}
       className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-r-full ${SURFACE_ACCENT[link.surface]} ${
         active
           ? 'bg-slate-800/70 text-white before:opacity-100'
@@ -65,7 +67,7 @@ function NavItem({ link, active }: { link: NavLink; active: boolean }) {
   );
 }
 
-function NavGroup({ title, links, pathname }: { title: string; links: NavLink[]; pathname: string }) {
+function NavGroup({ title, links, pathname, onNavigate }: { title: string; links: NavLink[]; pathname: string; onNavigate?: () => void }) {
   if (links.length === 0) return null;
   return (
     <div className="mt-5 first:mt-0">
@@ -73,33 +75,40 @@ function NavGroup({ title, links, pathname }: { title: string; links: NavLink[];
       <ul className="space-y-0.5">
         {links.map((link) => {
           const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
-          return <li key={link.href}><NavItem link={link} active={active} /></li>;
+          return <li key={link.href}><NavItem link={link} active={active} onNavigate={onNavigate} /></li>;
         })}
       </ul>
     </div>
   );
 }
 
-export function Sidebar({ me, onSignOut }: { me: MeResponse | null; onSignOut: () => void }) {
+function SidebarBody({
+  me, onSignOut, onNavigate, onClose,
+}: { me: MeResponse | null; onSignOut: () => void; onNavigate?: () => void; onClose?: () => void }) {
   const pathname = usePathname();
   const ops = OPERATIONS.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-slate-800/80 bg-slate-950/60 backdrop-blur">
+    <div className="flex h-full w-64 shrink-0 flex-col border-r border-slate-800/80 bg-slate-950/95 backdrop-blur">
       <div className="flex items-center gap-2.5 border-b border-slate-800/70 px-5 py-4">
         <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-500/30">
           <IconActivity className="h-4 w-4 text-sky-300" />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold tracking-tight">Sigma PMO</p>
           <p className="text-[11px] text-slate-400">Governance operating system</p>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden" aria-label="Close menu">
+            <IconX className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        <NavGroup title="Operations" links={ops} pathname={pathname} />
-        <NavGroup title="Admin" links={adm} pathname={pathname} />
+        <NavGroup title="Operations" links={ops} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title="Admin" links={adm} pathname={pathname} onNavigate={onNavigate} />
       </nav>
 
       <div className="border-t border-slate-800/70 px-3 py-3 text-xs">
@@ -114,10 +123,7 @@ export function Sidebar({ me, onSignOut }: { me: MeResponse | null; onSignOut: (
                 <p className="text-[10px] uppercase tracking-wider text-slate-400">{ROLE_LABEL[me.user.role]}</p>
               </div>
             </div>
-            <button
-              onClick={onSignOut}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white"
-            >
+            <button onClick={onSignOut} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white">
               <IconLogOut className="h-3.5 w-3.5" /> Sign out
             </button>
           </div>
@@ -127,11 +133,33 @@ export function Sidebar({ me, onSignOut }: { me: MeResponse | null; onSignOut: (
             <p className="mt-1 text-[11px] leading-snug text-amber-100/80">No users exist. Create the first admin via the CLI to enable RBAC.</p>
           </div>
         ) : (
-          <Link href="/auth" className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] text-sky-300 hover:border-sky-500/60 hover:text-sky-200">
+          <Link href="/auth" onClick={onNavigate} className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] text-sky-300 hover:border-sky-500/60 hover:text-sky-200">
             <IconLogIn className="h-3.5 w-3.5" /> Sign in with API key
           </Link>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Desktop sidebar (always-on at md+). */
+export function Sidebar({ me, onSignOut }: { me: MeResponse | null; onSignOut: () => void }) {
+  return (
+    <aside className="hidden md:flex">
+      <SidebarBody me={me} onSignOut={onSignOut} />
     </aside>
+  );
+}
+
+/** Mobile drawer (overlay). Controlled by Shell. */
+export function MobileSidebar({ me, onSignOut, open, onClose }: { me: MeResponse | null; onSignOut: () => void; open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-y-0 left-0 shadow-2xl">
+        <SidebarBody me={me} onSignOut={onSignOut} onNavigate={onClose} onClose={onClose} />
+      </div>
+    </div>
   );
 }

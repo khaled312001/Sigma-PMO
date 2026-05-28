@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AlertRecord, api, ExecutiveSummary, GovernanceDecision } from '../../lib/api';
 import { IconSparkles } from '../../components/Icons';
@@ -15,6 +15,7 @@ import {
 } from '../../components/ui';
 
 const PROJECT_KEY = 'P-1000';
+type Filter = 'all' | 'critical' | 'warning' | 'info';
 
 export default function ReviewPage() {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
@@ -23,6 +24,7 @@ export default function ReviewPage() {
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
 
   const refresh = useCallback(async () => {
     try {
@@ -40,6 +42,15 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  const counts = useMemo(() => ({
+    all:      alerts.length,
+    critical: alerts.filter((a) => a.severity === 'critical').length,
+    warning:  alerts.filter((a) => a.severity === 'warning').length,
+    info:     alerts.filter((a) => a.severity === 'info').length,
+  }), [alerts]);
+
+  const filtered = useMemo(() => filter === 'all' ? alerts : alerts.filter((a) => a.severity === filter), [alerts, filter]);
 
   const evaluate = async () => {
     setBusy(true); setError(null);
@@ -86,15 +97,28 @@ export default function ReviewPage() {
 
       <ErrorBanner message={error} />
 
-      {alerts.length === 0 ? (
-        <EmptyState
-          title="No alerts on this project"
-          description="Click Evaluate + Decide to run the rule engine on the current snapshot."
-          action={<Button variant="success" disabled={busy} onClick={evaluate}>{busy ? 'Working…' : 'Evaluate + Decide'}</Button>}
-        />
+      {alerts.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <FilterChip label="All"      value="all"      active={filter === 'all'}      count={counts.all}      onClick={setFilter} />
+          <FilterChip label="Critical" value="critical" active={filter === 'critical'} count={counts.critical} onClick={setFilter} tone="rose" />
+          <FilterChip label="Warning"  value="warning"  active={filter === 'warning'}  count={counts.warning}  onClick={setFilter} tone="amber" />
+          <FilterChip label="Info"     value="info"     active={filter === 'info'}     count={counts.info}     onClick={setFilter} tone="sky" />
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        alerts.length === 0 ? (
+          <EmptyState
+            title="No alerts on this project"
+            description="Click Evaluate + Decide to run the rule engine on the current snapshot."
+            action={<Button variant="success" disabled={busy} onClick={evaluate}>{busy ? 'Working…' : 'Evaluate + Decide'}</Button>}
+          />
+        ) : (
+          <EmptyState title={`No ${filter} alerts`} description="Try a different filter." />
+        )
       ) : (
         <section className="space-y-2">
-          {alerts.map((a) => {
+          {filtered.map((a) => {
             const decs = decisionsByAlert[a.id] ?? [];
             const latest = decs[0];
             return (
@@ -147,5 +171,24 @@ export default function ReviewPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function FilterChip({ label, value, active, count, onClick, tone = 'slate' }: { label: string; value: Filter; active: boolean; count: number; onClick: (v: Filter) => void; tone?: 'slate' | 'rose' | 'amber' | 'sky' }) {
+  const accents: Record<string, string> = {
+    slate: 'data-[active=true]:border-slate-400/40 data-[active=true]:bg-slate-700/40 data-[active=true]:text-white',
+    rose:  'data-[active=true]:border-rose-500/60 data-[active=true]:bg-rose-500/15 data-[active=true]:text-rose-100',
+    amber: 'data-[active=true]:border-amber-400/60 data-[active=true]:bg-amber-400/10 data-[active=true]:text-amber-100',
+    sky:   'data-[active=true]:border-sky-500/60 data-[active=true]:bg-sky-500/10 data-[active=true]:text-sky-100',
+  };
+  return (
+    <button
+      data-active={active}
+      onClick={() => onClick(value)}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 transition hover:border-slate-500 ${accents[tone]}`}
+    >
+      {label}
+      <span className="rounded-full bg-slate-800 px-1.5 py-px text-[10px] tabular-nums text-slate-200">{count}</span>
+    </button>
   );
 }
