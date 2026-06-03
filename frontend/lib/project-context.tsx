@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { api } from './api';
+import { useMe } from './me-context';
 
 export interface ProjectSummary {
   id: string;
@@ -48,9 +49,10 @@ function writeStoredKey(key: string): void {
 }
 
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
+  const { me } = useMe();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [currentKey, setCurrentKey] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -71,7 +73,12 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  // Only fetch /projects once the user is authenticated; anonymous would
+  // just 401 and surface a misleading "No projects ingested" pill.
+  useEffect(() => {
+    if (me?.user) void refresh();
+    else { setProjects([]); setCurrentKey(null); }
+  }, [me?.user, refresh]);
 
   const setCurrentByKey = useCallback((businessKey: string) => {
     setCurrentKey(businessKey);

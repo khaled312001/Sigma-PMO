@@ -30,6 +30,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
+  // Unauthenticated users belong on /auth, period. No chrome, no AuthGate
+  // hero inside the shell — full split-screen sign-in.
+  useEffect(() => {
+    if (loaded && !me?.user && !FULLSCREEN_ROUTES.has(pathname)) {
+      router.replace('/auth');
+    }
+  }, [loaded, me?.user, pathname, router]);
+
   const onSignOut = async () => {
     const ok = await confirm({
       title: t('signOutDialog.title'),
@@ -47,6 +55,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
   // Full-screen pages render without the shell chrome.
   if (FULLSCREEN_ROUTES.has(pathname)) {
     return <>{children}</>;
+  }
+
+  // While the redirect to /auth is in flight, render a minimal stub —
+  // avoids flashing the sidebar/topbar to anonymous users.
+  if (loaded && !me?.user) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-950 text-sm text-slate-400">
+        {t('common.loadingWorkspace')}
+      </div>
+    );
   }
 
   return (

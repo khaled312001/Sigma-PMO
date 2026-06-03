@@ -31,12 +31,13 @@ export function ProjectSwitcher() {
   }, [open]);
 
   if (loading && !current) {
-    return <Pill tone="slate">Loading project…</Pill>;
+    return <Pill tone="slate">…</Pill>;
   }
 
-  if (!current) {
-    return <Pill tone="amber">No projects ingested</Pill>;
-  }
+  // No current project (anonymous + empty DB) → render nothing. The Shell
+  // redirects anonymous to /auth anyway; this prevents a misleading "no
+  // projects" pill from flashing during the transition.
+  if (!current) return null;
 
   // With a single project (the common Layer-1 case), still show the pill but
   // disable the click-to-switch UI to keep things visually obvious.
@@ -59,7 +60,7 @@ export function ProjectSwitcher() {
         {switchable && <IconChevronRight className="h-3 w-3 rotate-90" />}
       </button>
       {open && switchable && (
-        <div role="menu" className="absolute left-0 z-30 mt-2 max-h-80 w-72 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-1 shadow-xl">
+        <div role="menu" className="absolute start-0 z-30 mt-2 max-h-80 w-72 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-1 shadow-xl">
           {projects.map((p) => (
             <button
               key={p.id}

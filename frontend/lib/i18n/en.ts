@@ -65,6 +65,15 @@ export const en: Dictionary = {
       evidence: 'Every alert traceable to its source row',
       fidic: 'FIDIC 2017 + PMI/PMBOK mapped decisions',
     },
+    standards: {
+      heading: 'Built on',
+      fidic: 'FIDIC 2017',
+      pmi: 'PMI / PMBOK',
+      append: 'Append-only canonical model',
+      sha: 'SHA-256 evidence',
+    },
+    keyHint: 'Your key is stored only in this browser. Sign out to clear it.',
+    needHelp: 'No key yet? Ask your Sigma admin to issue one with the host CLI.',
     bootstrap: {
       title: 'Bootstrap mode',
       body: 'No users exist yet. Create the first admin from the backend host:',
@@ -194,6 +203,9 @@ export interface Dictionary {
     welcome: string; signedOut: string;
     valueProp: { governance: string; evidence: string; fidic: string };
     bootstrap: { title: string; body: string; hint: string };
+    standards: { heading: string; fidic: string; pmi: string; append: string; sha: string };
+    keyHint: string;
+    needHelp: string;
   };
   gate: {
     signInTo: string; signInGeneric: string; signInBody: string;
