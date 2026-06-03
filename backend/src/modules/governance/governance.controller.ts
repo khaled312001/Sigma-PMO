@@ -70,6 +70,7 @@ export class GovernanceController {
 
   @Post('decisions/:id/review')
   @HttpCode(200)
+  @RequiresCapability('canEvaluateRules')
   async reviewDecision(
     @Param('id') id: string,
     @Body() body: { action: string; comment?: string },

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -20,7 +20,13 @@ export class DecisionReviewService {
     actor: User | null,
   ): Promise<DecisionReview> {
     if (!ALLOWED_ACTIONS.has(action)) {
-      throw new NotFoundException(`Unknown action "${action}"; allowed: approve | reject | acknowledge`);
+      throw new BadRequestException(`Unknown action "${action}"; allowed: approve | reject | acknowledge`);
+    }
+    // Audit-trail integrity: every review must attribute to a real actor.
+    // The controller's @RequiresCapability is the primary gate; this throws
+    // if a future code path ever tries to record an anonymous review.
+    if (!actor || !actor.id) {
+      throw new UnauthorizedException('decision review requires an authenticated actor');
     }
     const decision = await this.decisions.findOne({ where: { id: decisionId } });
     if (!decision) throw new NotFoundException(`Decision ${decisionId} not found`);
@@ -30,8 +36,8 @@ export class DecisionReviewService {
       alertId: decision.alertId,
       action,
       comment,
-      performedByUserId: actor?.id ?? null,
-      performedByDisplay: actor?.displayName ?? actor?.email ?? null,
+      performedByUserId: actor.id,
+      performedByDisplay: actor.displayName ?? actor.email,
     });
     return this.reviews.save(review);
   }

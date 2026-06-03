@@ -7,6 +7,13 @@ import { UuidEntity } from '../../../common/entities/base.entity';
  * approved / rejected / acknowledged, when, and any comment. The "current
  * status" of a decision is the latest review action for it. Append-only so
  * the audit trail is preserved (matches the canonical-model convention).
+ *
+ * Actor invariant: every row written through DecisionReviewService.record()
+ * must attribute to an authenticated User. The controller route is gated by
+ * @RequiresCapability('canEvaluateRules'); the service throws if the actor
+ * resolves to null. performedByUserId remains nullable to leave room for
+ * future system actors (eg scheduled auto-acknowledgements), but those must
+ * still populate performedByDisplay.
  */
 @Entity('decision_review')
 export class DecisionReview extends UuidEntity {
