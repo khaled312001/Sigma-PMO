@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { useConfirm } from '../../components/ConfirmDialog';
+import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, DecisionReview, GovernanceDecision } from '../../lib/api';
 import { IconCheck, IconX } from '../../components/Icons';
-import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill, SeverityBadge } from '../../components/ui';
+import { Button, Card, EmptyState, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
 interface Row {
   alert: AlertRecord;
@@ -13,9 +15,10 @@ interface Row {
 }
 
 export default function ApprovalPage() {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [acting, setActing] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -26,27 +29,44 @@ export default function ApprovalPage() {
       const decByAlert = new Map<string, GovernanceDecision>();
       for (const d of decisions) if (!decByAlert.has(d.alertId)) decByAlert.set(d.alertId, d);
 
-      const pairs: Row[] = [];
-      for (const a of alerts) {
-        const d = decByAlert.get(a.id);
-        if (!d) continue;
-        const reviews = await api<DecisionReview[]>(`/governance/decisions/${d.id}/reviews`);
-        pairs.push({ alert: a, decision: d, latestReview: reviews[0] ?? null });
-      }
+      // Batch all per-decision review fetches in parallel (N+1 → 1 round of parallel calls).
+      const inFlight = alerts
+        .map((a) => ({ a, d: decByAlert.get(a.id) }))
+        .filter((p): p is { a: AlertRecord; d: GovernanceDecision } => p.d !== undefined);
+
+      const reviews = await Promise.all(
+        inFlight.map(({ d }) => api<DecisionReview[]>(`/governance/decisions/${d.id}/reviews`)),
+      );
+
+      const pairs: Row[] = inFlight.map(({ a, d }, i) => ({
+        alert: a,
+        decision: d,
+        latestReview: reviews[i][0] ?? null,
+      }));
       setRows(pairs);
-    } catch (e) { setError((e as Error).message); }
-  }, []);
+    } catch (e) { toast.error('Failed to load decisions', (e as Error).message); }
+  }, [toast]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const act = async (decisionId: string, action: 'approve' | 'reject' | 'acknowledge') => {
-    setActing(decisionId); setError(null);
+    if (action === 'reject') {
+      const ok = await confirm({
+        title: 'Reject this decision?',
+        description: 'Rejection is appended to the audit trail. You can still acknowledge or approve later.',
+        confirmLabel: 'Reject',
+        destructive: true,
+      });
+      if (!ok) return;
+    }
+    setActing(decisionId);
     try {
       await api(`/governance/decisions/${decisionId}/review`, {
         method: 'POST', body: JSON.stringify({ action }),
       });
+      toast.success(`Decision ${action}d`);
       await refresh();
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { toast.error('Action failed', (e as Error).message); }
     finally { setActing(null); }
   };
 
@@ -59,8 +79,6 @@ export default function ApprovalPage() {
         title="Approve · Reject · Acknowledge"
         description="Take action on governance decisions. Every action is appended to the audit trail with actor + timestamp."
       />
-
-      <ErrorBanner message={error} />
 
       {!rows ? (
         <Card><p className="text-sm text-slate-400">Loading…</p></Card>
@@ -86,7 +104,7 @@ export default function ApprovalPage() {
               <div className="px-4 pb-3 text-sm text-slate-100">{alert.summary}</div>
               {decision.fidicClause && (
                 <p className="border-t border-slate-800/70 bg-slate-950/40 px-4 py-2 text-xs text-slate-300">
-                  <span className="text-slate-500">FIDIC:</span> <strong className="text-slate-200">{decision.fidicClause}</strong>
+                  <span className="text-slate-400">FIDIC:</span> <strong className="text-slate-200">{decision.fidicClause}</strong>
                 </p>
               )}
               <div className="flex gap-2 border-t border-slate-800/70 px-4 py-3">

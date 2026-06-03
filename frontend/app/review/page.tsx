@@ -2,28 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, ExecutiveSummary, GovernanceDecision } from '../../lib/api';
+import { useCurrentProjectKey } from '../../lib/project-context';
 import { IconSparkles } from '../../components/Icons';
 import {
   Button,
   Card,
   EmptyState,
-  ErrorBanner,
   PageHeader,
   Pill,
   SeverityBadge,
 } from '../../components/ui';
 
-const PROJECT_KEY = 'P-1000';
 type Filter = 'all' | 'critical' | 'warning' | 'info';
 
 export default function ReviewPage() {
+  const projectKey = useCurrentProjectKey();
+  const toast = useToast();
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [decisionsByAlert, setDecisionsByAlert] = useState<Record<string, GovernanceDecision[]>>({});
   const [busy, setBusy] = useState(false);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
   const refresh = useCallback(async () => {
@@ -38,8 +39,8 @@ export default function ReviewPage() {
       for (const d of decs) (map[d.alertId] ??= []).push(d);
       setDecisionsByAlert(map);
       setSummary(s[0] ?? null);
-    } catch (e) { setError((e as Error).message); }
-  }, []);
+    } catch (e) { toast.error('Failed to load alerts', (e as Error).message); }
+  }, [toast]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -53,16 +54,17 @@ export default function ReviewPage() {
   const filtered = useMemo(() => filter === 'all' ? alerts : alerts.filter((a) => a.severity === filter), [alerts, filter]);
 
   const evaluate = async () => {
-    setBusy(true); setError(null);
+    setBusy(true);
     try {
-      const evalResult = await api<{ evaluationId: string }>('/rules/evaluate', {
-        method: 'POST', body: JSON.stringify({ projectKey: PROJECT_KEY }),
+      const evalResult = await api<{ evaluationId: string; alertCount: number }>('/rules/evaluate', {
+        method: 'POST', body: JSON.stringify({ projectKey }),
       });
-      await api('/governance/decide', {
-        method: 'POST', body: JSON.stringify({ ruleEvaluationId: evalResult.evaluationId, projectKey: PROJECT_KEY }),
+      const dec = await api<{ decisionCount: number }>('/governance/decide', {
+        method: 'POST', body: JSON.stringify({ ruleEvaluationId: evalResult.evaluationId, projectKey }),
       });
       await refresh();
-    } catch (e) { setError((e as Error).message); }
+      toast.success('Evaluation complete', `${evalResult.alertCount} alerts · ${dec.decisionCount} decisions`);
+    } catch (e) { toast.error('Evaluation failed', (e as Error).message); }
     finally { setBusy(false); }
   };
 
@@ -70,10 +72,11 @@ export default function ReviewPage() {
     setGeneratingSummary(true);
     try {
       const next = await api<ExecutiveSummary>('/summary/generate', {
-        method: 'POST', body: JSON.stringify({ projectKey: PROJECT_KEY, periodDays: 7 }),
+        method: 'POST', body: JSON.stringify({ projectKey, periodDays: 7 }),
       });
       setSummary(next);
-    } catch (e) { setError((e as Error).message); }
+      toast.success('Summary generated', `Source: ${next.source}`);
+    } catch (e) { toast.error('Summary failed', (e as Error).message); }
     finally { setGeneratingSummary(false); }
   };
 
@@ -86,7 +89,7 @@ export default function ReviewPage() {
         actions={
           <>
             <Button variant="success" size="sm" disabled={busy} onClick={evaluate}>
-              {busy ? 'Working…' : `Evaluate + Decide ${PROJECT_KEY}`}
+              {busy ? 'Working…' : `Evaluate + Decide ${projectKey}`}
             </Button>
             <Button variant="primary" size="sm" disabled={generatingSummary} onClick={generateSummary}>
               <IconSparkles className="h-3.5 w-3.5" /> {generatingSummary ? 'Generating…' : 'Weekly summary'}
@@ -95,10 +98,8 @@ export default function ReviewPage() {
         }
       />
 
-      <ErrorBanner message={error} />
-
       {alerts.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter alerts by severity">
           <FilterChip label="All"      value="all"      active={filter === 'all'}      count={counts.all}      onClick={setFilter} />
           <FilterChip label="Critical" value="critical" active={filter === 'critical'} count={counts.critical} onClick={setFilter} tone="rose" />
           <FilterChip label="Warning"  value="warning"  active={filter === 'warning'}  count={counts.warning}  onClick={setFilter} tone="amber" />
@@ -137,14 +138,14 @@ export default function ReviewPage() {
                 {latest && (
                   <div className="grid gap-1.5 border-t border-slate-800/70 bg-slate-950/40 px-4 py-3 text-xs">
                     {latest.fidicClause && (
-                      <p className="text-slate-300"><span className="text-slate-500">FIDIC:</span> <strong className="text-slate-200">{latest.fidicClause}</strong>{latest.fidicNotice ? ` — ${latest.fidicNotice}` : ''}</p>
+                      <p className="text-slate-300"><span className="text-slate-400">FIDIC:</span> <strong className="text-slate-200">{latest.fidicClause}</strong>{latest.fidicNotice ? ` — ${latest.fidicNotice}` : ''}</p>
                     )}
                     {latest.notifyParties.length > 0 && (
-                      <p className="text-slate-300"><span className="text-slate-500">Notify:</span> {latest.notifyParties.join(', ')}</p>
+                      <p className="text-slate-300"><span className="text-slate-400">Notify:</span> {latest.notifyParties.join(', ')}</p>
                     )}
                     {latest.interventions.length > 0 && (
                       <div className="text-slate-300">
-                        <p className="text-slate-500">Suggested interventions:</p>
+                        <p className="text-slate-400">Suggested interventions:</p>
                         <ul className="ml-4 mt-1 list-disc space-y-0.5 text-slate-300">{latest.interventions.map((i, idx) => <li key={idx}>{i}</li>)}</ul>
                       </div>
                     )}
@@ -184,8 +185,9 @@ function FilterChip({ label, value, active, count, onClick, tone = 'slate' }: { 
   return (
     <button
       data-active={active}
+      aria-pressed={active}
       onClick={() => onClick(value)}
-      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 transition hover:border-slate-500 ${accents[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 transition hover:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${accents[tone]}`}
     >
       {label}
       <span className="rounded-full bg-slate-800 px-1.5 py-px text-[10px] tabular-nums text-slate-200">{count}</span>
