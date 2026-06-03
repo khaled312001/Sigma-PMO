@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../components/ToastProvider';
 import { api, IngestionRun } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
+import { useI18n } from '../../lib/i18n';
 import { IconRefresh, IconUpload } from '../../components/Icons';
 import { Button, Card, ConfidenceBar, EmptyState, PageHeader, Pill } from '../../components/ui';
 
@@ -24,6 +25,7 @@ export default function InputPageRoute() {
 }
 
 function InputPage() {
+  const { t } = useI18n();
   const toast = useToast();
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -76,9 +78,9 @@ function InputPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Input"
-        title="Upload source data"
-        description="Primavera P6 (.xer / .xml), Microsoft Project XML, Excel (.xlsx), or CSV. Each upload is content-addressed (SHA-256) and ingested through parse → validate → normalize → score."
+        eyebrow={t('input.eyebrow')}
+        title={t('input.title')}
+        description={t('input.description')}
         actions={<Button variant="ghost" size="sm" onClick={refresh}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>}
       />
 

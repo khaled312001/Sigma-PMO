@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../../components/ToastProvider';
 import { api, GovernancePolicyRecord } from '../../../lib/api';
 import { AuthGate } from '../../../components/AuthGate';
+import { useI18n } from '../../../lib/i18n';
 import { Button, Card, PageHeader, Pill } from '../../../components/ui';
 
 export default function PolicyAdminRoute() {
@@ -13,6 +14,7 @@ export default function PolicyAdminRoute() {
 
 function PolicyAdmin() {
   const toast = useToast();
+  const { t } = useI18n();
   const [policy, setPolicy] = useState<GovernancePolicyRecord | null>(null);
   const [config, setConfig] = useState('');
   const [saving, setSaving] = useState(false);
@@ -57,9 +59,9 @@ function PolicyAdmin() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Admin · Policy"
-        title="Governance policy"
-        description="FIDIC mappings, accountability, escalation tiers, and intervention library. Saves create a new version; prior versions stay in history."
+        eyebrow={t('admin.policy.eyebrow')}
+        title={t('admin.policy.title')}
+        description={t('admin.policy.description')}
         actions={policy ? (
           <>
             <Pill tone="sky">v{policy.version}</Pill>

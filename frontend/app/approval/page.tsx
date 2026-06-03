@@ -6,6 +6,7 @@ import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, DecisionReview, GovernanceDecision } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
+import { useI18n } from '../../lib/i18n';
 import { IconCheck, IconX } from '../../components/Icons';
 import { Button, Card, EmptyState, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
@@ -20,6 +21,7 @@ export default function ApprovalPageRoute() {
 }
 
 function ApprovalPage() {
+  const { t } = useI18n();
   const toast = useToast();
   const confirm = useConfirm();
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -58,9 +60,9 @@ function ApprovalPage() {
   const act = async (decisionId: string, action: 'approve' | 'reject' | 'acknowledge') => {
     if (action === 'reject') {
       const ok = await confirm({
-        title: 'Reject this decision?',
-        description: 'Rejection is appended to the audit trail. You can still acknowledge or approve later.',
-        confirmLabel: 'Reject',
+        title: t('approval.rejectConfirmTitle'),
+        description: t('approval.rejectConfirmBody'),
+        confirmLabel: t('approval.reject'),
         destructive: true,
       });
       if (!ok) return;
@@ -70,9 +72,9 @@ function ApprovalPage() {
       await api(`/governance/decisions/${decisionId}/review`, {
         method: 'POST', body: JSON.stringify({ action }),
       });
-      toast.success(`Decision ${action}d`);
+      toast.success(t('approval.actionDone', { action: t(`approval.${action}`) }));
       await refresh();
-    } catch (e) { toast.error('Action failed', (e as Error).message); }
+    } catch (e) { toast.error(t('approval.actionFailed'), (e as Error).message); }
     finally { setActing(null); }
   };
 
@@ -81,28 +83,28 @@ function ApprovalPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Approval"
-        title="Approve · Reject · Acknowledge"
-        description="Take action on governance decisions. Every action is appended to the audit trail with actor + timestamp."
+        eyebrow={t('approval.eyebrow')}
+        title={t('approval.title')}
+        description={t('approval.description')}
       />
 
       {!rows ? (
-        <Card><p className="text-sm text-slate-400">Loading…</p></Card>
+        <Card><p className="text-sm text-slate-400">{t('common.loading')}</p></Card>
       ) : rows.length === 0 ? (
-        <EmptyState title="No decisions yet" description="Run Evaluate + Decide on the Review page first." />
+        <EmptyState title={t('approval.noDecisions')} description={t('approval.noDecisionsHint')} />
       ) : (
         <div className="space-y-2">
           {rows.map(({ alert, decision, latestReview }) => (
             <article key={decision.id} className="rounded-xl border border-slate-800 bg-slate-900/40 transition hover:border-slate-700">
               <header className="flex flex-wrap items-center gap-2 px-4 py-3">
                 <SeverityBadge severity={alert.severity} />
-                <span className="font-mono text-xs text-slate-400">{alert.code}</span>
+                <span className="font-mono text-xs text-slate-400" dir="ltr">{alert.code}</span>
                 <Pill tone={decision.escalationLevel === 'L3' ? 'rose' : decision.escalationLevel === 'L2' ? 'amber' : 'slate'}>{decision.escalationLevel}</Pill>
                 <Pill tone="slate">→ {decision.responsibleParty}</Pill>
                 {latestReview && (
-                  <span className="ml-auto flex items-center gap-2 text-[11px] text-slate-400">
-                    <Pill tone={actionTone(latestReview.action)}>{latestReview.action}</Pill>
-                    by {latestReview.performedByDisplay ?? 'system'}
+                  <span className="ms-auto flex items-center gap-2 text-[11px] text-slate-400">
+                    <Pill tone={actionTone(latestReview.action)}>{t(`approval.${latestReview.action as 'approve'|'reject'|'acknowledge'}`)}</Pill>
+                    {t('approval.by')} {latestReview.performedByDisplay ?? 'system'}
                     · {new Date(latestReview.createdAt).toLocaleString()}
                   </span>
                 )}
@@ -110,18 +112,18 @@ function ApprovalPage() {
               <div className="px-4 pb-3 text-sm text-slate-100">{alert.summary}</div>
               {decision.fidicClause && (
                 <p className="border-t border-slate-800/70 bg-slate-950/40 px-4 py-2 text-xs text-slate-300">
-                  <span className="text-slate-400">FIDIC:</span> <strong className="text-slate-200">{decision.fidicClause}</strong>
+                  <span className="text-slate-400">FIDIC:</span> <strong className="text-slate-200" dir="ltr">{decision.fidicClause}</strong>
                 </p>
               )}
               <div className="flex gap-2 border-t border-slate-800/70 px-4 py-3">
                 <Button variant="success" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'approve')}>
-                  <IconCheck className="h-3.5 w-3.5" /> Approve
+                  <IconCheck className="h-3.5 w-3.5" /> {t('approval.approve')}
                 </Button>
                 <Button variant="danger" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'reject')}>
-                  <IconX className="h-3.5 w-3.5" /> Reject
+                  <IconX className="h-3.5 w-3.5" /> {t('approval.reject')}
                 </Button>
                 <Button variant="ghost" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'acknowledge')}>
-                  Acknowledge
+                  {t('approval.acknowledge')}
                 </Button>
               </div>
             </article>

@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { MeResponse } from '../lib/api';
-import { CAPABILITIES, ROLE_LABEL } from '../lib/capabilities';
+import { CAPABILITIES } from '../lib/capabilities';
+import { useI18n } from '../lib/i18n';
 import {
   IconActivity,
   IconApproval,
@@ -21,23 +22,23 @@ import {
 
 interface NavLink {
   href: string;
-  label: string;
+  labelKey: string;
   surface: 'overview' | 'input' | 'review' | 'approval' | 'evidence' | 'admin';
   icon: React.ComponentType<{ className?: string }>;
   visible: (me: MeResponse | null) => boolean;
 }
 
 const OPERATIONS: NavLink[] = [
-  { href: '/',         label: 'Overview', surface: 'overview', icon: IconDashboard, visible: () => true },
-  { href: '/input',    label: 'Input',    surface: 'input',    icon: IconUpload,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canIngest },
-  { href: '/review',   label: 'Review',   surface: 'review',   icon: IconReview,    visible: () => true },
-  { href: '/evidence', label: 'Evidence', surface: 'evidence', icon: IconEvidence,  visible: () => true },
-  { href: '/approval', label: 'Approval', surface: 'approval', icon: IconApproval,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
+  { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
+  { href: '/input',    labelKey: 'nav.input',    surface: 'input',    icon: IconUpload,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canIngest },
+  { href: '/review',   labelKey: 'nav.review',   surface: 'review',   icon: IconReview,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
+  { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
 ];
 
 const ADMIN: NavLink[] = [
-  { href: '/admin/policy', label: 'Policy', surface: 'admin', icon: IconShield, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
-  { href: '/admin/users',  label: 'Users',  surface: 'admin', icon: IconUsers,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
+  { href: '/admin/policy', labelKey: 'nav.policy', surface: 'admin', icon: IconShield, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
+  { href: '/admin/users',  labelKey: 'nav.users',  surface: 'admin', icon: IconUsers,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
 ];
 
 const SURFACE_ACCENT: Record<NavLink['surface'], string> = {
@@ -51,18 +52,19 @@ const SURFACE_ACCENT: Record<NavLink['surface'], string> = {
 
 function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean; onNavigate?: () => void }) {
   const Icon = link.icon;
+  const { t } = useI18n();
   return (
     <Link
       href={link.href}
       onClick={onNavigate}
-      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-r-full ${SURFACE_ACCENT[link.surface]} ${
+      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition before:absolute before:start-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-e-full ${SURFACE_ACCENT[link.surface]} ${
         active
           ? 'bg-slate-800/70 text-white before:opacity-100'
           : 'text-slate-300 before:opacity-0 hover:bg-slate-800/40 hover:text-white hover:before:opacity-60'
       }`}
     >
       <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`} />
-      <span>{link.label}</span>
+      <span>{t(link.labelKey)}</span>
     </Link>
   );
 }
@@ -86,29 +88,30 @@ function SidebarBody({
   me, onSignOut, onNavigate, onClose,
 }: { me: MeResponse | null; onSignOut: () => void; onNavigate?: () => void; onClose?: () => void }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const ops = OPERATIONS.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
 
   return (
-    <div className="flex h-full w-64 shrink-0 flex-col border-r border-slate-800/80 bg-slate-950/95 backdrop-blur">
+    <div className="flex h-full w-64 shrink-0 flex-col border-e border-slate-800/80 bg-slate-950/95 backdrop-blur">
       <div className="flex items-center gap-2.5 border-b border-slate-800/70 px-5 py-4">
         <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-500/30">
           <IconActivity className="h-4 w-4 text-sky-300" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold tracking-tight">Sigma PMO</p>
-          <p className="text-[11px] text-slate-400">Governance operating system</p>
+          <p className="text-sm font-semibold tracking-tight">{t('brand.name')}</p>
+          <p className="text-[11px] text-slate-400">{t('brand.tagline')}</p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden" aria-label="Close menu">
+          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white md:hidden" aria-label={t('nav.closeMenu')}>
             <IconX className="h-4 w-4" />
           </button>
         )}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        <NavGroup title="Operations" links={ops} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title="Admin" links={adm} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.operations')} links={ops} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} onNavigate={onNavigate} />
       </nav>
 
       <div className="border-t border-slate-800/70 px-3 py-3 text-xs">
@@ -120,21 +123,21 @@ function SidebarBody({
               </div>
               <div className="min-w-0">
                 <p className="truncate font-medium text-slate-100">{me.user.displayName}</p>
-                <p className="text-[10px] uppercase tracking-wider text-slate-400">{ROLE_LABEL[me.user.role]}</p>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">{t(`roles.${me.user.role}`)}</p>
               </div>
             </div>
             <button onClick={onSignOut} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] text-slate-300 hover:border-slate-500 hover:text-white">
-              <IconLogOut className="h-3.5 w-3.5" /> Sign out
+              <IconLogOut className="h-3.5 w-3.5" /> {t('nav.signOut')}
             </button>
           </div>
         ) : me?.bootstrapMode ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-200">Bootstrap mode</p>
-            <p className="mt-1 text-[11px] leading-snug text-amber-100/80">No users exist. Create the first admin via the CLI to enable RBAC.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-200">{t('auth.bootstrap.title')}</p>
+            <p className="mt-1 text-[11px] leading-snug text-amber-100/80">{t('auth.bootstrap.body')}</p>
           </div>
         ) : (
           <Link href="/auth" onClick={onNavigate} className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 px-2 py-1.5 text-[11px] text-sky-300 hover:border-sky-500/60 hover:text-sky-200">
-            <IconLogIn className="h-3.5 w-3.5" /> Sign in with API key
+            <IconLogIn className="h-3.5 w-3.5" /> {t('nav.signInWithKey')}
           </Link>
         )}
       </div>
@@ -157,7 +160,7 @@ export function MobileSidebar({ me, onSignOut, open, onClose }: { me: MeResponse
   return (
     <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="absolute inset-y-0 left-0 shadow-2xl">
+      <div className="absolute inset-y-0 start-0 shadow-2xl">
         <SidebarBody me={me} onSignOut={onSignOut} onNavigate={onClose} onClose={onClose} />
       </div>
     </div>

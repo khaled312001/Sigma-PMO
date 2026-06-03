@@ -75,3 +75,17 @@ export const IconRefresh = (p: IconProps) => (
 export const IconMenu = (p: IconProps) => (
   <Icon {...p}><path d="M4 6h16M4 12h16M4 18h16"/></Icon>
 );
+export const IconSun = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="4"/>
+    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+  </Icon>
+);
+export const IconMoon = (p: IconProps) => (
+  <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></Icon>
+);
+export const IconLanguage = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 8l6 0M5 12c4 4 8 0 8 0M9 5v3M14 19l3-8 3 8M15 17h4"/>
+  </Icon>
+);

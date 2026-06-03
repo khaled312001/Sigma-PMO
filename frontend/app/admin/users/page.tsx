@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useToast } from '../../../components/ToastProvider';
 import { api, UserRecord } from '../../../lib/api';
 import { AuthGate } from '../../../components/AuthGate';
+import { useI18n } from '../../../lib/i18n';
 import { Card, EmptyState, PageHeader, Pill } from '../../../components/ui';
 import { ROLE_LABEL } from '../../../lib/capabilities';
 
@@ -14,6 +15,7 @@ export default function UsersAdminRoute() {
 
 function UsersAdmin() {
   const toast = useToast();
+  const { t } = useI18n();
   const [users, setUsers] = useState<UserRecord[] | null>(null);
 
   useEffect(() => {
@@ -25,9 +27,9 @@ function UsersAdmin() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Admin · Users"
-        title="Stakeholder accounts"
-        description={'RBAC principals. Create new users via CLI: npm run user:create -- email role "Name" [scopes]'}
+        eyebrow={t('admin.users.eyebrow')}
+        title={t('admin.users.title')}
+        description={t('admin.users.description')}
       />
 
       <Card padded={false}>

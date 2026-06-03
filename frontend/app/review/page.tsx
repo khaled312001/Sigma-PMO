@@ -6,6 +6,7 @@ import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, ExecutiveSummary, GovernanceDecision } from '../../lib/api';
 import { useCurrentProjectKey } from '../../lib/project-context';
 import { AuthGate } from '../../components/AuthGate';
+import { useI18n } from '../../lib/i18n';
 import { IconSparkles } from '../../components/Icons';
 import {
   Button,
@@ -23,6 +24,7 @@ export default function ReviewPageRoute() {
 }
 
 function ReviewPage() {
+  const { t } = useI18n();
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
@@ -88,9 +90,9 @@ function ReviewPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Review"
-        title="Deviations & governance decisions"
-        description="Rule-engine findings on the current snapshot, paired with their FIDIC mapping, escalation, and intervention library."
+        eyebrow={t('review.eyebrow')}
+        title={t('review.title')}
+        description={t('review.description')}
         actions={
           <>
             <Button variant="success" size="sm" disabled={busy} onClick={evaluate}>

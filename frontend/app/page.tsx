@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, ExecutiveSummary, IngestionRun } from '../lib/api';
 import { AuthGate } from '../components/AuthGate';
+import { useI18n } from '../lib/i18n';
 import {
   IconAlertCritical,
   IconAlertWarning,
@@ -26,6 +27,7 @@ export default function OverviewPage() {
 }
 
 function Overview() {
+  const { t } = useI18n();
   const [counts, setCounts] = useState<Counts | null>(null);
   const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
@@ -58,22 +60,22 @@ function Overview() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Overview"
-        title="Welcome to Sigma PMO"
-        description="Snapshot of the platform across all four standard surfaces (input · review · approval · evidence)."
+        eyebrow={t('overview.eyebrow')}
+        title={t('overview.title')}
+        description={t('overview.description')}
       />
 
       <ErrorBanner message={error} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Ingestion runs" value={counts?.runs}    icon={<IconDatabase className="h-5 w-5" />}       tone="sky"     href="/input" />
-        <StatCard label="Total alerts"   value={counts?.alerts}  icon={<IconReview className="h-5 w-5" />}         tone="emerald" href="/review" />
-        <StatCard label="Critical"       value={counts?.critical} icon={<IconAlertCritical className="h-5 w-5" />} tone="rose"    href="/approval" />
-        <StatCard label="Warnings"       value={counts?.warning}  icon={<IconAlertWarning className="h-5 w-5" />}  tone="amber"   href="/evidence" />
+        <StatCard label={t('overview.cards.ingestionRuns')} value={counts?.runs}    icon={<IconDatabase className="h-5 w-5" />}       tone="sky"     href="/input" />
+        <StatCard label={t('overview.cards.totalAlerts')}   value={counts?.alerts}  icon={<IconReview className="h-5 w-5" />}         tone="emerald" href="/review" />
+        <StatCard label={t('overview.cards.critical')}      value={counts?.critical} icon={<IconAlertCritical className="h-5 w-5" />} tone="rose"    href="/approval" />
+        <StatCard label={t('overview.cards.warnings')}      value={counts?.warning}  icon={<IconAlertWarning className="h-5 w-5" />}  tone="amber"   href="/evidence" />
       </section>
 
       {latestRun && (
-        <Card title="Latest ingestion" hint="Most recent file ingested through the canonical pipeline.">
+        <Card title={t('overview.latestIngestion')} hint={t('overview.latestIngestionHint')}>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <Pill tone="sky">{latestRun.parser}</Pill>
             <Pill tone="emerald">{latestRun.status}</Pill>
@@ -81,30 +83,30 @@ function Overview() {
             <span className="text-xs text-slate-300">
               {Object.entries(latestRun.rowCounts ?? {}).map(([k, v]) => `${k}:${v}`).join(' · ')}
             </span>
-            <div className="ml-auto"><ConfidenceBar value={latestConfidence ?? null} /></div>
+            <div className="ms-auto"><ConfidenceBar value={latestConfidence ?? null} /></div>
           </div>
         </Card>
       )}
 
       {summary ? (
         <Card
-          title="Latest executive summary"
+          title={t('overview.latestSummary')}
           hint={`${summary.periodStart} → ${summary.periodEnd}`}
           actions={
             <>
               <Pill tone={summary.source === 'llm' ? 'violet' : 'slate'}>
-                <IconSparkles className="mr-1 h-3 w-3" /> {summary.source}
+                <IconSparkles className="me-1 h-3 w-3" /> {summary.source === 'deterministic' ? t('common.deterministic') : summary.source}
               </Pill>
-              <Pill tone="emerald">{(summary.confidenceAverage * 100).toFixed(1)}% confidence</Pill>
+              <Pill tone="emerald">{t('common.confidence', { value: (summary.confidenceAverage * 100).toFixed(1) })}</Pill>
             </>
           }
         >
           <SummaryNarrative text={summary.narrative} />
         </Card>
       ) : (
-        <Card title="Latest executive summary">
+        <Card title={t('overview.latestSummary')}>
           <p className="text-sm text-slate-400">
-            No summary yet. <Link href="/review" className="text-sky-400 hover:text-sky-300">Go to Review</Link> to generate one.
+            {t('overview.noSummary')} <Link href="/review" className="text-sky-400 hover:text-sky-300">{t('overview.goToReview')}</Link>.
           </p>
         </Card>
       )}
