@@ -28,6 +28,8 @@ export interface AppConfiguration {
   database: DatabaseConfig;
   /** Directory where ingested source files are archived immutably. */
   storageDir: string;
+  /** Directory where synthetic sample files live; allowlisted for `ingest-path`. */
+  samplesDir: string;
   llm: LlmConfig;
   /** Comma-separated allowed origins for CORS (or empty for default localhost dev). */
   corsOrigins: string;
@@ -35,6 +37,17 @@ export interface AppConfiguration {
   emailSmtpUrl: string;
   slackWebhookUrl: string;
   teamsWebhookUrl: string;
+  /** Required `x-bootstrap-token` header value for bootstrap-mode writes in prod. */
+  bootstrapToken: string;
+  /** Optional Sentry DSN; when unset, Sentry is not initialised. */
+  sentryDsn: string;
+  /** Body size limit for JSON endpoints (multer-style string, e.g. "25mb"). */
+  bodyLimit: string;
+  /** Rate-limit defaults (per-IP, per-route bucket). */
+  throttlerDefaultLimit: number;
+  throttlerDefaultTtlMs: number;
+  throttlerAuthLimit: number;
+  throttlerIngestLimit: number;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -51,10 +64,18 @@ export default (): AppConfiguration => ({
   env: process.env.NODE_ENV ?? 'development',
   port: toInt(process.env.PORT, 3001),
   storageDir: process.env.STORAGE_DIR ?? '../data/storage',
+  samplesDir: process.env.SAMPLES_DIR ?? '../data/samples',
   corsOrigins: process.env.CORS_ORIGINS ?? '',
   emailSmtpUrl: process.env.EMAIL_SMTP_URL ?? '',
   slackWebhookUrl: process.env.SLACK_WEBHOOK_URL ?? '',
   teamsWebhookUrl: process.env.TEAMS_WEBHOOK_URL ?? '',
+  bootstrapToken: process.env.BOOTSTRAP_TOKEN ?? '',
+  sentryDsn: process.env.SENTRY_DSN ?? '',
+  bodyLimit: process.env.BODY_LIMIT ?? '25mb',
+  throttlerDefaultLimit: toInt(process.env.RATE_LIMIT_DEFAULT_LIMIT, 100),
+  throttlerDefaultTtlMs: toInt(process.env.RATE_LIMIT_DEFAULT_TTL_MS, 60_000),
+  throttlerAuthLimit: toInt(process.env.RATE_LIMIT_AUTH_LIMIT, 10),
+  throttlerIngestLimit: toInt(process.env.RATE_LIMIT_INGEST_LIMIT, 30),
   llm: {
     apiKey: process.env.LLM_API_KEY ?? '',
     provider: (process.env.LLM_PROVIDER ?? 'anthropic') as 'anthropic' | 'openai',
@@ -67,7 +88,7 @@ export default (): AppConfiguration => ({
     username: process.env.DB_USERNAME ?? 'root',
     password: process.env.DB_PASSWORD ?? '',
     database: process.env.DB_DATABASE ?? 'sigma_pmo',
-    // Default true for zero-setup dev; MUST be false in production (migrations instead).
+    // Default true for zero-setup dev; force false in production regardless (DatabaseModule enforces).
     synchronize: toBool(process.env.DB_SYNCHRONIZE, process.env.NODE_ENV !== 'production'),
     logging: toBool(process.env.DB_LOGGING, false),
   },

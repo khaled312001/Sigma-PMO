@@ -1,37 +1,53 @@
 import { promises as fs } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { resolveAllowedPath } from '../../common/path-allowlist';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { IngestionRun } from '../canonical/entities';
 import { IngestPathDto } from './dto/ingest-path.dto';
+import { IngestUploadDto } from './dto/ingest-upload.dto';
 import { IngestionOutcome, IngestionService } from './ingestion.service';
 
 @Controller('ingestion')
 export class IngestionController {
+  private readonly allowedRoots: string[];
+
   constructor(
     private readonly ingestion: IngestionService,
+    private readonly config: ConfigService,
     @InjectRepository(IngestionRun)
     private readonly runs: Repository<IngestionRun>,
-  ) {}
+  ) {
+    // Resolve allowlist roots once at module init relative to backend cwd.
+    this.allowedRoots = [
+      resolve(process.cwd(), config.get<string>('storageDir') ?? '../data/storage'),
+      resolve(process.cwd(), config.get<string>('samplesDir') ?? '../data/samples'),
+    ];
+  }
 
   /** Ingest a file the server can read from disk (internal/back-office use). */
   @Post('ingest-path')
   @HttpCode(200)
+  @Throttle({ ingest: { limit: 30, ttl: 60_000 } })
   @RequiresCapability('canIngest')
   async ingestPath(@Body() body: IngestPathDto): Promise<IngestionOutcome> {
-    const buffer = await fs.readFile(body.path);
-    return this.ingestion.ingest(basename(body.path), buffer);
+    const safePath = resolveAllowedPath(body.path, this.allowedRoots);
+    const buffer = await fs.readFile(safePath);
+    return this.ingestion.ingest(basename(safePath), buffer);
   }
 
   /** Browser-friendly upload: { filename, contentBase64 } JSON body. */
   @Post('upload')
   @HttpCode(200)
+  @Throttle({ ingest: { limit: 30, ttl: 60_000 } })
   @RequiresCapability('canIngest')
-  async upload(@Body() body: { filename: string; contentBase64: string }): Promise<IngestionOutcome> {
+  async upload(@Body() body: IngestUploadDto): Promise<IngestionOutcome> {
     const buffer = Buffer.from(body.contentBase64, 'base64');
     return this.ingestion.ingest(body.filename, buffer);
   }

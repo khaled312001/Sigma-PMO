@@ -1,11 +1,14 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { buildLoggerModule } from './common/logger';
+import { RequestIdMiddleware } from './common/request-id.middleware';
+import { AppThrottlerModule } from './common/throttler.module';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
-import { CanonicalModule } from './modules/canonical/canonical.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CanonicalModule } from './modules/canonical/canonical.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
@@ -20,6 +23,8 @@ import { SummaryModule } from './modules/summary/summary.module';
       load: [configuration],
       cache: true,
     }),
+    buildLoggerModule(),
+    AppThrottlerModule,
     DatabaseModule,
     CanonicalModule,
     AuthModule,
@@ -32,4 +37,9 @@ import { SummaryModule } from './modules/summary/summary.module';
   ],
   controllers: [HealthController],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Request-ID first — pino-http reads x-request-id via its genReqId callback.
+    consumer.apply(RequestIdMiddleware).forRoutes('*');
+  }
+}
