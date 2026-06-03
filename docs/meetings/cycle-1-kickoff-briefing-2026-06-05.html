@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>ملخص اجتماع — انطلاق المرحلة الأولى Sigma PMO</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+
+  :root {
+    --ink:        #0f172a;
+    --ink-soft:   #334155;
+    --muted:      #64748b;
+    --border:     #cbd5e1;
+    --border-soft:#e2e8f0;
+    --brand:      #0369a1;
+    --brand-soft: #e0f2fe;
+    --accent:     #047857;
+    --accent-soft:#d1fae5;
+    --warn-soft:  #fef3c7;
+    --warn-ink:   #92400e;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: "Segoe UI", "Tahoma", "Arial", "Noto Naskh Arabic", sans-serif;
+    color: var(--ink);
+    line-height: 1.75;
+    font-size: 11.5pt;
+    background: #ffffff;
+  }
+
+  /* Cover */
+  .cover {
+    text-align: right;
+    padding: 24mm 0 14mm 0;
+    border-bottom: 2px solid var(--brand);
+    margin-bottom: 10mm;
+  }
+  .eyebrow {
+    color: var(--brand);
+    font-size: 9.5pt;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+  .cover h1 {
+    font-size: 22pt;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .cover .subtitle {
+    font-size: 12pt;
+    color: var(--ink-soft);
+    margin: 0 0 16px 0;
+  }
+  .meta {
+    display: table;
+    width: 100%;
+    margin-top: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    background: #f8fafc;
+  }
+  .meta-row { display: table-row; }
+  .meta-key, .meta-val { display: table-cell; padding: 6px 12px; font-size: 10pt; vertical-align: middle; }
+  .meta-key { color: var(--muted); width: 28%; border-bottom: 1px solid var(--border-soft); }
+  .meta-val { color: var(--ink); border-bottom: 1px solid var(--border-soft); }
+  .meta-row:last-child .meta-key,
+  .meta-row:last-child .meta-val { border-bottom: 0; }
+
+  /* Sections */
+  h2 {
+    font-size: 14pt;
+    color: var(--brand);
+    margin: 18px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1.5px solid var(--brand-soft);
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt;
+    color: var(--ink);
+    margin: 14px 0 4px 0;
+    page-break-after: avoid;
+  }
+  p { margin: 6px 0; text-align: justify; }
+  ul, ol { margin: 6px 24px 6px 0; padding-right: 16px; padding-left: 0; }
+  li { margin: 4px 0; }
+
+  /* Highlight blocks */
+  .callout {
+    background: var(--brand-soft);
+    border-right: 4px solid var(--brand);
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin: 10px 0;
+    color: var(--ink-soft);
+    font-size: 10.5pt;
+  }
+  .callout strong { color: var(--brand); }
+
+  .warn {
+    background: var(--warn-soft);
+    border-right: 4px solid #d97706;
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin: 10px 0;
+    color: var(--warn-ink);
+    font-size: 10.5pt;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 10pt;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    text-align: right;
+    vertical-align: top;
+  }
+  th { background: #f1f5f9; color: var(--ink); font-weight: 700; }
+
+  /* Six-questions grid */
+  .six {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .q {
+    border: 1px solid var(--border-soft);
+    border-right: 4px solid var(--accent);
+    background: #f8fafc;
+    padding: 8px 12px;
+    border-radius: 4px;
+  }
+  .q-num {
+    display: inline-block;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    text-align: center;
+    line-height: 22px;
+    font-size: 9.5pt;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .q-text { font-weight: 600; color: var(--ink); font-size: 10.5pt; }
+  .q-note { color: var(--muted); font-size: 9.5pt; display: block; margin-top: 4px; }
+
+  /* Status pills */
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 9pt;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .pill-done { background: var(--accent-soft); color: var(--accent); }
+  .pill-wait { background: var(--warn-soft); color: var(--warn-ink); }
+  .pill-info { background: var(--brand-soft); color: var(--brand); }
+
+  /* Footer */
+  .footer {
+    margin-top: 18mm;
+    padding-top: 8mm;
+    border-top: 1px solid var(--border-soft);
+    font-size: 9pt;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Print niceties */
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h2 { page-break-after: avoid; }
+    .q, table, .callout, .warn { page-break-inside: avoid; }
+  }
+
+  .page-break { page-break-before: always; }
+
+  /* Two-column list helper */
+  .two-col {
+    column-count: 2;
+    column-gap: 14px;
+  }
+  .two-col li { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- =============== COVER =============== -->
+<div class="cover">
+  <div class="eyebrow">ملخّص اجتماع · انطلاق المرحلة الأولى</div>
+  <h1>منصّة Sigma PMO</h1>
+  <div class="subtitle">نقاط النقاش لاجتماع البدء بالدورة الأولى — اللغة العربية</div>
+
+  <div class="meta">
+    <div class="meta-row"><div class="meta-key">العميل</div><div class="meta-val">السيّد / Al Ayham Alhamach — شركة Sigma</div></div>
+    <div class="meta-row"><div class="meta-key">مقدّم الخدمة</div><div class="meta-val">المهندس / خالد أحمد</div></div>
+    <div class="meta-row"><div class="meta-key">تاريخ الإصدار</div><div class="meta-val">2026-06-04</div></div>
+    <div class="meta-row"><div class="meta-key">تاريخ الاجتماع</div><div class="meta-val">2026-06-05</div></div>
+    <div class="meta-row"><div class="meta-key">الغرض من الوثيقة</div><div class="meta-val">ملخّص مرجعي للنقاش — مرحلة Cycle 1 من العقد</div></div>
+  </div>
+</div>
+
+<!-- =============== 1. ما هي Sigma PMO =============== -->
+<h2>١. ما هي منصّة Sigma PMO باختصار</h2>
+
+<p>
+منصّة <strong>Sigma PMO</strong> هي نظام تشغيل للحوكمة، يقرأ بيانات المشاريع
+(جداول Primavera P6، ملفات Excel و CSV، تقارير MS Project) ويحوّلها إلى
+نموذج موحّد تراكمي (Append-Only) لا تُمحى منه أي نسخة، ثم يشغّل محرّك قواعد
+استنتاجي لكشف الانحرافات، ويُرفق لكل انحراف <strong>سلسلة أدلّة قابلة للتتبّع
+حتى السطر المصدر</strong> ومؤشّر ثقة، ويربط كل انحراف بـ <strong>بند فيديك FIDIC</strong>
+وإجراء حوكمة معتمد، وأخيراً يولّد ملخّصاً تنفيذياً أسبوعياً جاهزاً للقرار.
+</p>
+
+<div class="callout">
+<strong>الفكرة بسطر واحد:</strong> نظام حوكمة يحوّل بيانات الجدول الزمني الخام إلى
+قرارات تعاقدية موثّقة بالأدلّة، بدون أن يفقد المراجع القدرة على الرجوع للسطر المصدر.
+</div>
+
+<!-- =============== 2. الرؤية بعيدة المدى =============== -->
+<h2>٢. الرؤية بعيدة المدى (مقفولة بتاريخ 2026-06-04)</h2>
+
+<p>
+بناءً على رسالة السيّد Al Ayham بتاريخ 2026-06-04، الوجهة طويلة المدى هي
+بناء <strong>منصّة حوكمة وتحوّل مدعومة بالذكاء الاصطناعي</strong> تربط
+التخطيط القائم على BIM، جداول Primavera، التقارير التشغيلية اليومية،
+الالتزامات التعاقدية (FIDIC)، عمليات الحوكمة وفق PMBOK، والتحليل المعزّز
+بالذكاء الاصطناعي — في مسار واحد متكامل.
+</p>
+
+<p>المنصّة تجيب تدريجياً عن ستة أسئلة:</p>
+
+<div class="six">
+  <div class="q"><span class="q-num">١</span><span class="q-text">ما الذي انحرف؟</span>
+    <span class="q-note">محرّك القواعد ⇐ Alerts</span></div>
+  <div class="q"><span class="q-num">٢</span><span class="q-text">لماذا حدث الانحراف؟</span>
+    <span class="q-note">سياق التنبيه + تصنيف السبب (دورة لاحقة)</span></div>
+  <div class="q"><span class="q-num">٣</span><span class="q-text">من المسؤول؟</span>
+    <span class="q-note">قرار الحوكمة يحدّد الطرف المسؤول</span></div>
+  <div class="q"><span class="q-num">٤</span><span class="q-text">ما الأدلّة المؤيّدة؟</span>
+    <span class="q-note">سلسلة أدلّة بـ SHA-256 + المصدر الخام</span></div>
+  <div class="q"><span class="q-num">٥</span><span class="q-text">ما المخاطر التعاقدية؟</span>
+    <span class="q-note">ربط ببند FIDIC + مهلة الإخطار</span></div>
+  <div class="q"><span class="q-num">٦</span><span class="q-text">ما الإجراء التصحيحي؟</span>
+    <span class="q-note">مكتبة التدخّلات + التصعيد</span></div>
+</div>
+
+<div class="callout">
+نطاق <strong>المرحلة الأولى لم يتغيّر</strong>؛ الرؤية مسجَّلة على الورق فقط حتى لا
+تتسبّب قرارات اليوم في إعادة عمل مستقبلاً (ADR-0009 + Annex 3 #13).
+</div>
+
+<!-- =============== 3. هيكل التعاقد =============== -->
+<h2>٣. هيكل التعاقد — 8 دورات على 3 طبقات</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:9%;">الدورة</th>
+      <th style="width:13%;">الطبقة</th>
+      <th style="width:13%;">المدّة</th>
+      <th>الموضوع</th>
+      <th style="width:15%;">الحالة</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>١</td><td>الطبقة ١</td><td>يوم ١ – ١٤</td><td>أساسات البيانات: استيعاب P6 / Excel، نموذج قانوني تراكمي، تحقّق + تطبيع</td><td><span class="pill pill-done">مكتملة فنّياً</span></td></tr>
+    <tr><td>٢</td><td>الطبقة ١</td><td>يوم ١٥ – ٢٨</td><td>محرّك القواعد الأوّل (6 قواعد) + سلسلة الأدلّة</td><td><span class="pill pill-done">مكتملة فنّياً</span></td></tr>
+    <tr><td>٣</td><td>الطبقة ١</td><td>يوم ٢٩ – ٤٢</td><td>طبقة الحوكمة: مؤشّر الثقة + الأدلّة الكاملة</td><td><span class="pill pill-done">مكتملة فنّياً</span></td></tr>
+    <tr><td>٤</td><td>الطبقة ١</td><td>يوم ٤٣ – ٥٦</td><td>طبقة المخرَجات: الملخّص التنفيذي الأسبوعي + الواجهة الداخلية</td><td><span class="pill pill-done">مكتملة فنّياً</span></td></tr>
+    <tr><td>٥</td><td>الطبقة ٢</td><td>يوم ٥٧ – ٧٠</td><td>ربط FIDIC 2017 + PMI/PMBOK (افتراضي)</td><td><span class="pill pill-done">جاهزة للمراجعة</span></td></tr>
+    <tr><td>٦</td><td>الطبقة ٢</td><td>يوم ٧١ – ٨٤</td><td>منطق Sigma الخاص — يدخل عبر واجهة <code dir="ltr">/admin/policy</code></td><td><span class="pill pill-wait">بانتظار محتوى Sigma</span></td></tr>
+    <tr><td>٧</td><td>الطبقة ٣</td><td>يوم ٨٥ – ٩٨</td><td>الصلاحيات (RBAC) + النشر على الخادم + النسخ الاحتياطية</td><td><span class="pill pill-wait">بانتظار بيانات Hostinger</span></td></tr>
+    <tr><td>٨</td><td>الطبقة ٣</td><td>يوم ٩٩ – ١١٢</td><td>التكاملات + الواجهة التجارية + التسليم الكامل</td><td><span class="pill pill-done">جاهزة للمراجعة</span></td></tr>
+  </tbody>
+</table>
+
+<p style="font-size: 10pt; color: var(--muted);">
+كل دورة تُغلق بـ <strong>عرض موجز (Cycle Brief)</strong> ثم <strong>إصدار (Release)</strong>
+ثم <strong>قبول مكتوب (Acceptance)</strong> حسب البنود 10.1 و 10.2 من العقد.
+</p>
+
+<!-- ============== PAGE BREAK ============== -->
+<div class="page-break"></div>
+
+<!-- =============== 4. الدورة الأولى تفصيلاً =============== -->
+<h2>٤. الدورة الأولى — ما نحتاجه من Sigma لبدئها رسمياً</h2>
+
+<p>
+الدورة الأولى مكتملة فنّياً، لكنّ <strong>الإغلاق التعاقدي</strong> يحتاج إلى
+تأكيدات وموادّ من Sigma لإصدار قبول مكتوب رسمي. النقاط أدناه هي محور
+اجتماع الغد.
+</p>
+
+<h3>٤.١ بيانات وعيّنات</h3>
+<ul>
+  <li>
+    <strong>عيّنة P6 (XER أو PMXML):</strong> مشروع تجريبي حقيقي أو مصطنع، لاختبار
+    مسار الاستيعاب من البداية حتى التنبيهات.
+  </li>
+  <li>
+    <strong>عيّنة Excel / CSV للتقارير الأسبوعية:</strong> النموذج الذي يستخدمه فريق
+    Sigma فعلاً (أو الأقرب إليه)، لمحاذاة المُحلّل (Parser) مع شكل البيانات الفعلي.
+  </li>
+  <li>
+    <strong>اسم مشروع ومُعرّف رسمي (Business Key):</strong> حالياً نستخدم
+    <code dir="ltr">P-1000 · Nile Tower</code> كنموذج اختبار؛ نحتاج المعرّف الذي
+    سيُستخدم فعلياً في الإنتاج.
+  </li>
+</ul>
+
+<h3>٤.٢ القرارات التعاقدية المؤجَّلة</h3>
+<table>
+  <thead>
+    <tr>
+      <th style="width:24%;">القرار</th>
+      <th>التفاصيل</th>
+      <th style="width:18%;">الحاجة منك</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>إصدارات FIDIC المعتمدة <span class="pill pill-info">A09</span></td>
+      <td>الافتراضي الحالي: FIDIC 2017 (Red/Yellow Book). يلزم تأكيد كتابي قبل انطلاق الطبقة الثانية.</td>
+      <td>تأكيد أو تعديل</td>
+    </tr>
+    <tr>
+      <td>منطق Sigma الخاص <span class="pill pill-info">A10</span></td>
+      <td>محتوى الحوكمة الخاص بـ Sigma لا يدخل في الكود؛ يُدخَل عبر واجهة <code dir="ltr">/admin/policy</code> بصلاحيات Sigma وحدها. السطح جاهز.</td>
+      <td>وقت إدخاله من قِبَلك</td>
+    </tr>
+    <tr>
+      <td>قائمة التكاملات النهائية <span class="pill pill-info">A11</span></td>
+      <td>المثبّت حالياً: P6 (XER/PMXML/Webhook) · Excel · CSV · MS Project XML · Slack/Teams (إخراج) · Email SMTP.</td>
+      <td>اعتماد القائمة كما هي أو إضافة</td>
+    </tr>
+    <tr>
+      <td>الهوية البصرية <span class="pill pill-info">A12</span></td>
+      <td>الافتراضي الحالي: لوحة slate-950 / sky-500 + شعار مبدئي. يدعم النظام الآن الوضعَين الفاتح والداكن واللغتَين العربية والإنجليزية مع RTL.</td>
+      <td>شعار رسمي + هوية لونية (إن وُجدت)</td>
+    </tr>
+    <tr>
+      <td>الرؤية بعيدة المدى <span class="pill pill-info">A13</span></td>
+      <td>قُفلت بتاريخ 2026-06-04 (الست أسئلة + خمسة مفاصل توسعة). لا تغيّر نطاق المرحلة الأولى.</td>
+      <td>توقيع تأكيد</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>٤.٣ مدخلات التشغيل التشاركي</h3>
+<ul>
+  <li>
+    <strong>قائمة المستخدمين والأدوار:</strong> من سيحصل على حساب، وبأي دور
+    (<span style="color: var(--brand);">Sigma Admin · Sigma Reviewer · Client · Consultant · Contractor</span>)؟
+  </li>
+  <li>
+    <strong>بيانات Hostinger:</strong> ليست مطلوبة لاجتماع الغد، لكنّها مطلوبة قبل بدء
+    الدورة السابعة فعلياً. كل مواد النشر جاهزة وتستغرق ساعة واحدة عند وصول البيانات.
+  </li>
+  <li>
+    <strong>قنوات الإشعار:</strong> هل سنستخدم Slack أم Teams أم Email للإشعارات الخارجية؟
+    (متاحون جميعاً؛ نحتاج فقط رابط الـ webhook أو SMTP).
+  </li>
+</ul>
+
+<!-- =============== 5. ما الذي تم بناؤه فعلاً =============== -->
+<h2>٥. الوضع الحالي للمنصّة — ما الذي يعمل اليوم</h2>
+
+<ul class="two-col">
+  <li>استيعاب 4 صيغ: P6 XER، P6 PMXML، MS Project XML، Excel، CSV</li>
+  <li>نموذج بيانات قانوني تراكمي (يحفظ كل النسخ بدون مسح)</li>
+  <li>أرشيف ثابت للملفات المصدرية بـ SHA-256</li>
+  <li>محرّك قواعد استنتاجي بـ 6 قواعد جاهزة</li>
+  <li>سلسلة أدلّة كاملة لكل تنبيه</li>
+  <li>مؤشّر ثقة مكوّن من ثلاث وزنات</li>
+  <li>سياسة حوكمة قابلة للإصدار، مرتبطة ببنود FIDIC</li>
+  <li>قرارات حوكمة بطرف مسؤول + مهلة + مكتبة تدخّلات</li>
+  <li>ملخّص تنفيذي أسبوعي استنتاجي (مع خيار LLM للصياغة)</li>
+  <li>صلاحيات بنظام API key لخمسة أدوار</li>
+  <li>سجلّ مراجعة (Audit Trail) كامل لكل قرار</li>
+  <li>واجهة ويب موحّدة بـ 11 صفحة حسب الدور</li>
+  <li>تأمين OWASP الأساسي (Helmet · حدود الحجم · معدّل الاستدعاء · حماية المسارات)</li>
+  <li>سجلّات pino بصيغة JSON + معرّف لكل طلب</li>
+  <li>ترحيلات قاعدة بيانات (Migrations) + نسخ احتياطية يومية + سيناريو استرجاع</li>
+  <li>61 اختبار آلي ناجح (وحدة + شامل)</li>
+  <li>توثيق تشغيلي مقسّم (Ops · Incident · Backup · Restore · Monitoring)</li>
+  <li>دعم اللغتَين العربية والإنجليزية مع RTL وتبديل الوضعَين الفاتح والداكن</li>
+</ul>
+
+<div class="warn">
+<strong>ملاحظة شفافة:</strong> الدورات 2 إلى 8 مبنيّة فنّياً قبل موعدها التعاقدي، لكنّها
+لم تُفعَّل تعاقدياً بإصدار + قبول مكتوبَين. هذا متعمَّد ومنسجم مع البنود 10.1 و 10.2.
+الدورة الأولى هي التي يمكن إغلاقها رسمياً اليوم.
+</div>
+
+<!-- ============== PAGE BREAK ============== -->
+<div class="page-break"></div>
+
+<!-- =============== 6. القناعة الهندسية للتوسّع =============== -->
+<h2>٦. كيف يبقى النظام قابلاً للتوسّع — خمسة مفاصل (Plug-in Shapes)</h2>
+
+<p>
+كل قدرة جديدة في المستقبل لا تدخل بطريقة عشوائية؛ تدخل عبر <strong>واحد من خمسة مفاصل</strong>
+موثّقة معمارياً. هذه هي ضمانة عدم إعادة العمل عند توسعة الرؤية لاحقاً (BIM، تقارير يومية،
+تحليل الأسباب الجذرية ...).
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:22%;">المفصل</th>
+      <th>ما يفعله اليوم</th>
+      <th style="width:30%;">أمثلة للتوسعة المستقبلية</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Parser</strong> (محلّل صيغة)</td>
+      <td>يحوّل ملفات P6 / Excel / CSV / MS Project إلى نموذج قانوني موحّد</td>
+      <td>IFC للـ BIM · ملفات Synchro · CSV التقارير اليومية</td>
+    </tr>
+    <tr>
+      <td><strong>Rule</strong> (قاعدة)</td>
+      <td>يكشف نوعاً معيّناً من الانحرافات (6 قواعد حالياً)</td>
+      <td>تصنيف السبب الجذري · سرعة الانزلاق · مقارنة BIM مع الواقع</td>
+    </tr>
+    <tr>
+      <td><strong>Integration adapter</strong> (موصّل تكامل)</td>
+      <td>يرسل إشعارات / بيانات لقنوات خارجية (Slack · Teams · Email · Log)</td>
+      <td>BIM360 webhook · Aconex · واجهات التقارير اليومية</td>
+    </tr>
+    <tr>
+      <td><strong>Decision</strong> (قرار)</td>
+      <td>يحوّل التنبيه إلى قرار حوكمة بطرف مسؤول + بند FIDIC + إجراء</td>
+      <td>إطارات تعاقدية إضافية · قواعد حوكمة قطاعية متخصّصة</td>
+    </tr>
+    <tr>
+      <td><strong>Summary</strong> (ملخّص)</td>
+      <td>يولّد ملخّصاً تنفيذياً استنتاجياً (مع تجميل اختياري بـ LLM)</td>
+      <td>تقارير تنفيذية جديدة بسرديّات مختلفة</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+<strong>القاعدة الذهبية:</strong> أي توسعة مستقبلية تدخل عبر هذه المفاصل
+الخمسة فقط. إذا وُجدت قدرة لا تناسب أيّاً منها، تُرفع وثيقة قرار معماري
+(ADR) جديدة قبل التنفيذ.
+</div>
+
+<!-- =============== 7. نقاط النقاش المقترحة =============== -->
+<h2>٧. نقاط النقاش المقترحة للاجتماع</h2>
+
+<ol>
+  <li>
+    <strong>إصدار قبول مكتوب للدورة الأولى:</strong> هل المعيار المتّفق عليه
+    ("استيعاب عيّنة P6 وعيّنة Excel والتحقّق من النموذج المُطبَّع") مستوفى من
+    وجهة نظر Sigma؟ إن نعم، توقيع وثيقة القبول.
+  </li>
+  <li>
+    <strong>تأكيد إصدارات FIDIC المعتمدة (A09):</strong> الافتراضي 2017 (Red/Yellow).
+    هل يلزم إضافة Silver Book؟ هل يلزم إصدار 1999 لمشاريع قديمة؟
+  </li>
+  <li>
+    <strong>جدولة إدخال منطق Sigma الخاص (A10):</strong> متى يتفرّغ السيّد Al Ayham
+    لإدخال السياسات الخاصّة عبر <code dir="ltr">/admin/policy</code>؟ السطح جاهز.
+  </li>
+  <li>
+    <strong>قائمة المستخدمين والأدوار:</strong> من الذي سيحصل على حساب،
+    وبأي دور؟
+  </li>
+  <li>
+    <strong>الهوية البصرية (A12):</strong> هل لدى Sigma شعار / كتيّب هوية / تفضيلات
+    ألوان؟ أم نُبقي الافتراضي ونعدّله لاحقاً؟
+  </li>
+  <li>
+    <strong>التوقّع الزمني لبيانات Hostinger:</strong> متى متوقّع أن تصل بيانات
+    الاستضافة لتنفيذ النشر الرسمي للدورة السابعة؟
+  </li>
+  <li>
+    <strong>توقيع تأكيد قفل الرؤية (A13):</strong> هل المسار الموثّق في ADR-0009 +
+    Annex 3 #13 يعكس قصد Sigma بدقّة؟
+  </li>
+  <li>
+    <strong>إيقاع المراجعة مع المهندس Syed:</strong> هل نواصل ترتيبة المراجعة
+    المعمارية كل دورة قبل الإصدار، أم نجمع مراجعتَين في جلسة واحدة؟
+  </li>
+</ol>
+
+<!-- =============== 8. خلاصة الاجتماع =============== -->
+<h2>٨. الخلاصة في سطرين</h2>
+
+<div class="callout">
+المنصّة <strong>تعمل فعلياً اليوم</strong> عبر الطبقات الثلاث على المستوى الفنّي.
+الباقي تعاقدي بحت: مدخلات Sigma لإغلاق الدورات رسمياً، وتوقيت إدخال محتوى Sigma
+الخاص، وبيانات Hostinger متى توفّرت. لا توجد أي عقبة فنّية تمنع توقيع قبول
+الدورة الأولى في اجتماع الغد.
+</div>
+
+<div class="footer">
+وثيقة داخلية — Sigma PMO — Cycle 1 Kickoff Briefing — 2026-06-05
+</div>
+
+</body>
+</html>
