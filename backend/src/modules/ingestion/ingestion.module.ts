@@ -8,6 +8,7 @@ import { IngestionService } from './ingestion.service';
 import { NormalizerService } from './normalizer/normalizer.service';
 import { CsvParser } from './parsers/csv.parser';
 import { ExcelParser } from './parsers/excel.parser';
+import { MSProjectXmlParser } from './parsers/msproject-xml.parser';
 import { P6XerParser } from './parsers/p6-xer.parser';
 import { P6XmlParser } from './parsers/p6-xml.parser';
 import { ParserRegistry } from './parsers/parser.registry';
@@ -23,6 +24,7 @@ import { StorageService } from './storage/storage.service';
     ParserRegistry,
     P6XerParser,
     P6XmlParser,
+    MSProjectXmlParser,
     ExcelParser,
     CsvParser,
   ],

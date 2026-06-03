@@ -23,6 +23,7 @@ const REQUIRED_FIELDS: Record<EntityKind, string[]> = {
 const SOURCE_RELIABILITY: Record<SourceType, number> = {
   [SourceType.P6_XML]: 1.0,
   [SourceType.P6_XER]: 0.95,
+  [SourceType.MSPROJECT_XML]: 0.95,
   [SourceType.EXCEL]: 0.85,
   [SourceType.CSV]: 0.7,
 };

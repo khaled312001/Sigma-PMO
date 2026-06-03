@@ -12,6 +12,7 @@ import { join, resolve } from 'node:path';
 
 import { CsvParser } from '../src/modules/ingestion/parsers/csv.parser';
 import { ExcelParser } from '../src/modules/ingestion/parsers/excel.parser';
+import { MSProjectXmlParser } from '../src/modules/ingestion/parsers/msproject-xml.parser';
 import { P6XerParser } from '../src/modules/ingestion/parsers/p6-xer.parser';
 import { P6XmlParser } from '../src/modules/ingestion/parsers/p6-xml.parser';
 import { ParserRegistry } from '../src/modules/ingestion/parsers/parser.registry';
@@ -45,6 +46,7 @@ async function main(): Promise<void> {
   const registry = new ParserRegistry(
     new P6XerParser(),
     new P6XmlParser(),
+    new MSProjectXmlParser(),
     new ExcelParser(),
     new CsvParser(),
   );

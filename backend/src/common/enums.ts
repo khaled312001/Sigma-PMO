@@ -4,6 +4,7 @@
 export enum SourceType {
   P6_XER = 'p6_xer',
   P6_XML = 'p6_xml',
+  MSPROJECT_XML = 'msproject_xml',
   EXCEL = 'excel',
   CSV = 'csv',
 }

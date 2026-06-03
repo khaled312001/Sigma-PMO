@@ -1,4 +1,5 @@
 import { CsvParser } from './csv.parser';
+import { MSProjectXmlParser } from './msproject-xml.parser';
 import { P6XerParser } from './p6-xer.parser';
 import { P6XmlParser } from './p6-xml.parser';
 import { ParserRegistry } from './parser.registry';
@@ -72,6 +73,7 @@ describe('ParserRegistry', () => {
   const registry = new ParserRegistry(
     new P6XerParser(),
     new P6XmlParser(),
+    new MSProjectXmlParser(),
     new ExcelParser(),
     new CsvParser(),
   );
