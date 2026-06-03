@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { AlertRecord, api, EvidencePackage } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
 import { useI18n } from '../../lib/i18n';
+import { JsonView } from '../../components/JsonView';
 import { Card, ConfidenceBar, EmptyState, ErrorBanner, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
 export default function EvidencePageRoute() {
@@ -98,10 +99,8 @@ function EvidencePage() {
               )}
 
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{t('evidence.rawSnippets')}</p>
-                <pre className="mt-1 max-h-96 overflow-auto rounded-lg border border-slate-800 bg-black/40 p-3 text-[11px] leading-snug text-slate-300">
-{JSON.stringify(evidence.rawSourceSnippets, null, 2)}
-                </pre>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{t('evidence.rawSnippets')}</p>
+                <JsonView data={evidence.rawSourceSnippets} title={t('evidence.rawSnippets')} maxHeight="28rem" defaultDepth={2} />
               </div>
             </div>
           )}

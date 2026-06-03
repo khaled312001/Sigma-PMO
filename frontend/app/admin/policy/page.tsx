@@ -81,6 +81,7 @@ function PolicyAdmin() {
             value={config}
             onChange={(e) => setConfig(e.target.value)}
             spellCheck={false}
+            dir="ltr"
             aria-invalid={parseError !== null}
             aria-describedby={parseError ? 'policy-error' : undefined}
             className={`mt-1 h-[64vh] w-full rounded-lg border bg-black/40 p-4 font-mono text-[12px] leading-snug text-slate-200 focus:outline-none ${

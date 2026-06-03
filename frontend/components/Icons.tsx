@@ -89,3 +89,9 @@ export const IconLanguage = (p: IconProps) => (
     <path d="M5 8l6 0M5 12c4 4 8 0 8 0M9 5v3M14 19l3-8 3 8M15 17h4"/>
   </Icon>
 );
+export const IconCopy = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </Icon>
+);
