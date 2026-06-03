@@ -9,7 +9,7 @@ function makeReviewRepo(): { create: jest.Mock; save: jest.Mock; find: jest.Mock
   return {
     create: jest.fn((e) => e),
     save: jest.fn(async (e) => ({ id: 'rev-1', ...e })),
-    find: jest.fn(),
+    find: jest.fn().mockResolvedValue([]),
   };
 }
 
@@ -96,5 +96,34 @@ describe('DecisionReviewService', () => {
     expect(reviewRepo.create).toHaveBeenCalledWith(expect.objectContaining({
       performedByDisplay: 'admin@sigma.local',
     }));
+  });
+
+  describe('listForDecisionMany (batch endpoint)', () => {
+    it('returns an empty object for an empty id list', async () => {
+      const service = new DecisionReviewService(
+        makeReviewRepo() as unknown as Repository<DecisionReview>,
+        makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      );
+      const result = await service.listForDecisionMany([]);
+      expect(result).toEqual({});
+    });
+
+    it('groups rows by decisionId and seeds missing ids with []', async () => {
+      const reviewRepo = makeReviewRepo();
+      reviewRepo.find.mockResolvedValueOnce([
+        { id: 'r1', decisionId: 'd1', action: 'approve' },
+        { id: 'r2', decisionId: 'd1', action: 'acknowledge' },
+        { id: 'r3', decisionId: 'd2', action: 'reject' },
+      ] as DecisionReview[]);
+      const service = new DecisionReviewService(
+        reviewRepo as unknown as Repository<DecisionReview>,
+        makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      );
+      const result = await service.listForDecisionMany(['d1', 'd2', 'd3']);
+      expect(Object.keys(result).sort()).toEqual(['d1', 'd2', 'd3']);
+      expect(result.d1).toHaveLength(2);
+      expect(result.d2).toHaveLength(1);
+      expect(result.d3).toEqual([]);
+    });
   });
 });

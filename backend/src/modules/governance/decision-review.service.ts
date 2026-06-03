@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { DecisionReview, GovernanceDecision, User } from '../canonical/entities';
 
@@ -44,6 +44,22 @@ export class DecisionReviewService {
 
   listForDecision(decisionId: string): Promise<DecisionReview[]> {
     return this.reviews.find({ where: { decisionId }, order: { createdAt: 'DESC' } });
+  }
+
+  /**
+   * Batch variant of listForDecision. Single SQL round-trip, grouped client-
+   * side. Returns a map keyed by decisionId; ids with no reviews map to [].
+   */
+  async listForDecisionMany(decisionIds: string[]): Promise<Record<string, DecisionReview[]>> {
+    if (decisionIds.length === 0) return {};
+    const rows = await this.reviews.find({
+      where: { decisionId: In(decisionIds) },
+      order: { createdAt: 'DESC' },
+    });
+    const out: Record<string, DecisionReview[]> = {};
+    for (const id of decisionIds) out[id] = [];
+    for (const r of rows) (out[r.decisionId] ??= []).push(r);
+    return out;
   }
 
   listForAlert(alertId: string): Promise<DecisionReview[]> {

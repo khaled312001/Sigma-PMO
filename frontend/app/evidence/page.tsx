@@ -108,7 +108,7 @@ function Metric({ label, value, accent }: { label: string; value: number; accent
   return (
     <div className={`rounded-lg border px-3 py-2 ${accent ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800 bg-slate-900/40'}`}>
       <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-1 text-base font-semibold text-slate-100"><ConfidenceBar value={value} width={64} /></p>
+      <div className="mt-1"><ConfidenceBar value={value} width={64} /></div>
     </div>
   );
 }

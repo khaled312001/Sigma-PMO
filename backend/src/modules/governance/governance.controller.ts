@@ -84,6 +84,25 @@ export class GovernanceController {
     return this.reviews.listForDecision(id);
   }
 
+  /**
+   * Batch fetch reviews for many decisions in one round-trip. Avoids the
+   * dashboard N+1 (50+ cards × per-decision GET) that otherwise burns the
+   * default 100/min throttler bucket.
+   *
+   * Returns a map keyed by decisionId; each value is the review list in
+   * descending createdAt order (same as the single-decision endpoint).
+   * Missing ids appear as [] so the client can index without null checks.
+   */
+  @Get('reviews')
+  async reviewsForDecisions(
+    @Query('decisionIds') decisionIds?: string,
+  ): Promise<Record<string, DecisionReview[]>> {
+    const ids = (decisionIds ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) return {};
+    const cap = Math.min(ids.length, 500);
+    return this.reviews.listForDecisionMany(ids.slice(0, cap));
+  }
+
   @Get('alerts/:id/reviews')
   reviewsForAlert(@Param('id') id: string): Promise<DecisionReview[]> {
     return this.reviews.listForAlert(id);

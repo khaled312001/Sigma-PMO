@@ -29,19 +29,20 @@ export default function ApprovalPage() {
       const decByAlert = new Map<string, GovernanceDecision>();
       for (const d of decisions) if (!decByAlert.has(d.alertId)) decByAlert.set(d.alertId, d);
 
-      // Batch all per-decision review fetches in parallel (N+1 → 1 round of parallel calls).
       const inFlight = alerts
         .map((a) => ({ a, d: decByAlert.get(a.id) }))
         .filter((p): p is { a: AlertRecord; d: GovernanceDecision } => p.d !== undefined);
 
-      const reviews = await Promise.all(
-        inFlight.map(({ d }) => api<DecisionReview[]>(`/governance/decisions/${d.id}/reviews`)),
-      );
+      // One round-trip for all reviews (was N+1 — blew the 100/min throttler).
+      const ids = inFlight.map(({ d }) => d.id);
+      const reviewMap = ids.length === 0
+        ? {}
+        : await api<Record<string, DecisionReview[]>>(`/governance/reviews?decisionIds=${ids.join(',')}`);
 
-      const pairs: Row[] = inFlight.map(({ a, d }, i) => ({
+      const pairs: Row[] = inFlight.map(({ a, d }) => ({
         alert: a,
         decision: d,
-        latestReview: reviews[i][0] ?? null,
+        latestReview: reviewMap[d.id]?.[0] ?? null,
       }));
       setRows(pairs);
     } catch (e) { toast.error('Failed to load decisions', (e as Error).message); }
