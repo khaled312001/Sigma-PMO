@@ -30,6 +30,7 @@
 | 0006 | Executive summary (deterministic + LLM-optional) + minimal UI            |
 | 0007 | Layer 2 — governance policy as data + decision engine                    |
 | 0008 | Layer 3 — RBAC + versioned API + integrations + deployment readiness    |
+| 0009 | Vision alignment & extensibility map (post-v1.0)                         |
 
 ## Operations runbooks (Clause 8)
 

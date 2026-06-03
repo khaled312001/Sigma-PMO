@@ -13,6 +13,30 @@ escalation, intervention), and produces a weekly executive summary.
 > Layer 2 (Cycles 5–6) and Layer 3 (Cycles 7–8) framework + stubs in place,
 > awaiting per-cycle written release and acceptance per Sub-Clauses 6 / 10.2.
 
+## Long-term vision (locked 2026-06-04)
+
+Per Al Ayham's written direction (2026-06-04), Sigma PMO is evolving toward
+an **AI-enabled Governance & Transformation Platform** that connects
+BIM-based planning, Primavera schedules, daily operational reporting,
+FIDIC obligations, PMBOK governance, and AI-assisted analysis into a single
+workflow. The platform progressively answers six questions:
+
+1. **What** deviated?
+2. **Why** did it deviate?
+3. **Who** owns the deviation?
+4. What **evidence** supports the conclusion?
+5. What **contractual exposure** exists?
+6. What **corrective action** should be considered?
+
+Phase 1 already answers all six through the existing modules; future cycles
+extend along the five plug-in shapes (Parser · Rule · Integration adapter ·
+Decision · Summary) without rework.
+
+- Architectural map: [`docs/adr/0009-vision-alignment-and-extensibility.md`](docs/adr/0009-vision-alignment-and-extensibility.md)
+- Contractual lock: [`docs/contract/assumptions/A13-vision-alignment.md`](docs/contract/assumptions/A13-vision-alignment.md)
+
+Phase 1 scope is unchanged; the destination is just explicit on paper.
+
 ## Project layout
 
 ```

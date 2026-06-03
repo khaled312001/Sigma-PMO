@@ -19,6 +19,7 @@ docs/contract/
                          A10-sigma-proprietary-logic.md
                          A11-integrations-final-list.md
                          A12-branding.md
+                         A13-vision-alignment.md
 ```
 
 ## Cycle ↔ Contract clause mapping
@@ -44,6 +45,7 @@ Annex 3 of the contract holds open assumptions that must be locked before specif
 | #10  | Sigma proprietary governance logic capture  | Cycle 6 release    | [A10-sigma-proprietary-logic.md](assumptions/A10-sigma-proprietary-logic.md) |
 | #11  | Final integration list                      | Cycle 7 release    | [A11-integrations-final-list.md](assumptions/A11-integrations-final-list.md) |
 | #12  | Branding / logos / visual style guide       | Cycle 8 release    | [A12-branding.md](assumptions/A12-branding.md) |
+| #13  | Long-term vision lock (2026-06-04)          | Post-v1.0 cycle gate | [A13-vision-alignment.md](assumptions/A13-vision-alignment.md) |
 
 ## Linked artifacts
 
