@@ -32,9 +32,11 @@ npm run build
 npm run migration:run            # production schema
 node dist/main                   # or via systemd (see deploy/systemd/)
 
-# 3. First admin user (production: provide x-bootstrap-token)
+# 3. First admin user (host-local CLI — no HTTP path for user creation)
 npm run user:create -- ops@sigma-pmo.com sigma_admin "Operations"
-# Capture the printed API key — it is shown ONCE.
+# Capture the printed API key — it is shown ONCE. The key is sha-256 hashed
+# before persistence; rotation (POST /auth/users/:id/rotate-key) is the only
+# recovery if lost.
 
 # 4. Frontend
 cd ../frontend
@@ -97,7 +99,7 @@ new versioned `GovernancePolicy` row; the prior version is preserved.
 | `CORS_ORIGINS`              | no       | Comma-separated origins (commas trim)    |
 | `BODY_LIMIT`                | no       | Default `25mb`                           |
 | `LOG_LEVEL`                 | no       | `info` in prod, `debug` in dev           |
-| `BOOTSTRAP_TOKEN`           | yes (prod) | Header `x-bootstrap-token` for first-admin |
+| `BOOTSTRAP_TOKEN`           | no       | Defence-in-depth: future HTTP admin-create path. CLI is the only first-admin route today. |
 | `SENTRY_DSN`                | no       | Enables Sentry error reporting           |
 | `RATE_LIMIT_*`              | no       | Throttler buckets                        |
 | `LLM_API_KEY` etc.          | no       | Enables LLM rewrite of weekly summary    |

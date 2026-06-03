@@ -77,32 +77,36 @@
 
 ## First admin
 
-Production bootstrap is gated by `BOOTSTRAP_TOKEN` (see
-`docs/runbook/ops.md` § "First-admin bootstrap"). On a fresh deployment:
+First-admin creation is **host-local**, not HTTP. SSH to the VPS and run the
+CLI under the service user:
 
 ```bash
-# 1. read the token from /etc/sigma-pmo/backend.env
-TOKEN=$(grep BOOTSTRAP_TOKEN /etc/sigma-pmo/backend.env | cut -d= -f2)
+# 1. SSH in and switch context to the deploy user
+ssh root@app.sigma.example
+sudo -u sigma -i
 
-# 2. POST the first admin
-curl -sX POST https://app.sigma.example/api/v1/auth/users \
-  -H "Content-Type: application/json" \
-  -H "x-bootstrap-token: $TOKEN" \
-  -d '{
-    "email": "alayham@sigma.example",
-    "displayName": "Al Ayham Alhamach",
-    "role": "sigma_admin"
-  }'
+# 2. Create the first admin
+cd /srv/sigma-pmo/backend
+npm run user:create -- alayham@sigma.example sigma_admin "Al Ayham Alhamach"
 
-# 3. capture the apiKey from the response — shown ONCE.
+# Output ends with:
+#   Created user <uuid> (alayham@sigma.example, sigma_admin).
+#   API key (store now, not printed again): sk_<48-hex-chars>
 
-# 4. remove the BOOTSTRAP_TOKEN line and restart the backend
+# 3. Capture that API key — it is hashed (sha-256) before persistence and
+#    cannot be retrieved later. Lose it → use rotate-key from another admin.
+
+# 4. (Defence-in-depth) Remove BOOTSTRAP_TOKEN from the env once you have
+#    at least one active sigma_admin. It is a safety belt for a future HTTP
+#    admin-creation endpoint; not used by today's flow.
+exit          # back to root
 sed -i '/^BOOTSTRAP_TOKEN=/d' /etc/sigma-pmo/backend.env
 systemctl restart sigma-pmo-backend
 ```
 
-After this, additional users are created by an existing admin via
-`POST /api/v1/auth/users` with their `x-api-key`.
+After this, additional users are created the same way (CLI on the host).
+HTTP-side user lifecycle is restricted to `POST /auth/users/:id/rotate-key`
+and `DELETE /auth/users/:id`, both x-api-key + admin-capability protected.
 
 ## Smoke test
 
