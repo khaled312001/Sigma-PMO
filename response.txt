@@ -1,0 +1,1 @@
+{"message":"Cannot GET /api/v1/reports/weekly-summary?projectKey=P-1000","error":"Not Found","statusCode":404}
