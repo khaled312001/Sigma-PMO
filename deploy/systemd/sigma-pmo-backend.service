@@ -1,0 +1,40 @@
+[Unit]
+Description=Sigma PMO backend (NestJS)
+After=network.target mysql.service mariadb.service
+Wants=mysql.service mariadb.service
+
+[Service]
+Type=simple
+User=sigma
+Group=sigma
+WorkingDirectory=/srv/sigma-pmo/backend
+EnvironmentFile=/etc/sigma-pmo/backend.env
+
+# Built artefact from `npm run build` lives in dist/
+ExecStart=/usr/bin/node dist/main.js
+
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=60
+StartLimitBurst=5
+
+# Logs to journal (pino JSON lines)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sigma-pmo-backend
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/srv/sigma-pmo/storage
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target

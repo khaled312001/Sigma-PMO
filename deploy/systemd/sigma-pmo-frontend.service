@@ -1,0 +1,38 @@
+[Unit]
+Description=Sigma PMO frontend (Next.js)
+After=network.target sigma-pmo-backend.service
+Wants=sigma-pmo-backend.service
+
+[Service]
+Type=simple
+User=sigma
+Group=sigma
+WorkingDirectory=/srv/sigma-pmo/frontend
+EnvironmentFile=/etc/sigma-pmo/frontend.env
+
+# Next.js standalone start. PORT/HOSTNAME come from the env file.
+ExecStart=/usr/bin/npm run start
+
+Restart=on-failure
+RestartSec=5s
+StartLimitInterval=60
+StartLimitBurst=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=sigma-pmo-frontend
+
+# Hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target
