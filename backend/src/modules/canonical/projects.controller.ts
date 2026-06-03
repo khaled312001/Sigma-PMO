@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Project } from './entities';
 
 export interface ProjectSummary {
@@ -23,6 +24,7 @@ export class ProjectsController {
   constructor(@InjectRepository(Project) private readonly projects: Repository<Project>) {}
 
   @Get()
+  @RequiresCapability('canRead')
   async list(): Promise<ProjectSummary[]> {
     const rows = await this.projects.find({
       where: { isCurrent: true },

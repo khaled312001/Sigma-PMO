@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, ExecutiveSummary, GovernanceDecision } from '../../lib/api';
 import { useCurrentProjectKey } from '../../lib/project-context';
+import { AuthGate } from '../../components/AuthGate';
 import { IconSparkles } from '../../components/Icons';
 import {
   Button,
@@ -17,7 +18,11 @@ import {
 
 type Filter = 'all' | 'critical' | 'warning' | 'info';
 
-export default function ReviewPage() {
+export default function ReviewPageRoute() {
+  return <AuthGate capability="canEvaluateRules" surface="Review"><ReviewPage /></AuthGate>;
+}
+
+function ReviewPage() {
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, ExecutiveSummary, IngestionRun } from '../lib/api';
+import { AuthGate } from '../components/AuthGate';
 import {
   IconAlertCritical,
   IconAlertWarning,
@@ -20,7 +21,11 @@ interface Counts {
   warning: number;
 }
 
-export default function Overview() {
+export default function OverviewPage() {
+  return <AuthGate surface="the dashboard"><Overview /></AuthGate>;
+}
+
+function Overview() {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);

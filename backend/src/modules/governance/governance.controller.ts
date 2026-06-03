@@ -27,12 +27,14 @@ export class GovernanceController {
 
   /** Full evidence chain for an alert (Cycle 3 acceptance surface). */
   @Get('alerts/:id/evidence')
+  @RequiresCapability('canRead')
   evidenceForAlert(@Param('id') id: string): Promise<EvidencePackage> {
     return this.evidence.forAlert(id);
   }
 
   /** Confidence score for one ingestion run. */
   @Get('confidence')
+  @RequiresCapability('canRead')
   async confidenceFor(@Query('runId') runId: string) {
     if (!runId) throw new NotFoundException('runId query parameter is required');
     const score = await this.confidence.findByRun(runId);
@@ -43,11 +45,13 @@ export class GovernanceController {
   // ---- Layer 2 — Governance policy + decisions --------------------------
 
   @Get('policy')
+  @RequiresCapability('canRead')
   async getPolicy(@Query('projectKey') projectKey?: string) {
     return this.policies.resolveFor(projectKey ?? null);
   }
 
   @Get('policies')
+  @RequiresCapability('canRead')
   listPolicies(@Query('projectKey') projectKey?: string) {
     return this.policies.listVersions(projectKey ?? null);
   }
@@ -80,6 +84,7 @@ export class GovernanceController {
   }
 
   @Get('decisions/:id/reviews')
+  @RequiresCapability('canRead')
   reviewsForDecision(@Param('id') id: string): Promise<DecisionReview[]> {
     return this.reviews.listForDecision(id);
   }
@@ -94,6 +99,7 @@ export class GovernanceController {
    * Missing ids appear as [] so the client can index without null checks.
    */
   @Get('reviews')
+  @RequiresCapability('canRead')
   async reviewsForDecisions(
     @Query('decisionIds') decisionIds?: string,
   ): Promise<Record<string, DecisionReview[]>> {
@@ -104,11 +110,13 @@ export class GovernanceController {
   }
 
   @Get('alerts/:id/reviews')
+  @RequiresCapability('canRead')
   reviewsForAlert(@Param('id') id: string): Promise<DecisionReview[]> {
     return this.reviews.listForAlert(id);
   }
 
   @Get('decisions')
+  @RequiresCapability('canRead')
   async listDecisions(
     @Query('evaluationId') evaluationId?: string,
     @Query('alertId') alertId?: string,

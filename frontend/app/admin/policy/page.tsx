@@ -4,9 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { useToast } from '../../../components/ToastProvider';
 import { api, GovernancePolicyRecord } from '../../../lib/api';
+import { AuthGate } from '../../../components/AuthGate';
 import { Button, Card, PageHeader, Pill } from '../../../components/ui';
 
-export default function PolicyAdmin() {
+export default function PolicyAdminRoute() {
+  return <AuthGate capability="canEditPolicy" surface="Policy"><PolicyAdmin /></AuthGate>;
+}
+
+function PolicyAdmin() {
   const toast = useToast();
   const [policy, setPolicy] = useState<GovernancePolicyRecord | null>(null);
   const [config, setConfig] = useState('');

@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { api, clearApiKey, MeResponse } from '../lib/api';
+import { clearApiKey, MeResponse } from '../lib/api';
+import { useMe } from '../lib/me-context';
 import { useConfirm } from './ConfirmDialog';
 import { MobileSidebar, Sidebar } from './Sidebar';
 import { ROLE_LABEL } from '../lib/capabilities';
@@ -18,21 +19,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const toast = useToast();
   const confirm = useConfirm();
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const { me, loaded, setMe } = useMe();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const refresh = useCallback(async () => {
-    try {
-      setMe(await api<MeResponse>('/auth/me'));
-    } catch {
-      setMe({ authenticated: false, bootstrapMode: false, user: null });
-    } finally {
-      setLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => { void refresh(); }, [refresh]);
 
   // Close mobile menu on route change.
   useEffect(() => { setMobileOpen(false); }, [pathname]);

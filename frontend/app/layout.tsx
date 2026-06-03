@@ -3,6 +3,7 @@ import './globals.css';
 import { ConfirmProvider } from '../components/ConfirmDialog';
 import { Shell } from '../components/Shell';
 import { ToastProvider } from '../components/ToastProvider';
+import { MeProvider } from '../lib/me-context';
 import { ProjectProvider } from '../lib/project-context';
 
 export const metadata: Metadata = {
@@ -16,9 +17,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
         <ToastProvider>
           <ConfirmProvider>
-            <ProjectProvider>
-              <Shell>{children}</Shell>
-            </ProjectProvider>
+            <MeProvider>
+              <ProjectProvider>
+                <Shell>{children}</Shell>
+              </ProjectProvider>
+            </MeProvider>
           </ConfirmProvider>
         </ToastProvider>
       </body>

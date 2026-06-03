@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useToast } from '../../components/ToastProvider';
 import { api, IngestionRun } from '../../lib/api';
+import { AuthGate } from '../../components/AuthGate';
 import { IconRefresh, IconUpload } from '../../components/Icons';
 import { Button, Card, ConfidenceBar, EmptyState, PageHeader, Pill } from '../../components/ui';
 
@@ -18,7 +19,11 @@ interface IngestOutcome {
 const ACCEPTED_EXT = /\.(xer|xml|xlsx|csv)$/i;
 const MAX_BYTES = 24 * 1024 * 1024;
 
-export default function InputPage() {
+export default function InputPageRoute() {
+  return <AuthGate capability="canIngest" surface="Input"><InputPage /></AuthGate>;
+}
+
+function InputPage() {
   const toast = useToast();
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [file, setFile] = useState<File | null>(null);

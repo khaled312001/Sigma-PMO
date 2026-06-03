@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, DecisionReview, GovernanceDecision } from '../../lib/api';
+import { AuthGate } from '../../components/AuthGate';
 import { IconCheck, IconX } from '../../components/Icons';
 import { Button, Card, EmptyState, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
@@ -14,7 +15,11 @@ interface Row {
   latestReview: DecisionReview | null;
 }
 
-export default function ApprovalPage() {
+export default function ApprovalPageRoute() {
+  return <AuthGate capability="canEvaluateRules" surface="Approval"><ApprovalPage /></AuthGate>;
+}
+
+function ApprovalPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const [rows, setRows] = useState<Row[] | null>(null);

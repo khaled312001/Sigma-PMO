@@ -3,9 +3,14 @@
 import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, EvidencePackage } from '../../lib/api';
+import { AuthGate } from '../../components/AuthGate';
 import { Card, ConfidenceBar, EmptyState, ErrorBanner, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
-export default function EvidencePage() {
+export default function EvidencePageRoute() {
+  return <AuthGate surface="Evidence"><EvidencePage /></AuthGate>;
+}
+
+function EvidencePage() {
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<EvidencePackage | null>(null);

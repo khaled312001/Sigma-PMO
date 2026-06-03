@@ -54,6 +54,7 @@ export class IngestionController {
 
   /** Recent ingestion runs (audit trail). */
   @Get('runs')
+  @RequiresCapability('canRead')
   listRuns(@Query('limit') limit?: string): Promise<IngestionRun[]> {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '50', 10) || 50, 1), 200);
     return this.runs.find({ order: { createdAt: 'DESC' }, take });

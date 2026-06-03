@@ -11,6 +11,7 @@ export class SummaryController {
   constructor(private readonly summaries: SummaryService, private readonly llm: LlmService) {}
 
   @Get('llm-status')
+  @RequiresCapability('canRead')
   llmStatus() {
     return { enabled: this.llm.isEnabled(), ...(this.llm.describe() ?? {}) };
   }
@@ -23,6 +24,7 @@ export class SummaryController {
   }
 
   @Get()
+  @RequiresCapability('canRead')
   list(@Query('projectId') projectId?: string, @Query('limit') limit?: string): Promise<ExecutiveSummary[]> {
     const lim = limit ? Math.max(1, Math.min(100, Number.parseInt(limit, 10) || 20)) : 20;
     return this.summaries.list(projectId, lim);

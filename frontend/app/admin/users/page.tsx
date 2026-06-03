@@ -4,10 +4,15 @@ import { useEffect, useState } from 'react';
 
 import { useToast } from '../../../components/ToastProvider';
 import { api, UserRecord } from '../../../lib/api';
+import { AuthGate } from '../../../components/AuthGate';
 import { Card, EmptyState, PageHeader, Pill } from '../../../components/ui';
 import { ROLE_LABEL } from '../../../lib/capabilities';
 
-export default function UsersAdmin() {
+export default function UsersAdminRoute() {
+  return <AuthGate capability="canReadAll" surface="Users"><UsersAdmin /></AuthGate>;
+}
+
+function UsersAdmin() {
   const toast = useToast();
   const [users, setUsers] = useState<UserRecord[] | null>(null);
 

@@ -5,12 +5,14 @@ import { useEffect, useState } from 'react';
 
 import { useToast } from '../../components/ToastProvider';
 import { api, MeResponse, setApiKey } from '../../lib/api';
+import { useMe } from '../../lib/me-context';
 import { Button, ErrorBanner } from '../../components/ui';
 import { IconActivity, IconLogIn } from '../../components/Icons';
 
 export default function AuthPage() {
   const router = useRouter();
   const toast = useToast();
+  const { refresh } = useMe();
   const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,8 @@ export default function AuthPage() {
     try {
       const me = await api<MeResponse>('/auth/me');
       if (!me.authenticated) throw new Error('Key rejected — please check it and try again.');
+      // Re-prime the shared me context so Shell + AuthGate see the new state.
+      await refresh();
       toast.success('Signed in', me.user ? `Welcome, ${me.user.displayName}` : undefined);
       router.push('/');
     } catch (err) {

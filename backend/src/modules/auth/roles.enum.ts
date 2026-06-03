@@ -19,15 +19,16 @@ export enum Role {
  * mapping is the first cut; admin/workflow controls (Cycle 7) extend it.
  */
 export const ROLE_CAPABILITIES: Record<Role, {
+  canRead: boolean;
   canIngest: boolean;
   canEvaluateRules: boolean;
   canEditPolicy: boolean;
   canGenerateSummary: boolean;
   canReadAll: boolean;
 }> = {
-  [Role.SIGMA_ADMIN]:    { canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true  },
-  [Role.SIGMA_REVIEWER]: { canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true  },
-  [Role.CLIENT]:         { canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true  },
-  [Role.CONSULTANT]:     { canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true  },
-  [Role.CONTRACTOR]:     { canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false },
+  [Role.SIGMA_ADMIN]:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true  },
+  [Role.SIGMA_REVIEWER]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true  },
+  [Role.CLIENT]:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true  },
+  [Role.CONSULTANT]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true  },
+  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false },
 };

@@ -17,6 +17,7 @@ export class RulesController {
   ) {}
 
   @Get()
+  @RequiresCapability('canRead')
   registeredRules() {
     return this.engine.registeredRules();
   }
@@ -37,6 +38,7 @@ export class RulesController {
   }
 
   @Get('alerts')
+  @RequiresCapability('canRead')
   listAlerts(
     @Query('evaluationId') evaluationId?: string,
     @Query('projectId') projectId?: string,
@@ -52,6 +54,7 @@ export class RulesController {
   }
 
   @Get('evaluations')
+  @RequiresCapability('canRead')
   listEvaluations(@Query('limit') limit?: string): Promise<RuleEvaluation[]> {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '20', 10) || 20, 1), 100);
     return this.evaluations.find({ order: { createdAt: 'DESC' }, take });
