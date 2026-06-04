@@ -50,7 +50,20 @@ export interface MeResponse {
     displayName: string;
     role: Role;
     projectScopes: string;
+    emiratesId: string | null;
   } | null;
+}
+
+export interface LoginResponse {
+  apiKey: string;
+  user: {
+    id: string;
+    email: string;
+    displayName: string;
+    role: Role;
+    projectScopes: string;
+    emiratesId: string | null;
+  };
 }
 
 export interface IngestionRun {

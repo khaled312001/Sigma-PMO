@@ -4,10 +4,15 @@ import { UuidEntity } from '../../../common/entities/base.entity';
 import { Role } from '../../auth/roles.enum';
 
 /**
- * RBAC principal (Layer 3). Identification is by `apiKeyHash` (sha-256 of the
- * raw key) so the raw key is never persisted. Project-scoping is intentionally
- * a comma-separated list rather than a join table for Cycle 7 simplicity;
- * Cycle 8 can promote it to a proper many-to-many when admin/workflow needs it.
+ * RBAC principal (Layer 3). Two authentication paths are supported:
+ *   1. Programmatic — `x-api-key` header, sha-256 lookup against `apiKeyHash`.
+ *   2. Interactive  — email + password (scrypt). `POST /auth/login` rotates a
+ *      fresh API key on every successful login; the raw key is shown to the
+ *      browser once and persisted only in localStorage.
+ *
+ * `passwordHash` + `passwordSalt` are nullable for users created during
+ * bootstrap or via the CLI without an interactive password — those users
+ * keep API-key-only access until an admin assigns a password.
  */
 @Entity('user')
 export class User extends UuidEntity {
@@ -25,6 +30,21 @@ export class User extends UuidEntity {
   @Index({ unique: true })
   @Column({ type: 'char', length: 64 })
   apiKeyHash!: string;
+
+  /** scrypt hash of the password (hex). Nullable for API-key-only users. */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  passwordHash!: string | null;
+
+  /** Per-user random salt for scrypt (hex). Nullable when no password is set. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  passwordSalt!: string | null;
+
+  /**
+   * Emirates ID — 15-digit national identifier (XXX-XXXX-XXXXXXX-X). Optional,
+   * captured for stakeholders who operate under UAE identity attestation.
+   */
+  @Column({ type: 'varchar', length: 18, nullable: true })
+  emiratesId!: string | null;
 
   /** Comma-separated project business keys this user is scoped to ('*' = all). */
   @Column({ type: 'varchar', length: 1024, default: '*' })

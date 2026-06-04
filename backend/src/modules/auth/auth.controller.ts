@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import {
+  Body,
   ConflictException,
   Controller,
   Delete,
@@ -10,12 +11,14 @@ import {
   NotFoundException,
   Param,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from '../canonical/entities';
 import { AuthService } from './auth.service';
+import { LoginDto, SetPasswordDto } from './dto/login.dto';
 import { RequiresCapability } from './require-capability.decorator';
 import { Role } from './roles.enum';
 
@@ -28,6 +31,7 @@ interface MeResponse {
     displayName: string;
     role: Role;
     projectScopes: string;
+    emiratesId: string | null;
   } | null;
 }
 
@@ -38,7 +42,21 @@ interface UserListItem {
   role: Role;
   projectScopes: string;
   active: boolean;
+  hasPassword: boolean;
+  emiratesId: string | null;
   createdAt: Date;
+}
+
+interface LoginResponse {
+  apiKey: string;
+  user: {
+    id: string;
+    email: string;
+    displayName: string;
+    role: Role;
+    projectScopes: string;
+    emiratesId: string | null;
+  };
 }
 
 @Controller('auth')
@@ -47,6 +65,51 @@ export class AuthController {
     @InjectRepository(User) private readonly users: Repository<User>,
     private readonly auth: AuthService,
   ) {}
+
+  /**
+   * Interactive sign-in. Validates email + password and issues a fresh API
+   * key on every successful call, rotating any previous key for this user
+   * (defence-in-depth: old browser sessions / lost laptops stop working as
+   * soon as someone signs in again). The raw key is returned once and stored
+   * in localStorage by the browser; subsequent requests carry it as
+   * x-api-key.
+   */
+  @Post('login')
+  @HttpCode(200)
+  async login(@Body() body: LoginDto): Promise<LoginResponse> {
+    const user = await this.auth.authenticateByPassword(body.email, body.password);
+    if (!user) throw new UnauthorizedException('Invalid email or password');
+    const apiKey = await this.auth.issueApiKey(user);
+    return {
+      apiKey,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        role: user.role,
+        projectScopes: user.projectScopes,
+        emiratesId: user.emiratesId,
+      },
+    };
+  }
+
+  /**
+   * Admin-only password set / reset. Used to assign a password to API-key-
+   * only users + as the password-rotation surface. Requires canReadAll (the
+   * same gate as user listing / lifecycle).
+   */
+  @Post('users/:id/set-password')
+  @HttpCode(200)
+  @RequiresCapability('canReadAll')
+  async setPassword(@Param('id') id: string, @Body() body: SetPasswordDto): Promise<{ ok: true }> {
+    const user = await this.users.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    const { hash, salt } = this.auth.hashPassword(body.password);
+    user.passwordHash = hash;
+    user.passwordSalt = salt;
+    await this.users.save(user);
+    return { ok: true };
+  }
 
   /** Identity behind the supplied x-api-key (or bootstrap-mode indicator). */
   @Get('me')
@@ -65,6 +128,7 @@ export class AuthController {
         displayName: user.displayName,
         role: user.role,
         projectScopes: user.projectScopes,
+        emiratesId: user.emiratesId,
       },
     };
   }
@@ -80,6 +144,8 @@ export class AuthController {
       role: u.role,
       projectScopes: u.projectScopes,
       active: u.active,
+      hasPassword: !!(u.passwordHash && u.passwordSalt),
+      emiratesId: u.emiratesId,
       createdAt: u.createdAt,
     }));
   }

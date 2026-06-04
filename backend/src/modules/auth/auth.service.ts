@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +7,9 @@ import { Repository } from 'typeorm';
 
 import { User } from '../canonical/entities';
 import { Role } from './roles.enum';
+
+const SCRYPT_KEYLEN = 64;
+const SCRYPT_COST = 16384; // N=2^14, conservative for Node single-thread
 
 /**
  * Encapsulates auth-related operations: hashing the supplied API key, looking
@@ -28,6 +31,36 @@ export class AuthService {
 
   findActiveByApiKey(rawKey: string): Promise<User | null> {
     return this.users.findOne({ where: { apiKeyHash: this.hashApiKey(rawKey), active: true } });
+  }
+
+  /** Issue a fresh API key for the given user; old key invalidated. */
+  async issueApiKey(user: User): Promise<string> {
+    const rawKey = `sk_${randomBytes(24).toString('hex')}`;
+    user.apiKeyHash = this.hashApiKey(rawKey);
+    await this.users.save(user);
+    return rawKey;
+  }
+
+  // ---- Password (scrypt + per-user salt) -----------------------------------
+
+  hashPassword(plain: string): { hash: string; salt: string } {
+    const salt = randomBytes(16).toString('hex');
+    const hash = scryptSync(plain, salt, SCRYPT_KEYLEN, { N: SCRYPT_COST }).toString('hex');
+    return { hash, salt };
+  }
+
+  verifyPassword(plain: string, hash: string, salt: string): boolean {
+    const candidate = scryptSync(plain, salt, SCRYPT_KEYLEN, { N: SCRYPT_COST });
+    const stored = Buffer.from(hash, 'hex');
+    if (candidate.length !== stored.length) return false;
+    return timingSafeEqual(candidate, stored);
+  }
+
+  async authenticateByPassword(email: string, password: string): Promise<User | null> {
+    const user = await this.users.findOne({ where: { email: email.toLowerCase(), active: true } });
+    if (!user || !user.passwordHash || !user.passwordSalt) return null;
+    if (!this.verifyPassword(password, user.passwordHash, user.passwordSalt)) return null;
+    return user;
   }
 
   countUsers(): Promise<number> {

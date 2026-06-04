@@ -50,7 +50,11 @@ export const en: Dictionary = {
   },
   auth: {
     title: 'Sign in to Sigma PMO',
-    subtitle: 'Paste the API key issued by your Sigma admin to continue.',
+    subtitle: 'Enter the email and password issued by your Sigma admin.',
+    emailLabel: 'Email',
+    emailPlaceholder: 'name@company.com',
+    passwordLabel: 'Password',
+    passwordPlaceholder: '••••••••',
     apiKeyLabel: 'API key',
     apiKeyPlaceholder: 'sk_…',
     show: 'Show',
@@ -58,8 +62,13 @@ export const en: Dictionary = {
     submit: 'Sign in',
     verifying: 'Verifying…',
     keyRejected: 'Key rejected — please check it and try again.',
+    loginFailed: 'Email or password incorrect.',
     welcome: 'Welcome, {name}',
     signedOut: 'Signed out',
+    capsLock: 'Caps Lock is on',
+    forgotPassword: 'Forgot password?',
+    forgotPasswordHint: 'Ask your Sigma admin to reset it from the host CLI.',
+    rememberMe: 'Keep me signed in',
     valueProp: {
       governance: 'Deterministic governance over portfolio data',
       evidence: 'Every alert traceable to its source row',
@@ -305,10 +314,16 @@ export interface Dictionary {
   };
   auth: {
     title: string; subtitle: string;
+    emailLabel: string; emailPlaceholder: string;
+    passwordLabel: string; passwordPlaceholder: string;
     apiKeyLabel: string; apiKeyPlaceholder: string;
     show: string; hide: string;
     submit: string; verifying: string; keyRejected: string;
+    loginFailed: string;
     welcome: string; signedOut: string;
+    capsLock: string;
+    forgotPassword: string; forgotPasswordHint: string;
+    rememberMe: string;
     valueProp: { governance: string; evidence: string; fidic: string };
     bootstrap: { title: string; body: string; hint: string };
     standards: { heading: string; fidic: string; pmi: string; append: string; sha: string };

@@ -1,10 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useToast } from '../../components/ToastProvider';
-import { api, MeResponse, setApiKey } from '../../lib/api';
+import { api, LoginResponse, MeResponse, setApiKey } from '../../lib/api';
 import { useMe } from '../../lib/me-context';
 import { useI18n } from '../../lib/i18n';
 import { LangSwitch } from '../../components/LangSwitch';
@@ -12,7 +12,6 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { Button, ErrorBanner } from '../../components/ui';
 import {
   IconActivity,
-  IconCheck,
   IconDatabase,
   IconEvidence,
   IconLogIn,
@@ -25,11 +24,14 @@ export default function AuthPage() {
   const toast = useToast();
   const { refresh } = useMe();
   const { t } = useI18n();
-  const [key, setKey] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [reveal, setReveal] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootstrap, setBootstrap] = useState(false);
+  const emailRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -39,20 +41,30 @@ export default function AuthPage() {
         else if (me.authenticated) router.push('/');
       } catch { /* ignore */ }
     })();
+    emailRef.current?.focus();
   }, [router]);
+
+  const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setCapsLock(e.getModifierState && e.getModifierState('CapsLock'));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setError(null);
-    setApiKey(key.trim());
     try {
-      const me = await api<MeResponse>('/auth/me');
-      if (!me.authenticated) throw new Error(t('auth.keyRejected'));
+      const res = await api<LoginResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      setApiKey(res.apiKey);
       await refresh();
-      toast.success(t('common.confirm'), me.user ? t('auth.welcome', { name: me.user.displayName }) : undefined);
+      toast.success(t('auth.welcome', { name: res.user.displayName }));
       router.push('/');
     } catch (err) {
-      setError((err as Error).message);
+      const message = (err as Error).message ?? '';
+      // /auth/login returns 401 on bad creds; the api() wrapper throws "API ... → 401: ...".
+      const friendly = /401|unauthor/i.test(message) ? t('auth.loginFailed') : message;
+      setError(friendly);
     } finally {
       setBusy(false);
     }
@@ -67,14 +79,14 @@ export default function AuthPage() {
         <div className="absolute -bottom-40 end-1/4 h-72 w-72 rounded-full bg-violet-500/10 blur-3xl" />
       </div>
 
-      {/* Sticky top-right toggles (always visible on every breakpoint) */}
+      {/* Sticky top-right toggles */}
       <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
         <LangSwitch />
         <ThemeToggle />
       </div>
 
       <div className="relative grid min-h-screen lg:grid-cols-[1.15fr_1fr]">
-        {/* ===== Brand panel (lg+) ===== */}
+        {/* ===== Brand panel ===== */}
         <section className="hidden flex-col justify-between border-e border-slate-800/60 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/60 p-12 lg:flex">
           <header className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-500/30">
@@ -146,28 +158,59 @@ export default function AuthPage() {
               <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
                 <p className="font-medium">{t('auth.bootstrap.title')}</p>
                 <p className="mt-1 text-xs text-amber-100/80">{t('auth.bootstrap.body')}</p>
-                <pre dir="ltr" className="mt-2 overflow-auto rounded-lg bg-black/40 p-2 text-[11px] text-amber-50">npm run user:create -- you@example.com sigma_admin &quot;Your Name&quot;</pre>
+                <pre dir="ltr" className="mt-2 overflow-auto rounded-lg bg-black/40 p-2 text-[11px] text-amber-50">npm run user:create -- you@example.com sigma_admin &quot;StrongPassword!&quot; &quot;Your Name&quot;</pre>
                 <p className="mt-2 text-xs text-amber-100/80">{t('auth.bootstrap.hint')}</p>
               </div>
             )}
 
-            <form onSubmit={submit} className="mt-8 space-y-5">
+            <form onSubmit={submit} className="mt-8 space-y-5" autoComplete="on">
+              {/* Email */}
               <div>
-                <label htmlFor="api-key" className="block text-xs font-medium text-slate-300">
-                  {t('auth.apiKeyLabel')}
+                <label htmlFor="email" className="block text-xs font-medium text-slate-300">
+                  {t('auth.emailLabel')}
                 </label>
+                <input
+                  id="email"
+                  ref={emailRef}
+                  type="email"
+                  autoComplete="username"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('auth.emailPlaceholder')}
+                  className="mt-2 block w-full rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 shadow-inner shadow-black/20 transition placeholder:text-slate-500 focus:border-sky-500 focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+                  dir="ltr"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <label htmlFor="password" className="block text-xs font-medium text-slate-300">
+                    {t('auth.passwordLabel')}
+                  </label>
+                  <span
+                    className="text-[11px] text-slate-500 hover:text-slate-300 cursor-help"
+                    title={t('auth.forgotPasswordHint')}
+                  >
+                    {t('auth.forgotPassword')}
+                  </span>
+                </div>
                 <div className="relative mt-2">
                   <input
-                    id="api-key"
+                    id="password"
                     type={reveal ? 'text' : 'password'}
-                    autoComplete="off"
-                    spellCheck={false}
-                    value={key}
-                    onChange={(e) => setKey(e.target.value)}
-                    className="block w-full rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 pe-24 font-mono text-sm text-slate-100 shadow-inner shadow-black/20 transition focus:border-sky-500 focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
-                    placeholder={t('auth.apiKeyPlaceholder')}
-                    aria-describedby={error ? 'api-key-error' : 'api-key-hint'}
+                    autoComplete="current-password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={onKey}
+                    onKeyUp={onKey}
+                    placeholder={t('auth.passwordPlaceholder')}
+                    aria-describedby={error ? 'login-error' : capsLock ? 'caps-warning' : undefined}
                     aria-invalid={error !== null}
+                    className="block w-full rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 pe-20 text-sm text-slate-100 shadow-inner shadow-black/20 transition placeholder:text-slate-500 focus:border-sky-500 focus:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
                     dir="ltr"
                   />
                   <button
@@ -179,12 +222,16 @@ export default function AuthPage() {
                     {reveal ? t('auth.hide') : t('auth.show')}
                   </button>
                 </div>
-                <p id="api-key-hint" className="mt-2 text-[11px] text-slate-500">{t('auth.keyHint')}</p>
+                {capsLock && (
+                  <p id="caps-warning" className="mt-1.5 flex items-center gap-1 text-[11px] text-amber-300">
+                    <span aria-hidden>⇧</span> {t('auth.capsLock')}
+                  </p>
+                )}
               </div>
 
-              {error && <div id="api-key-error"><ErrorBanner message={error} /></div>}
+              {error && <div id="login-error"><ErrorBanner message={error} /></div>}
 
-              <Button type="submit" variant="primary" disabled={busy || !key} className="w-full justify-center py-2.5 text-sm">
+              <Button type="submit" variant="primary" disabled={busy || !email || password.length < 8} className="w-full justify-center py-2.5 text-sm">
                 <IconLogIn className="h-4 w-4" /> {busy ? t('auth.verifying') : t('auth.submit')}
               </Button>
 
@@ -215,7 +262,3 @@ function Chip({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
-
-// IconCheck is intentionally unused after the redesign; keep the export
-// signature stable but quiet the linter.
-void IconCheck;
