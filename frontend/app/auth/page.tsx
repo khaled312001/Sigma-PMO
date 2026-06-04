@@ -72,11 +72,13 @@ export default function AuthPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      {/* Decorative gradient blobs */}
+      {/* Formal background — single subtle crimson wash + faint texture */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 -end-40 h-[28rem] w-[28rem] rounded-full bg-sky-500/12 blur-3xl" />
-        <div className="absolute top-1/3 -start-32 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute -bottom-40 end-1/4 h-72 w-72 rounded-full bg-violet-500/10 blur-3xl" />
+        <div className="absolute inset-x-0 top-0 h-[60vh] bg-gradient-to-b from-sky-500/[0.06] to-transparent" />
+        <div className="absolute inset-0 opacity-[0.025]" style={{
+          backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }} />
       </div>
 
       {/* Sticky top-right toggles */}
@@ -86,26 +88,31 @@ export default function AuthPage() {
       </div>
 
       <div className="relative grid min-h-screen lg:grid-cols-[1.15fr_1fr]">
-        {/* ===== Brand panel ===== */}
-        <section className="hidden flex-col justify-between border-e border-slate-800/60 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900/60 p-12 lg:flex">
+        {/* ===== Brand panel — formal UAE-tone identity ===== */}
+        <section className="hidden flex-col justify-between border-e border-slate-800/60 bg-slate-950 p-12 lg:flex">
           <header className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-500/30">
-              <IconActivity className="h-5 w-5 text-sky-300" />
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-sky-500/15 ring-1 ring-sky-500/40">
+              <IconActivity className="h-5 w-5 text-sky-400" />
             </div>
             <div>
               <p className="text-base font-semibold tracking-tight">{t('brand.name')}</p>
               <p className="text-xs text-slate-400">{t('brand.tagline')}</p>
             </div>
+            <span className="ms-auto rounded-sm border border-gold bg-gold-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold">
+              Official
+            </span>
           </header>
 
           <div className="max-w-md">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-400">
+            {/* Crimson rule above the eyebrow — formal document feel */}
+            <div className="mb-4 h-0.5 w-12 bg-sky-500" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-400">
               {t('auth.title')}
             </p>
-            <h1 className="mt-4 text-[2rem] font-semibold leading-[1.15] tracking-tight">
+            <h1 className="font-display mt-4 text-[2.25rem] leading-[1.1] tracking-tight">
               {t('overview.title')}
             </h1>
-            <p className="mt-4 text-sm leading-relaxed text-slate-400">
+            <p className="mt-5 text-sm leading-relaxed text-slate-400">
               {t('overview.description')}
             </p>
 
@@ -126,12 +133,15 @@ export default function AuthPage() {
             </div>
           </div>
 
-          <footer className="flex items-center justify-between text-[11px] text-slate-500">
-            <span className="font-mono">v1.0.0-acceptance</span>
-            <span className="flex items-center gap-1.5">
-              <IconDatabase className="h-3 w-3" />
-              <span className="font-mono" dir="ltr">P-1000 · Nile Tower</span>
-            </span>
+          <footer className="space-y-2">
+            <div className="h-px w-full bg-slate-800/70" />
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <span className="font-mono">v1.0.0-acceptance</span>
+              <span className="flex items-center gap-1.5">
+                <IconDatabase className="h-3 w-3" />
+                <span className="font-mono" dir="ltr">P-1000 · Nile Tower</span>
+              </span>
+            </div>
           </footer>
         </section>
 
@@ -139,8 +149,8 @@ export default function AuthPage() {
         <section className="flex min-h-screen flex-col justify-center px-6 py-12 sm:px-10 lg:px-16">
           {/* Mobile brand header */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-500/30">
-              <IconActivity className="h-4 w-4 text-sky-300" />
+            <div className="grid h-11 w-11 place-items-center rounded-md bg-sky-500/15 ring-1 ring-sky-500/40">
+              <IconActivity className="h-4 w-4 text-sky-400" />
             </div>
             <div>
               <p className="text-sm font-semibold">{t('brand.name')}</p>

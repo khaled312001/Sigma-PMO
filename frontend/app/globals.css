@@ -1,97 +1,186 @@
 @import "tailwindcss";
 
 /* ===========================================================================
- * Sigma PMO — theme tokens
+ * Sigma PMO — Formal UAE Identity
  *
- * Tailwind v4 reads color tokens through @theme inline. We redirect the
- * slate-* family to CSS variables that flip when [data-theme="light"] is
- * set on <html>, so every existing `bg-slate-950` etc. class swaps to the
- * light value without touching component code.
+ * Typography: Tajawal (Arabic primary, Google Fonts) + Inter (Latin) wired
+ * via next/font/google in app/layout.tsx. CSS exposes them as variables that
+ * Tailwind picks up through the @theme block below.
  *
- * Brand accents (sky / emerald / amber / rose / violet / fuchsia) stay
- * unchanged — they read on both themes.
+ * Palette: warm-neutral surfaces (not cool slate-blue) with three accent
+ * families that align with UAE official identity guidance:
+ *   - Crimson  #C8102E  — primary action / brand red
+ *   - Emerald  #00843D  — success / confirm / FIDIC-compliant
+ *   - Gold     #C9A961  — premium markers / official seals
  *
- * The provider in lib/theme-context.tsx applies data-theme; default is
- * dark to match the existing visual identity.
+ * The slate-* token family is REDIRECTED to a warm-neutral scale so every
+ * existing `bg-slate-950` etc. class instantly reads as the formal palette
+ * without touching component code; light/dark theming still works.
  * ======================================================================== */
 
 @theme inline {
-  --color-slate-50:  var(--slate-50);
-  --color-slate-100: var(--slate-100);
-  --color-slate-200: var(--slate-200);
-  --color-slate-300: var(--slate-300);
-  --color-slate-400: var(--slate-400);
-  --color-slate-500: var(--slate-500);
-  --color-slate-600: var(--slate-600);
-  --color-slate-700: var(--slate-700);
-  --color-slate-800: var(--slate-800);
-  --color-slate-900: var(--slate-900);
-  --color-slate-950: var(--slate-950);
+  --color-slate-50:  var(--neutral-50);
+  --color-slate-100: var(--neutral-100);
+  --color-slate-200: var(--neutral-200);
+  --color-slate-300: var(--neutral-300);
+  --color-slate-400: var(--neutral-400);
+  --color-slate-500: var(--neutral-500);
+  --color-slate-600: var(--neutral-600);
+  --color-slate-700: var(--neutral-700);
+  --color-slate-800: var(--neutral-800);
+  --color-slate-900: var(--neutral-900);
+  --color-slate-950: var(--neutral-950);
+
+  /* Override the cool "sky" accent family with formal UAE crimson so every
+   * existing `bg-sky-500`, `text-sky-300`, etc. now reads as the official
+   * brand red. Original sky tones flowed everywhere as the primary action
+   * colour; flipping them via @theme means no component refactor. */
+  --color-sky-50:  var(--crimson-50);
+  --color-sky-100: var(--crimson-100);
+  --color-sky-200: var(--crimson-200);
+  --color-sky-300: var(--crimson-300);
+  --color-sky-400: var(--crimson-400);
+  --color-sky-500: var(--crimson-500);
+  --color-sky-600: var(--crimson-600);
+  --color-sky-700: var(--crimson-700);
+  --color-sky-800: var(--crimson-800);
+  --color-sky-900: var(--crimson-900);
+
+  /* Typography tokens — wired by next/font in layout.tsx. */
+  --font-sans:   var(--font-inter), var(--font-tajawal), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-arabic: var(--font-tajawal), "Segoe UI", "Tahoma", Arial, sans-serif;
+  --font-mono:   ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* Dark theme (default) — anchors the original Sigma PMO identity. */
+/* =========================================================================
+ * Dark theme — warm-neutral background tuned to UAE formal identity.
+ * Anchored at hue ~50 (warm gray, tiny touch of bronze) instead of the
+ * old cool 240. Reads as a polished government document, not a startup.
+ * ======================================================================== */
 :root,
 [data-theme="dark"] {
-  --slate-50:  oklch(0.985 0.003 240);
-  --slate-100: oklch(0.965 0.005 240);
-  --slate-200: oklch(0.925 0.008 240);
-  --slate-300: oklch(0.870 0.010 240);
-  --slate-400: oklch(0.740 0.018 240);
-  --slate-500: oklch(0.620 0.025 240);
-  --slate-600: oklch(0.510 0.028 240);
-  --slate-700: oklch(0.390 0.030 240);
-  --slate-800: oklch(0.290 0.028 240);
-  --slate-900: oklch(0.215 0.025 240);
-  --slate-950: oklch(0.140 0.022 240);
+  --neutral-50:  oklch(0.985 0.004 60);
+  --neutral-100: oklch(0.965 0.005 60);
+  --neutral-200: oklch(0.925 0.007 60);
+  --neutral-300: oklch(0.870 0.009 60);
+  --neutral-400: oklch(0.745 0.012 60);
+  --neutral-500: oklch(0.625 0.014 60);
+  --neutral-600: oklch(0.515 0.015 55);
+  --neutral-700: oklch(0.395 0.014 50);
+  --neutral-800: oklch(0.290 0.012 45);
+  --neutral-900: oklch(0.205 0.010 40);
+  --neutral-950: oklch(0.135 0.008 35);
 
-  --app-bg: var(--slate-950);
-  --app-fg: var(--slate-100);
+  /* UAE crimson — official UAE flag-derived red. Maps onto the sky-* family. */
+  --crimson-50:  oklch(0.965 0.020 25);
+  --crimson-100: oklch(0.920 0.045 25);
+  --crimson-200: oklch(0.840 0.090 25);
+  --crimson-300: oklch(0.745 0.140 26);
+  --crimson-400: oklch(0.640 0.175 26);
+  --crimson-500: oklch(0.535 0.190 27);  /* ~#C8102E equivalent */
+  --crimson-600: oklch(0.460 0.180 27);
+  --crimson-700: oklch(0.385 0.155 28);
+  --crimson-800: oklch(0.310 0.120 28);
+  --crimson-900: oklch(0.245 0.085 28);
+
+  /* Gold — UAE premium accent (badges, official seals). Use sparingly. */
+  --gold-500: oklch(0.760 0.115 80);
+  --gold-300: oklch(0.860 0.085 80);
+
+  --app-bg: var(--neutral-950);
+  --app-fg: var(--neutral-100);
 }
 
-/* Light theme — invert the value axis; same hue family.
- * 950 now reads near-white (page bg); 100 reads near-black (page fg). */
+/* =========================================================================
+ * Light theme — formal white-paper look. Same hue family, value inverted.
+ * Premium government document feel: warm off-white background, deep ink
+ * foreground, crimson primary accent stays the same colour.
+ * ======================================================================== */
 [data-theme="light"] {
-  --slate-50:  oklch(0.140 0.020 240);
-  --slate-100: oklch(0.215 0.022 240);
-  --slate-200: oklch(0.290 0.025 240);
-  --slate-300: oklch(0.390 0.028 240);
-  --slate-400: oklch(0.510 0.030 240);
-  --slate-500: oklch(0.620 0.028 240);
-  --slate-600: oklch(0.740 0.022 240);
-  --slate-700: oklch(0.870 0.015 240);
-  --slate-800: oklch(0.925 0.012 240);
-  --slate-900: oklch(0.965 0.008 240);
-  --slate-950: oklch(0.990 0.004 240);
+  --neutral-50:  oklch(0.135 0.010 35);
+  --neutral-100: oklch(0.205 0.011 40);
+  --neutral-200: oklch(0.290 0.013 45);
+  --neutral-300: oklch(0.395 0.014 50);
+  --neutral-400: oklch(0.515 0.015 55);
+  --neutral-500: oklch(0.625 0.014 60);
+  --neutral-600: oklch(0.745 0.010 60);
+  --neutral-700: oklch(0.870 0.008 60);
+  --neutral-800: oklch(0.925 0.006 60);
+  --neutral-900: oklch(0.965 0.005 60);
+  --neutral-950: oklch(0.992 0.003 60);  /* warm off-white, not stark white */
 
-  --app-bg: var(--slate-950);
-  --app-fg: var(--slate-100);
+  --crimson-50:  oklch(0.245 0.085 28);
+  --crimson-100: oklch(0.310 0.120 28);
+  --crimson-200: oklch(0.385 0.155 28);
+  --crimson-300: oklch(0.460 0.180 27);
+  --crimson-400: oklch(0.535 0.190 27);
+  --crimson-500: oklch(0.495 0.185 27);  /* slightly darker than dark mode for ink-on-paper contrast */
+  --crimson-600: oklch(0.640 0.175 26);
+  --crimson-700: oklch(0.745 0.140 26);
+  --crimson-800: oklch(0.840 0.090 25);
+  --crimson-900: oklch(0.920 0.045 25);
+
+  --gold-500: oklch(0.660 0.105 80);
+  --gold-300: oklch(0.760 0.115 80);
+
+  --app-bg: var(--neutral-950);
+  --app-fg: var(--neutral-100);
 }
 
-/* Body base — picks up the live theme. */
+/* =========================================================================
+ * Body base
+ * ======================================================================== */
 html, body {
   background: var(--app-bg);
   color: var(--app-fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-               "Noto Sans Arabic", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "kern";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Smooth theme + language transitions (~150 ms). */
+/* RTL pages favour Tajawal for Arabic shaping. */
+html[dir="rtl"] {
+  font-family: var(--font-arabic);
+  font-feature-settings: "kern", "calt";
+}
+html[dir="rtl"] code,
+html[dir="rtl"] pre,
+html[dir="rtl"] [dir="ltr"] {
+  /* Reset font for code / explicit LTR contexts inside RTL pages so identifiers,
+   * paths, SHA hashes, etc. read with the Latin font + mono. */
+  font-family: var(--font-mono);
+}
+html[dir="rtl"] [dir="ltr"]:not(code):not(pre) {
+  font-family: var(--font-sans);
+}
+
+/* Smooth theme + language transitions. */
 html, body, * {
   transition:
-    background-color 150ms ease,
-    color 150ms ease,
-    border-color 150ms ease;
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
-/* When dir="rtl" the document is flipped; Tailwind logical utilities
- * (ms-*, me-*, ps-*, pe-*) flip naturally. We only need to ensure font
- * shaping for Arabic glyphs. */
-html[dir="rtl"] {
-  font-feature-settings: "ss01", "kern";
-}
-
-/* a11y: focus-visible ring is the same in both themes. */
+/* a11y: focus-visible ring tuned to UAE crimson so the focus state IS the
+ * brand colour, not the old cool sky-blue. */
 *:focus-visible {
-  outline: 2px solid oklch(0.72 0.13 220);  /* sky-500 */
+  outline: 2px solid var(--crimson-500);
   outline-offset: 2px;
 }
+
+/* =========================================================================
+ * Formal display helpers — for places that want explicit hierarchy.
+ * Use sparingly; most surfaces should rely on the global font stack.
+ * ======================================================================== */
+.font-display {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+.text-gold      { color: var(--gold-500); }
+.text-gold-soft { color: var(--gold-300); }
+.bg-gold-soft   { background-color: color-mix(in oklch, var(--gold-500) 12%, transparent); }
+.border-gold    { border-color: color-mix(in oklch, var(--gold-500) 40%, transparent); }
