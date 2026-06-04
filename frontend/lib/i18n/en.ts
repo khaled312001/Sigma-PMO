@@ -210,6 +210,35 @@ export const en: Dictionary = {
     search: 'Search…',
     noResults: 'No results match the current filter.',
   },
+  summaryView: {
+    sections: {
+      schedule: 'Schedule status',
+      alerts: 'Alerts',
+      criticalFindings: 'Critical findings',
+      reporting: 'Reporting',
+      meta: 'Briefing',
+    },
+    labels: {
+      project: 'Project',
+      reportingPeriod: 'Reporting period',
+      dataDate: 'Schedule data date',
+      plannedDuration: 'Planned duration',
+      activitiesTotal: 'Activities',
+      completed: 'Completed',
+      inProgress: 'In progress',
+      notStarted: 'Not started',
+      planned: 'Planned',
+      actual: 'Actual',
+      delta: 'Delta',
+      total: 'Total',
+      critical: 'Critical',
+      warning: 'Warning',
+      reportsInWindow: 'Reports in window',
+      latestReport: 'Latest report',
+      confidence: 'Data confidence',
+      byRule: 'By rule',
+    },
+  },
 };
 
 export interface Dictionary {
@@ -305,5 +334,34 @@ export interface Dictionary {
     viewAll: string;
     search: string;
     noResults: string;
+  };
+  summaryView: {
+    sections: {
+      schedule: string;
+      alerts: string;
+      criticalFindings: string;
+      reporting: string;
+      meta: string;
+    };
+    labels: {
+      project: string;
+      reportingPeriod: string;
+      dataDate: string;
+      plannedDuration: string;
+      activitiesTotal: string;
+      completed: string;
+      inProgress: string;
+      notStarted: string;
+      planned: string;
+      actual: string;
+      delta: string;
+      total: string;
+      critical: string;
+      warning: string;
+      reportsInWindow: string;
+      latestReport: string;
+      confidence: string;
+      byRule: string;
+    };
   };
 }

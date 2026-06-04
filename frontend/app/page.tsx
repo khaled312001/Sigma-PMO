@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, ExecutiveSummary, IngestionRun } from '../lib/api';
 import { AuthGate } from '../components/AuthGate';
+import { SummaryView } from '../components/SummaryView';
 import { useI18n } from '../lib/i18n';
 import {
   IconAlertCritical,
@@ -101,7 +102,7 @@ function Overview() {
             </>
           }
         >
-          <SummaryNarrative text={summary.narrative} />
+          <SummaryView text={summary.narrative} confidence={summary.confidenceAverage} />
         </Card>
       ) : (
         <Card title={t('overview.latestSummary')}>
@@ -134,25 +135,3 @@ function StatCard({
   );
 }
 
-function SummaryNarrative({ text }: { text: string }) {
-  const lines = text.split('\n');
-  return (
-    <div className="space-y-1.5 text-sm leading-relaxed text-slate-200">
-      {lines.map((raw, i) => {
-        const line = raw;
-        if (line.trim() === '') return <div key={i} className="h-1.5" />;
-        if (line.startsWith('  -')) {
-          return <div key={i} className="ml-3 flex gap-2 text-slate-300"><span className="text-slate-500">·</span><span>{line.replace(/^\s*-\s?/, '')}</span></div>;
-        }
-        if (/^[A-Z][^:]*:\s*$/.test(line.trim())) {
-          return <p key={i} className="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{line.trim().slice(0, -1)}</p>;
-        }
-        if (/^[^-\s].*:\s*.+$/.test(line)) {
-          const idx = line.indexOf(':');
-          return <p key={i}><span className="text-slate-400">{line.slice(0, idx)}:</span><span className="ml-1">{line.slice(idx + 1).trim()}</span></p>;
-        }
-        return <p key={i}>{line}</p>;
-      })}
-    </div>
-  );
-}

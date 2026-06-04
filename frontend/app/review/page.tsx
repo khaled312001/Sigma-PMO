@@ -6,6 +6,7 @@ import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, ExecutiveSummary, GovernanceDecision } from '../../lib/api';
 import { useCurrentProjectKey } from '../../lib/project-context';
 import { AuthGate } from '../../components/AuthGate';
+import { SummaryView } from '../../components/SummaryView';
 import { useI18n } from '../../lib/i18n';
 import { IconSparkles } from '../../components/Icons';
 import {
@@ -175,7 +176,7 @@ function ReviewPage() {
             </>
           }
         >
-          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-200">{summary.narrative}</pre>
+          <SummaryView text={summary.narrative} confidence={summary.confidenceAverage} />
         </Card>
       )}
     </div>

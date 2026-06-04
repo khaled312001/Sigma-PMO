@@ -139,3 +139,9 @@ export const IconArrowRight = (p: IconProps) => (
     <path d="M5 12h14M13 6l6 6-6 6"/>
   </Icon>
 );
+export const IconClock = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 7v5l3 2"/>
+  </Icon>
+);
