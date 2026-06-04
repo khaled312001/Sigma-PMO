@@ -127,6 +127,16 @@ export const en: Dictionary = {
     rationale: 'Rationale',
     sourceFile: 'source file',
     rawSnippets: 'Raw source snippets',
+    structured: 'Structured',
+    rawJson: 'Raw JSON',
+    overallConfidence: 'Overall confidence',
+    entityProject: 'Project',
+    entityActivity: 'Activity',
+    entityResource: 'Resource',
+    entityAssignment: 'Assignment',
+    entityReport: 'Report',
+    entitySourceFile: 'Source file',
+    entityIngestionRun: 'Ingestion run',
     metrics: {
       overall: 'Overall',
       completeness: 'Completeness',
@@ -293,6 +303,11 @@ export interface Dictionary {
     selectAlert: string; selectAlertHint: string;
     noAlerts: string; noAlertsHint: string;
     rationale: string; sourceFile: string; rawSnippets: string;
+    structured: string; rawJson: string;
+    overallConfidence: string;
+    entityProject: string; entityActivity: string; entityResource: string;
+    entityAssignment: string; entityReport: string; entitySourceFile: string;
+    entityIngestionRun: string;
     metrics: { overall: string; completeness: string; consistency: string; source: string };
   };
   approval: {

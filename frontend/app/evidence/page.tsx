@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { AlertRecord, api, EvidencePackage } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
 import { useI18n } from '../../lib/i18n';
-import { JsonView } from '../../components/JsonView';
+import { StructuredDataView } from '../../components/StructuredDataView';
+import { IconArrowRight, IconCheck, IconDatabase, IconEvidence, IconUpload } from '../../components/Icons';
 import { Card, ConfidenceBar, EmptyState, ErrorBanner, PageHeader, Pill, SeverityBadge } from '../../components/ui';
 
 export default function EvidencePageRoute() {
@@ -74,33 +75,41 @@ function EvidencePage() {
           ) : !evidence ? (
             <p className="text-sm text-slate-400">{t('common.loading')}</p>
           ) : (
-            <div className="space-y-4 text-sm">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{t('evidence.rationale')}</p>
-                <p className="mt-1 text-slate-100">{evidence.rationale}</p>
+            <div className="space-y-5">
+              {/* Rationale hero */}
+              <div className="rounded-xl border-s-4 border-sky-500/60 bg-sky-500/5 px-4 py-3">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">{t('evidence.rationale')}</p>
+                <p className="text-sm leading-relaxed text-slate-100" dir="auto">{evidence.rationale}</p>
               </div>
 
+              {/* Trace chain — ingestion run → source file */}
               {evidence.sourceFile && (
-                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-xs text-slate-300">
-                  <Pill tone="sky">{t('evidence.sourceFile')}</Pill>
-                  <span className="font-mono" dir="ltr">{evidence.sourceFile.filename}</span>
-                  <span className="text-slate-500">·</span>
-                  <span className="font-mono text-slate-400" dir="ltr">sha {evidence.sourceFile.contentSha256.slice(0, 12)}…</span>
+                <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-1 text-sky-200">
+                    <IconUpload className="h-3 w-3" />
+                    <span className="font-mono" dir="ltr">{evidence.sourceFile.filename}</span>
+                  </span>
+                  <IconArrowRight className="h-3 w-3 text-slate-500" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/70 px-2.5 py-1 text-slate-300">
+                    <IconEvidence className="h-3 w-3" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">sha</span>
+                    <code className="font-mono text-slate-200" dir="ltr">{evidence.sourceFile.contentSha256.slice(0, 12)}…</code>
+                  </span>
                 </div>
               )}
 
+              {/* Confidence hero — Overall big, the 3 components below */}
               {evidence.confidence && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <Metric label={t('evidence.metrics.overall')}     value={evidence.confidence.overall} accent />
-                  <Metric label={t('evidence.metrics.completeness')} value={evidence.confidence.completeness} />
-                  <Metric label={t('evidence.metrics.consistency')}  value={evidence.confidence.consistency} />
-                  <Metric label={t('evidence.metrics.source')}       value={evidence.confidence.sourceReliability} />
-                </div>
+                <ConfidenceHero c={evidence.confidence} t={t} />
               )}
 
+              {/* Structured raw source data */}
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{t('evidence.rawSnippets')}</p>
-                <JsonView data={evidence.rawSourceSnippets} title={t('evidence.rawSnippets')} maxHeight="28rem" defaultDepth={2} />
+                <div className="mb-2 flex items-center gap-2">
+                  <IconDatabase className="h-3.5 w-3.5 text-slate-400" />
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('evidence.rawSnippets')}</p>
+                </div>
+                <StructuredDataView data={evidence.rawSourceSnippets} />
               </div>
             </div>
           )}
@@ -110,11 +119,43 @@ function EvidencePage() {
   );
 }
 
-function Metric({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function ConfidenceHero({
+  c, t,
+}: { c: { overall: number; completeness: number; consistency: number; sourceReliability: number }; t: (k: string) => string }) {
+  const overallPct = Math.round(c.overall * 100);
   return (
-    <div className={`rounded-lg border px-3 py-2 ${accent ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800 bg-slate-900/40'}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-      <div className="mt-1"><ConfidenceBar value={value} width={64} /></div>
+    <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-slate-950/0 to-transparent">
+      <div className="flex flex-wrap items-center gap-4 p-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/15 ring-1 ring-emerald-500/40">
+            <IconCheck className="h-5 w-5 text-emerald-300" />
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+              {t('evidence.overallConfidence')}
+            </p>
+            <p className="text-2xl font-semibold tabular-nums text-slate-50" dir="ltr">{overallPct}%</p>
+          </div>
+        </div>
+        <div className="flex-1 min-w-[140px]"><ConfidenceBar value={c.overall} /></div>
+      </div>
+      <div className="grid grid-cols-3 border-t border-emerald-500/20 bg-slate-950/40 text-xs">
+        <MiniMetric label={t('evidence.metrics.completeness')} value={c.completeness} />
+        <MiniMetric label={t('evidence.metrics.consistency')}  value={c.consistency} border />
+        <MiniMetric label={t('evidence.metrics.source')}       value={c.sourceReliability} />
+      </div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value, border = false }: { label: string; value: number; border?: boolean }) {
+  return (
+    <div className={`flex flex-col items-center gap-1 px-3 py-2.5 ${border ? 'border-x border-emerald-500/15' : ''}`}>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+      <p className="text-base font-semibold tabular-nums text-slate-100" dir="ltr">
+        {Math.round(value * 100)}%
+      </p>
+      <ConfidenceBar value={value} width={56} />
     </div>
   );
 }
