@@ -164,6 +164,39 @@ export const en: Dictionary = {
       eyebrow: 'Admin',
       title: 'Governance policy',
       description: 'Sigma proprietary policy lives here as a versioned JSON document. Every save creates a new version; prior versions remain auditable.',
+      tabs: { structured: 'Structured', editor: 'Edit JSON' },
+      sections: {
+        accountability: 'Accountability matrix',
+        accountabilityHint: 'Default responsible party per rule code.',
+        fidic: 'FIDIC mapping',
+        fidicHint: 'Contract clause, notice text, and deadline triggered by each rule code.',
+        pmi: 'PMI / PMBOK mapping',
+        pmiHint: 'Process group hint per rule code.',
+        escalation: 'Escalation tiers',
+        escalationHint: 'Tier + notify list per severity level.',
+        intervention: 'Intervention library',
+        interventionHint: 'Recommended next steps surfaced on every decision.',
+      },
+      labels: {
+        ruleCode: 'Rule code',
+        party: 'Party',
+        clause: 'Clause',
+        notice: 'Notice',
+        deadlineDays: 'Deadline',
+        ageDays: 'Age',
+        level: 'Level',
+        notify: 'Notify',
+        days: 'd',
+        noDeadline: 'No fixed deadline',
+        editorLabel: 'Policy JSON',
+        format: 'Format',
+        save: 'Save new policy version',
+        savedAt: 'saved {time}',
+        version: 'v{n}',
+        global: 'global',
+        savingNew: 'Saving new version…',
+        fixJsonFirst: 'Fix JSON first',
+      },
     },
     users: {
       eyebrow: 'Admin',
@@ -318,7 +351,25 @@ export interface Dictionary {
     actionDone: string; actionFailed: string; by: string;
   };
   admin: {
-    policy: { eyebrow: string; title: string; description: string };
+    policy: {
+      eyebrow: string; title: string; description: string;
+      tabs: { structured: string; editor: string };
+      sections: {
+        accountability: string; accountabilityHint: string;
+        fidic: string; fidicHint: string;
+        pmi: string; pmiHint: string;
+        escalation: string; escalationHint: string;
+        intervention: string; interventionHint: string;
+      };
+      labels: {
+        ruleCode: string; party: string; clause: string; notice: string;
+        deadlineDays: string; ageDays: string; level: string; notify: string;
+        days: string; noDeadline: string;
+        editorLabel: string; format: string; save: string;
+        savedAt: string; version: string; global: string;
+        savingNew: string; fixJsonFirst: string;
+      };
+    };
     users:  { eyebrow: string; title: string; description: string };
   };
   help: { eyebrow: string; title: string };

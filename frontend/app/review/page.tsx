@@ -6,6 +6,7 @@ import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, ExecutiveSummary, GovernanceDecision } from '../../lib/api';
 import { useCurrentProjectKey } from '../../lib/project-context';
 import { AuthGate } from '../../components/AuthGate';
+import { DecisionCard } from '../../components/DecisionCard';
 import { SummaryView } from '../../components/SummaryView';
 import { useI18n } from '../../lib/i18n';
 import { IconSparkles } from '../../components/Icons';
@@ -15,7 +16,6 @@ import {
   EmptyState,
   PageHeader,
   Pill,
-  SeverityBadge,
 } from '../../components/ui';
 
 type Filter = 'all' | 'critical' | 'warning' | 'info';
@@ -126,41 +126,10 @@ function ReviewPage() {
           <EmptyState title={`No ${filter} alerts`} description="Try a different filter." />
         )
       ) : (
-        <section className="space-y-2">
+        <section className="space-y-3">
           {filtered.map((a) => {
             const decs = decisionsByAlert[a.id] ?? [];
-            const latest = decs[0];
-            return (
-              <article key={a.id} className="rounded-xl border border-slate-800 bg-slate-900/40 transition hover:border-slate-700">
-                <header className="flex flex-wrap items-center gap-2 px-4 py-3">
-                  <SeverityBadge severity={a.severity} />
-                  <span className="font-mono text-xs text-slate-400">{a.code}</span>
-                  {latest && (
-                    <span className="ml-auto flex items-center gap-1.5">
-                      <Pill tone={latest.escalationLevel === 'L3' ? 'rose' : latest.escalationLevel === 'L2' ? 'amber' : 'slate'}>{latest.escalationLevel}</Pill>
-                      <Pill tone="slate">→ {latest.responsibleParty}</Pill>
-                    </span>
-                  )}
-                </header>
-                <div className="px-4 pb-3 text-sm text-slate-100">{a.summary}</div>
-                {latest && (
-                  <div className="grid gap-1.5 border-t border-slate-800/70 bg-slate-950/40 px-4 py-3 text-xs">
-                    {latest.fidicClause && (
-                      <p className="text-slate-300"><span className="text-slate-400">FIDIC:</span> <strong className="text-slate-200">{latest.fidicClause}</strong>{latest.fidicNotice ? ` — ${latest.fidicNotice}` : ''}</p>
-                    )}
-                    {latest.notifyParties.length > 0 && (
-                      <p className="text-slate-300"><span className="text-slate-400">Notify:</span> {latest.notifyParties.join(', ')}</p>
-                    )}
-                    {latest.interventions.length > 0 && (
-                      <div className="text-slate-300">
-                        <p className="text-slate-400">Suggested interventions:</p>
-                        <ul className="ml-4 mt-1 list-disc space-y-0.5 text-slate-300">{latest.interventions.map((i, idx) => <li key={idx}>{i}</li>)}</ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </article>
-            );
+            return <DecisionCard key={a.id} alert={a} decision={decs[0] ?? null} />;
           })}
         </section>
       )}
