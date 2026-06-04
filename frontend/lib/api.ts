@@ -68,7 +68,14 @@ export interface AlertRecord {
   code: string;
   severity: 'info' | 'warning' | 'critical';
   summary: string;
+  /** Versioned id — pins to the project row that was current when the alert fired. */
   projectId: string;
+  /**
+   * Stable cross-version key. Use this (NOT projectId) when grouping alerts
+   * by project — alert.projectId pins to a specific version and undercounts
+   * after a new ingestion run rolls the project forward.
+   */
+  projectBusinessKey: string | null;
   activityId: string | null;
   ingestionRunId: string;
   sourceFileId: string;

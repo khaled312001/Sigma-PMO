@@ -37,20 +37,53 @@ export class RulesController {
     return this.engine.evaluateAll();
   }
 
+  /**
+   * List alerts, enriched with the stable project businessKey (joined from
+   * the versioned project row that was current when the alert fired). The
+   * businessKey is what client-side rollups MUST group by — alert.projectId
+   * pins to a specific project VERSION and undercounts when newer ingestion
+   * runs roll the project to a new version row.
+   */
   @Get('alerts')
   @RequiresCapability('canRead')
-  listAlerts(
+  async listAlerts(
     @Query('evaluationId') evaluationId?: string,
     @Query('projectId') projectId?: string,
+    @Query('projectKey') projectKey?: string,
     @Query('severity') severity?: string,
     @Query('limit') limit?: string,
-  ): Promise<Alert[]> {
+  ): Promise<unknown[]> {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '100', 10) || 100, 1), 500);
-    const where: Record<string, string> = {};
-    if (evaluationId) where.ruleEvaluationId = evaluationId;
-    if (projectId) where.projectId = projectId;
-    if (severity) where.severity = severity;
-    return this.alerts.find({ where, order: { createdAt: 'DESC' }, take });
+    const qb = this.alerts
+      .createQueryBuilder('a')
+      .leftJoin('project', 'p', 'p.id = a.projectId')
+      .select('a.id', 'id')
+      .addSelect('a.code', 'code')
+      .addSelect('a.severity', 'severity')
+      .addSelect('a.summary', 'summary')
+      .addSelect('a.projectId', 'projectId')
+      .addSelect('p.businessKey', 'projectBusinessKey')
+      .addSelect('a.activityId', 'activityId')
+      .addSelect('a.resourceId', 'resourceId')
+      .addSelect('a.assignmentId', 'assignmentId')
+      .addSelect('a.reportId', 'reportId')
+      .addSelect('a.ingestionRunId', 'ingestionRunId')
+      .addSelect('a.sourceFileId', 'sourceFileId')
+      .addSelect('a.ruleEvaluationId', 'ruleEvaluationId')
+      .addSelect('a.context', 'context')
+      .addSelect('a.createdAt', 'createdAt')
+      .orderBy('a.createdAt', 'DESC')
+      .limit(take);
+    if (evaluationId) qb.andWhere('a.ruleEvaluationId = :evaluationId', { evaluationId });
+    if (projectId)   qb.andWhere('a.projectId = :projectId', { projectId });
+    if (projectKey)  qb.andWhere('p.businessKey = :projectKey', { projectKey });
+    if (severity)    qb.andWhere('a.severity = :severity', { severity });
+    const rows = await qb.getRawMany<Record<string, unknown>>();
+    return rows.map((r) => ({
+      ...r,
+      // context is stored as JSON; MySQL driver may hand it back as string
+      context: typeof r.context === 'string' ? JSON.parse(r.context) : r.context,
+    }));
   }
 
   @Get('evaluations')

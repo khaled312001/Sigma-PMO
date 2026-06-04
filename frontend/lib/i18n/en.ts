@@ -174,6 +174,42 @@ export const en: Dictionary = {
     body: 'You will be returned to the sign-in page and your API key will be cleared from this browser.',
     confirm: 'Sign out',
   },
+  projects: {
+    eyebrow: 'Portfolio',
+    title: 'Projects',
+    description: 'Every project in scope, with its latest ingestion, alert load, and overall confidence at a glance.',
+    open: 'Open',
+    activities: 'Activities',
+    alerts: 'Alerts',
+    runs: 'Ingestion runs',
+    lastIngested: 'Last ingested',
+    never: '—',
+    empty: { title: 'No projects yet', description: 'Once a file is ingested, projects appear here automatically.' },
+    headers: { name: 'Project', key: 'Key', status: 'Status', alerts: 'Alerts', runs: 'Runs', confidence: 'Confidence', lastIngested: 'Last ingested' },
+  },
+  decisions: {
+    eyebrow: 'Insights',
+    title: 'Decisions archive',
+    description: 'Every governance decision the engine has emitted — searchable and sortable across the full audit window.',
+    search: 'Search by code, party, clause or rationale…',
+    headers: { when: 'When', severity: 'Sev.', code: 'Rule', party: 'Party', clause: 'FIDIC clause', escalation: 'Level', status: 'Latest action' },
+    statuses: { pending: 'pending', approve: 'approved', reject: 'rejected', acknowledge: 'acknowledged' },
+    empty: { title: 'No decisions yet', description: 'Run Evaluate + Decide on the Review page to produce the first batch.' },
+  },
+  audit: {
+    eyebrow: 'Compliance',
+    title: 'Audit log',
+    description: 'Append-only trail of every governance action taken on the platform — who did what, when, and against which decision.',
+    search: 'Search audit entries…',
+    headers: { when: 'When', actor: 'Actor', action: 'Action', severity: 'Sev.', code: 'Rule', party: 'Party', clause: 'FIDIC clause' },
+    empty: { title: 'No audit entries yet', description: 'Approve, reject, or acknowledge a decision to write the first audit row.' },
+    systemActor: 'system-import',
+  },
+  common2: {
+    viewAll: 'View all',
+    search: 'Search…',
+    noResults: 'No results match the current filter.',
+  },
 };
 
 export interface Dictionary {
@@ -244,4 +280,30 @@ export interface Dictionary {
   help: { eyebrow: string; title: string };
   account: { eyebrow: string; title: string };
   signOutDialog: { title: string; body: string; confirm: string };
+  projects: {
+    eyebrow: string; title: string; description: string;
+    open: string; activities: string; alerts: string; runs: string;
+    lastIngested: string; never: string;
+    empty: { title: string; description: string };
+    headers: { name: string; key: string; status: string; alerts: string; runs: string; confidence: string; lastIngested: string };
+  };
+  decisions: {
+    eyebrow: string; title: string; description: string;
+    search: string;
+    headers: { when: string; severity: string; code: string; party: string; clause: string; escalation: string; status: string };
+    statuses: { pending: string; approve: string; reject: string; acknowledge: string };
+    empty: { title: string; description: string };
+  };
+  audit: {
+    eyebrow: string; title: string; description: string;
+    search: string;
+    headers: { when: string; actor: string; action: string; severity: string; code: string; party: string; clause: string };
+    empty: { title: string; description: string };
+    systemActor: string;
+  };
+  common2: {
+    viewAll: string;
+    search: string;
+    noResults: string;
+  };
 }

@@ -11,6 +11,9 @@ import {
   IconApproval,
   IconDashboard,
   IconEvidence,
+  IconFolder,
+  IconHistory,
+  IconList,
   IconLogIn,
   IconLogOut,
   IconReview,
@@ -23,22 +26,31 @@ import {
 interface NavLink {
   href: string;
   labelKey: string;
-  surface: 'overview' | 'input' | 'review' | 'approval' | 'evidence' | 'admin';
+  surface: 'overview' | 'input' | 'review' | 'approval' | 'evidence' | 'admin' | 'insights';
   icon: React.ComponentType<{ className?: string }>;
   visible: (me: MeResponse | null) => boolean;
 }
 
-const OPERATIONS: NavLink[] = [
+const PORTFOLIO: NavLink[] = [
   { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
+  { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+];
+
+const OPERATIONS: NavLink[] = [
   { href: '/input',    labelKey: 'nav.input',    surface: 'input',    icon: IconUpload,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canIngest },
   { href: '/review',   labelKey: 'nav.review',   surface: 'review',   icon: IconReview,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
   { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
 ];
 
+const INSIGHTS: NavLink[] = [
+  { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+];
+
 const ADMIN: NavLink[] = [
   { href: '/admin/policy', labelKey: 'nav.policy', surface: 'admin', icon: IconShield, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
   { href: '/admin/users',  labelKey: 'nav.users',  surface: 'admin', icon: IconUsers,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
+  { href: '/audit',        labelKey: 'audit.title', surface: 'admin', icon: IconHistory, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
 ];
 
 const SURFACE_ACCENT: Record<NavLink['surface'], string> = {
@@ -48,6 +60,7 @@ const SURFACE_ACCENT: Record<NavLink['surface'], string> = {
   approval: 'before:bg-amber-400',
   evidence: 'before:bg-fuchsia-500',
   admin:    'before:bg-rose-500',
+  insights: 'before:bg-violet-500',
 };
 
 function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean; onNavigate?: () => void }) {
@@ -89,7 +102,9 @@ function SidebarBody({
 }: { me: MeResponse | null; onSignOut: () => void; onNavigate?: () => void; onClose?: () => void }) {
   const pathname = usePathname();
   const { t } = useI18n();
+  const portfolio = PORTFOLIO.filter((n) => n.visible(me));
   const ops = OPERATIONS.filter((n) => n.visible(me));
+  const insights = INSIGHTS.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
 
   return (
@@ -110,7 +125,9 @@ function SidebarBody({
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
+        <NavGroup title={t('projects.eyebrow')} links={portfolio} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.operations')} links={ops} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('decisions.eyebrow')} links={insights} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} onNavigate={onNavigate} />
       </nav>
 

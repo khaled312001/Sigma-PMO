@@ -115,6 +115,42 @@ export class GovernanceController {
     return this.reviews.listForAlert(id);
   }
 
+  /**
+   * Platform-wide audit feed — recent decision-review actions joined with
+   * the decision they target and the alert that produced it. Powers the
+   * /audit page (compliance trail). Sorted by createdAt DESC.
+   */
+  @Get('audit')
+  @RequiresCapability('canRead')
+  async audit(@Query('limit') limit?: string): Promise<unknown[]> {
+    const take = Math.min(Math.max(Number.parseInt(limit ?? '100', 10) || 100, 1), 500);
+    const reviews = await this.reviews.listForDecisionMany([]);
+    void reviews; // silence: we use a direct query below
+    const rows = await this.decisionRepo.manager
+      .createQueryBuilder()
+      .select('r.id', 'reviewId')
+      .addSelect('r.createdAt', 'createdAt')
+      .addSelect('r.action', 'action')
+      .addSelect('r.comment', 'comment')
+      .addSelect('r.performedByUserId', 'actorUserId')
+      .addSelect('r.performedByDisplay', 'actorDisplay')
+      .addSelect('d.id', 'decisionId')
+      .addSelect('d.responsibleParty', 'responsibleParty')
+      .addSelect('d.fidicClause', 'fidicClause')
+      .addSelect('d.escalationLevel', 'escalationLevel')
+      .addSelect('a.id', 'alertId')
+      .addSelect('a.code', 'alertCode')
+      .addSelect('a.severity', 'severity')
+      .addSelect('a.summary', 'alertSummary')
+      .from('decision_review', 'r')
+      .leftJoin('governance_decision', 'd', 'd.id = r.decisionId')
+      .leftJoin('alert', 'a', 'a.id = r.alertId')
+      .orderBy('r.createdAt', 'DESC')
+      .limit(take)
+      .getRawMany();
+    return rows;
+  }
+
   @Get('decisions')
   @RequiresCapability('canRead')
   async listDecisions(
