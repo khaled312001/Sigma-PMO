@@ -28,6 +28,6 @@ import { StorageService } from './storage/storage.service';
     ExcelParser,
     CsvParser,
   ],
-  exports: [IngestionService],
+  exports: [IngestionService, StorageService],
 })
 export class IngestionModule {}

@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { RuleEngineService } from './rule-engine.service';
 import { RulesController } from './rules.controller';
+import { BaselineDurationOutlierRule } from './rules/baseline-duration-outlier.rule';
 import { CostOverrunRule } from './rules/cost-overrun.rule';
 import { DurationOverrunRule } from './rules/duration-overrun.rule';
 import { ResourceUnderuseRule } from './rules/resource-underuse.rule';
@@ -23,6 +24,7 @@ import { SnapshotService } from './snapshot.service';
     CostOverrunRule,
     ResourceUnderuseRule,
     StaleReportingRule,
+    BaselineDurationOutlierRule,
   ],
   exports: [RuleEngineService, SnapshotService],
 })

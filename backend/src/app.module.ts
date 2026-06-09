@@ -18,6 +18,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { LettersModule } from './modules/letters/letters.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { OrgChartsModule } from './modules/org-charts/org-charts.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { RulesModule } from './modules/rules/rules.module';
@@ -77,6 +78,11 @@ import { SummaryModule } from './modules/summary/summary.module';
     // auto-send stays frozen until ADR-0011 flips on Q6. Imported after
     // ClaudeModule + SourcesModule so both are available.
     LettersModule,
+    // Wave 3 — PMI org-chart compliance (post-meeting plan §3.5). Cascades
+    // findings into the FIDIC LetterDrafter for non-compliance letters.
+    // Imported after LettersModule so the drafter is available, and after
+    // IngestionModule so StorageService (re-exported) is in scope.
+    OrgChartsModule,
   ],
   controllers: [HealthController],
 })

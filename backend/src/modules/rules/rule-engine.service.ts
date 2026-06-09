@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { RuleEvaluationStatus } from '../../common/enums';
 import { Alert, RuleEvaluation } from '../canonical/entities';
+import { BaselineDurationOutlierRule } from './rules/baseline-duration-outlier.rule';
 import { CostOverrunRule } from './rules/cost-overrun.rule';
 import { DurationOverrunRule } from './rules/duration-overrun.rule';
 import { ResourceUnderuseRule } from './rules/resource-underuse.rule';
@@ -40,8 +41,17 @@ export class RuleEngineService {
     costOverrun: CostOverrunRule,
     resourceUnderuse: ResourceUnderuseRule,
     staleReporting: StaleReportingRule,
+    baselineDurationOutlier: BaselineDurationOutlierRule,
   ) {
-    this.rules = [finishSlipped, behindPlan, durationOverrun, costOverrun, resourceUnderuse, staleReporting];
+    this.rules = [
+      finishSlipped,
+      behindPlan,
+      durationOverrun,
+      costOverrun,
+      resourceUnderuse,
+      staleReporting,
+      baselineDurationOutlier,
+    ];
   }
 
   registeredRules(): { code: string; defaultSeverity: string }[] {

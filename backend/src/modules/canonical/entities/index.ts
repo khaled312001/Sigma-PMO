@@ -34,6 +34,11 @@ import { OutboxEvent } from '../../outbox/outbox.entity';
 // can import via the canonical barrel like every other entity. Not added
 // to `CANONICAL_ENTITIES` — LettersModule owns its own forFeature.
 import { Letter } from '../../letters/letter.entity';
+// `OrgChartReview` is the Wave 3 PMI compliance review row. Lives in the
+// org-charts/ module and is re-exported here for the same reason as
+// `Letter` — modules import via this canonical barrel by convention. Not
+// added to `CANONICAL_ENTITIES` — OrgChartsModule owns its own forFeature.
+import { OrgChartReview } from '../../org-charts/org-chart-review.entity';
 import { SourceFile } from './source-file.entity';
 import { User } from './user.entity';
 
@@ -52,6 +57,7 @@ export {
   IngestionRun,
   Letter,
   MonthlyReport,
+  OrgChartReview,
   OutboxEvent,
   Persona,
   Project,
