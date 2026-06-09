@@ -44,12 +44,21 @@ export class ClashItem extends UuidEntity {
   /**
    * Array of `{ label, timeImpactDays, costImpactAED, scopeImpact }` — the
    * three options the BIM analyst persona proposes (post-meeting plan §3.7).
+   *
+   * `costImpactAED` is allowed to be `null` to honour the `revit-clash-analyst`
+   * persona rule "أرقام التكلفة من جدول الكميات حصراً" — when the BoQ does
+   * not carry the line, the option must NOT invent a number; it records
+   * `null` and the rationale travels alongside (the persisted shape is a
+   * deliberate "fast" projection; richer fields like `costNote` live in the
+   * proposer's view-model, not on the persisted column). This widening is
+   * Wave 2 only — the DB column is already `json` nullable, so no migration
+   * is required.
    */
   @Column({ type: 'json', nullable: true })
   proposedOptions!: Array<{
     label: string;
     timeImpactDays: number;
-    costImpactAED: number;
+    costImpactAED: number | null;
     scopeImpact: string;
   }> | null;
 

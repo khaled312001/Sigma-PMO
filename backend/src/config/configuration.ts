@@ -22,6 +22,36 @@ export interface LlmConfig {
   maxTokens: number;
 }
 
+/**
+ * Anthropic Claude API config (Wave 2). Separate from the legacy `llm.*` block
+ * because Wave 2 wires Claude in directly via `@anthropic-ai/sdk` — the legacy
+ * provider-neutral `llm` field stays for the deterministic-only path so older
+ * code keeps booting unchanged.
+ *
+ * Discipline:
+ *  - `apiKey` is read ONLY from `process.env.ANTHROPIC_API_KEY` (never hardcoded).
+ *  - `enabled` is a derived boolean so `ClaudeService.isEnabled()` is a constant-
+ *    time check that does not need the env at request time.
+ *  - `defaultTier` maps a Persona's `modelTier` slug (e.g. `claude-sonnet`) to a
+ *    concrete model id when the persona does not pin one itself.
+ *  - `cacheTtlSeconds` controls the `cache_control: { type: 'ephemeral', ttl }`
+ *    breakpoint applied to every persona system prompt. Default 3600 (1h).
+ */
+export interface AnthropicConfig {
+  /** From `process.env.ANTHROPIC_API_KEY`. Empty string => disabled. */
+  apiKey: string;
+  /** Default model id used when a Persona's `modelTier` does not pin one. */
+  defaultModel: string;
+  /** Default tier slug (`claude-haiku` | `claude-sonnet` | `claude-opus`). */
+  defaultTier: string;
+  /** Default max tokens for completions when the caller does not override. */
+  maxTokens: number;
+  /** TTL for `cache_control: { type: 'ephemeral' }` system prompts, in seconds. */
+  cacheTtlSeconds: number;
+  /** Derived: true when `apiKey` is non-empty. */
+  enabled: boolean;
+}
+
 export interface AppConfiguration {
   env: string;
   port: number;
@@ -48,6 +78,8 @@ export interface AppConfiguration {
   throttlerDefaultTtlMs: number;
   throttlerAuthLimit: number;
   throttlerIngestLimit: number;
+  /** Wave 2: direct Claude SDK wiring. Separate from the legacy `llm.*` block. */
+  anthropic: AnthropicConfig;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -60,7 +92,9 @@ function toInt(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-export default (): AppConfiguration => ({
+export default (): AppConfiguration => {
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY ?? '';
+  return {
   env: process.env.NODE_ENV ?? 'development',
   port: toInt(process.env.PORT, 3001),
   storageDir: process.env.STORAGE_DIR ?? '../data/storage',
@@ -92,4 +126,13 @@ export default (): AppConfiguration => ({
     synchronize: toBool(process.env.DB_SYNCHRONIZE, process.env.NODE_ENV !== 'production'),
     logging: toBool(process.env.DB_LOGGING, false),
   },
-});
+  anthropic: {
+    apiKey: anthropicApiKey,
+    defaultModel: process.env.ANTHROPIC_DEFAULT_MODEL ?? 'claude-sonnet-4-5',
+    defaultTier: process.env.ANTHROPIC_DEFAULT_TIER ?? 'claude-sonnet',
+    maxTokens: toInt(process.env.ANTHROPIC_MAX_TOKENS, 4096),
+    cacheTtlSeconds: toInt(process.env.ANTHROPIC_CACHE_TTL, 3600),
+    enabled: !!anthropicApiKey,
+  },
+  };
+};

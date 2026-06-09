@@ -167,3 +167,63 @@ export interface GovernancePolicyRecord {
   config: Record<string, unknown>;
   createdAt: string;
 }
+
+/**
+ * Persona registry row (ADR-0010). Mirror of `backend/.../persona.entity.ts`
+ * — `businessKey` is the stable slug across versions; `(businessKey, version)`
+ * is what every Claude call pins itself to for reproducibility.
+ */
+export type PersonaLayer = 'engineering' | 'planning' | 'governance' | 'reports' | 'simulation';
+
+export interface PersonaRecord {
+  id: string;
+  businessKey: string;
+  version: number;
+  isCurrent: boolean;
+  title: string;
+  layer: PersonaLayer | string;
+  description: string;
+  systemPrompt: string;
+  rules: string[];
+  modelTier: string;
+  temperature: number;
+  ownedByRole: string;
+  authoredBy: string | null;
+  createdAt: string;
+}
+
+/** Patch body accepted by `POST /personas/:slug` — mirrors backend `PersonaPatch`. */
+export type PersonaPatch = Partial<
+  Pick<
+    PersonaRecord,
+    | 'title'
+    | 'layer'
+    | 'description'
+    | 'systemPrompt'
+    | 'rules'
+    | 'modelTier'
+    | 'temperature'
+    | 'ownedByRole'
+    | 'authoredBy'
+  >
+>;
+
+/**
+ * Sandbox Scenario record (ADR-0010 §5). `status` is `'open' | 'committed' |
+ * 'discarded'`. The `baselineSnapshot` is empty in Wave 1 — copy-on-write
+ * lands in C5 — but the field shape is fixed so the diff viewer can light up
+ * as soon as the backend populates it.
+ */
+export interface ScenarioRecord {
+  id: string;
+  projectBusinessKey: string;
+  name: string;
+  authorUserId: string | null;
+  authorDisplay: string | null;
+  status: 'open' | 'committed' | 'discarded' | string;
+  forkedFromAt: string;
+  summary: string;
+  baselineSnapshot: Record<string, unknown>;
+  expiresAt: string | null;
+  createdAt: string;
+}

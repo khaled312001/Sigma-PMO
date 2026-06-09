@@ -18,6 +18,7 @@ import {
   IconLogOut,
   IconReview,
   IconShield,
+  IconSparkles,
   IconUpload,
   IconUsers,
   IconX,
@@ -48,9 +49,10 @@ const INSIGHTS: NavLink[] = [
 ];
 
 const ADMIN: NavLink[] = [
-  { href: '/admin/policy', labelKey: 'nav.policy', surface: 'admin', icon: IconShield, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
-  { href: '/admin/users',  labelKey: 'nav.users',  surface: 'admin', icon: IconUsers,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
-  { href: '/audit',        labelKey: 'audit.title', surface: 'admin', icon: IconHistory, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
+  { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
+  { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
+  { href: '/audit',          labelKey: 'audit.title',          surface: 'admin', icon: IconHistory, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
 ];
 
 const SURFACE_ACCENT: Record<NavLink['surface'], string> = {

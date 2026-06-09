@@ -212,6 +212,59 @@ export const en: Dictionary = {
       title: 'Users',
       description: 'Stakeholder accounts. Create through the host CLI; rotate or remove keys here.',
     },
+    personas: {
+      eyebrow: 'Admin',
+      title: 'Personas',
+      description: 'Versioned expert system prompts (ADR-0010). Each row is the current version for a slug; editing creates a new append-only version.',
+      filterLabel: 'Layer',
+      layers: {
+        all: 'All',
+        engineering: 'Engineering',
+        planning: 'Planning',
+        governance: 'Governance',
+        reports: 'Reports',
+        simulation: 'Simulation',
+      },
+      headers: {
+        slug: 'Slug',
+        title: 'Title',
+        layer: 'Layer',
+        version: 'Version',
+        model: 'Model',
+        authoredBy: 'Last authored by',
+      },
+      empty: {
+        title: 'No personas yet',
+        description: 'Seed files under backend/src/personas/*.md populate this list on first boot.',
+      },
+      modal: {
+        title: 'Persona',
+        slugLabel: 'Slug',
+        layerLabel: 'Layer',
+        versionLabel: 'Version',
+        modelLabel: 'Model tier',
+        tempLabel: 'Temperature',
+        ownerLabel: 'Owned by',
+        authoredByLabel: 'Last authored by',
+        descriptionLabel: 'Description',
+        systemPromptLabel: 'System prompt',
+        rulesLabel: 'Rules',
+        noRules: 'No constraint rules attached.',
+        close: 'Close',
+        edit: 'Edit prompt',
+        cancelEdit: 'Cancel',
+        save: 'Save new version',
+        saving: 'Saving new version…',
+        savedToast: 'Persona saved',
+        savedToastBody: 'New version {n} created.',
+        saveFailed: 'Save failed',
+        promptRequired: 'System prompt cannot be empty.',
+        unchanged: 'No changes to save.',
+        readOnlyHint: 'Read-only — only Sigma Admins can edit personas.',
+        authoredByMissing: '—',
+      },
+      authoredByConsole: 'console',
+    },
   },
   help: {
     eyebrow: 'Help',
@@ -261,6 +314,104 @@ export const en: Dictionary = {
     viewAll: 'View all',
     search: 'Search…',
     noResults: 'No results match the current filter.',
+  },
+  simulation: {
+    eyebrow: 'Sandbox',
+    title: 'What-if scenarios',
+    description: 'Fork a sandbox copy of the current project, experiment freely, then discard or promote. Scenario mutations never reach canonical truth.',
+    fork: 'Fork from current project',
+    forking: 'Forking…',
+    forkDialogTitle: 'Fork a new scenario',
+    forkDialogBody: 'A sandbox branch will be created from the current project. Rules re-evaluate against the snapshot but nothing reaches canonical until you promote it.',
+    forkDialogCreate: 'Create scenario',
+    forkPlaceholder: 'e.g. Accelerate Tower B by 14 days',
+    summaryPlaceholder: 'What are we testing? (optional)',
+    nameLabel: 'Scenario name',
+    summaryLabel: 'Brief what-if description',
+    forkCreated: 'Scenario forked',
+    forkFailed: 'Could not fork scenario',
+    sandboxBadge: 'Simulated — not actual',
+    forkedAt: 'Forked',
+    expiresAt: 'Expires',
+    expired: 'Expired',
+    author: 'Author',
+    discard: 'Discard',
+    discardConfirmTitle: 'Discard this scenario?',
+    discardConfirmBody: 'The sandbox branch will be marked discarded. Audit trail keeps the record, but it can no longer be promoted.',
+    discardConfirm: 'Discard',
+    discarded: 'Scenario discarded',
+    discardFailed: 'Could not discard scenario',
+    commit: 'Promote to canonical',
+    commitDisabledHint: 'Promote-to-canonical lands in Cycle 5. Disabled in Wave 2.',
+    listEmpty: 'No scenarios yet',
+    listEmptyHint: 'Fork the current project to spin up your first what-if branch.',
+    viewDiff: 'View baseline diff',
+    hideDiff: 'Hide diff',
+    diffTitle: 'Baseline snapshot vs current project',
+    diffEmpty: 'Baseline snapshot is empty in Wave 1 — copy-on-write of activities + alerts lands in Cycle 5.',
+    statuses: { open: 'open', committed: 'committed', discarded: 'discarded' },
+    nameRequired: 'Name is required.',
+    noProject: 'Select a project first to fork a scenario.',
+    snapshotLabel: 'Baseline snapshot',
+    currentLabel: 'Current project',
+  },
+  reportsMonthly: {
+    eyebrow: 'Reports',
+    title: 'Monthly narrative report',
+    description: 'Generate the human-feel monthly report — three audiences (Owner / PD / Contractor) writing over the same deterministic facts, with citations against the curated SourceRegistry and a PDF on demand.',
+    cannotGenerate: 'Your role can read reports but not generate them. Ask a Sigma Reviewer or Admin to author this month.',
+    form: {
+      title: 'Generate a new report',
+      hint: 'Project {projectKey}. Each call inserts a new draft — earlier versions stay in the list below.',
+      monthLabel: 'Month',
+      audienceLabel: 'Audience',
+      generate: 'Generate report',
+      generating: 'Generating…',
+    },
+    audiences: {
+      owner: 'Owner',
+      pd: 'Project Director',
+      contractor: 'Main Contractor',
+    },
+    source: {
+      llm: 'LLM-authored',
+      deterministic: 'Deterministic',
+    },
+    list: {
+      title: 'Reports for this project',
+      citationsCount: '{n} citations',
+    },
+    detail: {
+      title: '{month} — {audience}',
+      hint: 'Persona {persona}',
+      narrativeHeading: 'Narrative',
+      citationsHeading: 'Cited sources',
+      noCitations: 'This draft did not cite any curated sources. The deterministic-facts path is shown above.',
+    },
+    metrics: {
+      activities: 'Activities',
+      alerts: 'Alerts',
+      critical: 'Critical',
+      decisions: 'Decisions',
+      delta: 'Schedule delta',
+    },
+    pdf: {
+      label: 'PDF',
+      download: 'Download PDF',
+      downloading: 'Preparing…',
+    },
+    empty: {
+      title: 'No monthly reports yet',
+      description: 'Pick a month + audience and generate the first one. Reports stay queryable forever.',
+    },
+    toast: {
+      generatedTitle: 'Monthly report generated',
+      generatedBody: '{month} · {audience} draft is ready below.',
+      generateFailedTitle: 'Could not generate report',
+      invalidMonthTitle: 'Pick a valid month',
+      invalidMonthBody: 'Use the YYYY-MM format (e.g. 2026-05).',
+      pdfFailedTitle: 'PDF download failed',
+    },
   },
   summaryView: {
     sections: {
@@ -386,6 +537,26 @@ export interface Dictionary {
       };
     };
     users:  { eyebrow: string; title: string; description: string };
+    personas: {
+      eyebrow: string; title: string; description: string;
+      filterLabel: string;
+      layers: { all: string; engineering: string; planning: string; governance: string; reports: string; simulation: string };
+      headers: { slug: string; title: string; layer: string; version: string; model: string; authoredBy: string };
+      empty: { title: string; description: string };
+      modal: {
+        title: string;
+        slugLabel: string; layerLabel: string; versionLabel: string;
+        modelLabel: string; tempLabel: string; ownerLabel: string; authoredByLabel: string;
+        descriptionLabel: string; systemPromptLabel: string; rulesLabel: string;
+        noRules: string;
+        close: string; edit: string; cancelEdit: string;
+        save: string; saving: string;
+        savedToast: string; savedToastBody: string; saveFailed: string;
+        promptRequired: string; unchanged: string;
+        readOnlyHint: string; authoredByMissing: string;
+      };
+      authoredByConsole: string;
+    };
   };
   help: { eyebrow: string; title: string };
   account: { eyebrow: string; title: string };
@@ -415,6 +586,55 @@ export interface Dictionary {
     viewAll: string;
     search: string;
     noResults: string;
+  };
+  simulation: {
+    eyebrow: string; title: string; description: string;
+    fork: string; forking: string;
+    forkDialogTitle: string; forkDialogBody: string; forkDialogCreate: string;
+    forkPlaceholder: string; summaryPlaceholder: string;
+    nameLabel: string; summaryLabel: string;
+    forkCreated: string; forkFailed: string;
+    sandboxBadge: string;
+    forkedAt: string; expiresAt: string; expired: string;
+    author: string;
+    discard: string;
+    discardConfirmTitle: string; discardConfirmBody: string; discardConfirm: string;
+    discarded: string; discardFailed: string;
+    commit: string; commitDisabledHint: string;
+    listEmpty: string; listEmptyHint: string;
+    viewDiff: string; hideDiff: string;
+    diffTitle: string; diffEmpty: string;
+    statuses: { open: string; committed: string; discarded: string };
+    nameRequired: string; noProject: string;
+    snapshotLabel: string; currentLabel: string;
+  };
+  reportsMonthly: {
+    eyebrow: string; title: string; description: string;
+    cannotGenerate: string;
+    form: {
+      title: string; hint: string;
+      monthLabel: string; audienceLabel: string;
+      generate: string; generating: string;
+    };
+    audiences: { owner: string; pd: string; contractor: string };
+    source: { llm: string; deterministic: string };
+    list: { title: string; citationsCount: string };
+    detail: {
+      title: string; hint: string;
+      narrativeHeading: string; citationsHeading: string; noCitations: string;
+    };
+    metrics: {
+      activities: string; alerts: string; critical: string;
+      decisions: string; delta: string;
+    };
+    pdf: { label: string; download: string; downloading: string };
+    empty: { title: string; description: string };
+    toast: {
+      generatedTitle: string; generatedBody: string;
+      generateFailedTitle: string;
+      invalidMonthTitle: string; invalidMonthBody: string;
+      pdfFailedTitle: string;
+    };
   };
   summaryView: {
     sections: {

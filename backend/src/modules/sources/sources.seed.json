@@ -1,0 +1,460 @@
+[
+  {
+    "externalId": "fidic-red-2017",
+    "family": "FIDIC",
+    "title": "Conditions of Contract for Construction (Red Book), 2nd Edition",
+    "latestEdition": "2nd Edition 2017 (reprinted 2022 with amendments)",
+    "publisher": "Fédération Internationale des Ingénieurs-Conseils (FIDIC), Geneva",
+    "year": 2017,
+    "url": "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book-reprinted-2022-amendments",
+    "scope": "Employer-designed Building & Engineering Works under Engineer administration. Most-cited Sub-Clauses: 4.20 (Progress Reports), 4.21 (program/records under earlier numbering — see Notes), 8.4 (Advance Warning), 8.5 (Extension of Time for Completion, incl. concurrent delay), 8.7 (Delay Damages), 8.8 (Suspension), 13 (Variations), 17 (Care of the Works/Indemnities), 20.1 (Notice of Claim — 28-day condition precedent) and 20.2 (Claims procedure incl. 84-day fully-detailed claim).",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "project-manager",
+      "claims-engineer",
+      "planner",
+      "quantum-expert",
+      "legal",
+      "engineer"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "fidic-red-1999",
+    "family": "FIDIC",
+    "title": "Conditions of Contract for Construction (Red Book), 1st Edition",
+    "latestEdition": "1st Edition 1999",
+    "publisher": "FIDIC, Geneva",
+    "year": 1999,
+    "url": "https://fidic.org/bookshop",
+    "scope": "Predecessor still widely incorporated in legacy and MDB-financed contracts. Most-cited Sub-Clauses: 4.21 (Progress Reports), 8.3 (Programme), 8.4 (Extension of Time for Completion), 8.7 (Delay Damages), 13.1-13.3 (Variations & Value Engineering), 20.1 (Contractor's Claims — 28-day notice condition precedent).",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "claims-engineer",
+      "planner",
+      "quantum-expert",
+      "legal"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "fidic-yellow-2017",
+    "family": "FIDIC",
+    "title": "Conditions of Contract for Plant and Design-Build (Yellow Book), 2nd Edition",
+    "latestEdition": "2nd Edition 2017 (reprinted 2022 with amendments)",
+    "publisher": "FIDIC, Geneva",
+    "year": 2017,
+    "url": "https://fidic.org/books/plant-and-design-build-contract-2nd-ed-2017-yellow-book-reprinted-2022-amendments",
+    "scope": "Contractor-designed Plant and Design-Build (E&M plus building/engineering). Most-cited Sub-Clauses: 4.20 (Progress Reports), 5 (Design), 8.4 (Advance Warning), 8.5 (Extension of Time for Completion), 8.7 (Delay Damages), 9 (Tests on Completion), 11 (Defects), 12 (Tests after Completion), 13 (Variations), 20.1/20.2 (Claims — 28-day notice, 84-day fully-detailed claim).",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "design-manager",
+      "project-manager",
+      "claims-engineer",
+      "planner",
+      "quantum-expert",
+      "engineer"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "fidic-yellow-1999",
+    "family": "FIDIC",
+    "title": "Conditions of Contract for Plant and Design-Build (Yellow Book), 1st Edition",
+    "latestEdition": "1st Edition 1999",
+    "publisher": "FIDIC, Geneva",
+    "year": 1999,
+    "url": "https://fidic.org/bookshop",
+    "scope": "Legacy Design-Build form still used in many MENA and MDB contracts. Most-cited Sub-Clauses: 4.21, 5.1-5.2 (Contractor's design obligations), 8.3, 8.4 (EOT), 13 (Variations), 20.1 (Claims notice).",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "design-manager",
+      "claims-engineer",
+      "planner",
+      "quantum-expert"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "fidic-silver-2017",
+    "family": "FIDIC",
+    "title": "Conditions of Contract for EPC/Turnkey Projects (Silver Book), 2nd Edition",
+    "latestEdition": "2nd Edition 2017 (reprinted 2022 with amendments); ISBN 978-2-88432-083-2",
+    "publisher": "FIDIC, Geneva",
+    "year": 2017,
+    "url": "https://fidic.org/books/epcturnkey-contract-2nd-ed-2017-silver-book-reprinted-2022-amendments",
+    "scope": "Turnkey EPC with single-point Contractor risk allocation, no Engineer (Employer's Representative). Most-cited Sub-Clauses: 4.12 (Unforeseeable Difficulties — narrower risk transfer than Red/Yellow), 5 (Design), 8.4 (Advance Warning), 8.5 (EOT), 8.8 (Delay Damages), 13 (Variations), 17 (Care/Indemnities), 20.1/20.2 (Claims).",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "project-manager",
+      "claims-engineer",
+      "planner",
+      "quantum-expert",
+      "engineer",
+      "legal"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "fidic-green-2021",
+    "family": "FIDIC",
+    "title": "Short Form of Contract (Green Book), 2nd Edition",
+    "latestEdition": "2nd Edition 2021",
+    "publisher": "FIDIC, Geneva",
+    "year": 2021,
+    "url": "https://fidic.org/books/short-form-contract-2nd-ed-2021-green-book",
+    "scope": "Lower-value or short-duration works (now significantly expanded vs the 1999 first edition — closer in structure to Red/Yellow 1999). Cited for: simplified claims & dispute procedure, design responsibility flexibility, programme and progress reporting requirements.",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "project-manager",
+      "planner"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "fidic-gold-2008",
+    "family": "FIDIC",
+    "title": "Conditions of Contract for Design, Build and Operate Projects (Gold Book), 1st Edition",
+    "latestEdition": "1st Edition 2008; ISBN 978-2-88432-052-8 (Contract Guide 1st Ed 2011)",
+    "publisher": "FIDIC, Geneva",
+    "year": 2008,
+    "url": "https://fidic.org/books/dbo-contract-1st-ed-2008-gold-book",
+    "scope": "Single-contract green-field DBO with 20-year operation service period. Pioneered the NEC-style 'advance warning' obligation later adopted into the 2017 Red/Yellow/Silver Sub-Clause 8.4. Cited for: integration of design-build with long-term O&M, dispute avoidance, asset-replacement schedule.",
+    "applicablePersonas": [
+      "contracts-administrator",
+      "project-manager",
+      "operations-manager",
+      "engineer"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "pmbok-7",
+    "family": "PMI",
+    "title": "A Guide to the Project Management Body of Knowledge (PMBOK Guide) — Seventh Edition AND The Standard for Project Management",
+    "latestEdition": "7th Edition 2021; ISBN 9781628256642 (paperback)",
+    "publisher": "Project Management Institute (PMI), Newtown Square, PA",
+    "year": 2021,
+    "url": "https://www.pmi.org/standards/pmbok",
+    "scope": "Principles-based PM standard structured around 12 Project Management Principles and 8 Project Performance Domains: Stakeholders, Team, Development Approach & Life Cycle, Planning, Project Work, Delivery, Measurement, Uncertainty. Includes Tailoring and Models/Methods/Artifacts sections.",
+    "applicablePersonas": [
+      "project-manager",
+      "program-manager",
+      "pmo-lead",
+      "planner",
+      "risk-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "pmbok-6",
+    "family": "PMI",
+    "title": "A Guide to the Project Management Body of Knowledge (PMBOK Guide) — Sixth Edition",
+    "latestEdition": "6th Edition 2017; ISBN 9781628251845 (paperback), 9781628253917 (Kindle)",
+    "publisher": "Project Management Institute (PMI), Newtown Square, PA",
+    "year": 2017,
+    "url": "https://pmi.bookstore.ipgbook.com/a-guide-to-the-project-management-body-of-knowledge--pmbok---guide----sixth-edition-products-9781628253917.php",
+    "scope": "Process-based PM standard, still widely referenced. 5 Process Groups (Initiating, Planning, Executing, Monitoring & Controlling, Closing) x 10 Knowledge Areas (Integration, Scope, Schedule, Cost, Quality, Resource, Communications, Risk, Procurement, Stakeholder) = 49 processes with ITTOs. Includes the Agile Practice Guide as companion.",
+    "applicablePersonas": [
+      "project-manager",
+      "planner",
+      "cost-engineer",
+      "risk-manager",
+      "procurement-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-21502",
+    "family": "ISO",
+    "title": "ISO 21502:2020 — Project, programme and portfolio management — Guidance on project management",
+    "latestEdition": "1st Edition 2020",
+    "publisher": "International Organization for Standardization (ISO), Geneva",
+    "year": 2020,
+    "url": "https://www.iso.org/standard/74947.html",
+    "scope": "Replaced ISO 21500:2012. Generic, organisation-independent guidance on project management practices (integrated, sustainable, controlled, life-cycle-based). Used as the international neutral counterpart/benchmark to PMBOK.",
+    "applicablePersonas": [
+      "project-manager",
+      "pmo-lead",
+      "program-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-9001",
+    "family": "ISO",
+    "title": "ISO 9001:2015 — Quality management systems — Requirements",
+    "latestEdition": "5th Edition 2015 (revision under DIS — publication expected September 2026)",
+    "publisher": "ISO, Geneva (distributed via ANSI, BSI)",
+    "year": 2015,
+    "url": "https://www.iso.org/standard/62085.html",
+    "scope": "Requirements for a QMS — leadership, planning, support, operation, performance evaluation, improvement. High-Level Structure (Annex SL) used as the basis for project quality plans, ITPs, NCR/CAR systems on Sigma PMO engagements.",
+    "applicablePersonas": [
+      "qa-qc-manager",
+      "pmo-lead",
+      "auditor"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-31000",
+    "family": "ISO",
+    "title": "ISO 31000:2018 — Risk management — Guidelines",
+    "latestEdition": "2nd Edition 2018; ISBN 9789267108070",
+    "publisher": "ISO, Geneva",
+    "year": 2018,
+    "url": "https://www.iso.org/standard/65694.html",
+    "scope": "Principles, framework and process for risk management. Underpins the Sigma PMO risk register methodology (risk identification, analysis, evaluation, treatment, monitoring, communication). Companion: ISO/IEC 31010 (risk assessment techniques).",
+    "applicablePersonas": [
+      "risk-manager",
+      "project-manager",
+      "pmo-lead"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-19650-1",
+    "family": "BIM",
+    "title": "ISO 19650-1:2018 — BIM Information management — Part 1: Concepts and principles",
+    "latestEdition": "1st Edition 2018 (BS EN ISO 19650-1:2018)",
+    "publisher": "ISO, Geneva (BSI in UK)",
+    "year": 2018,
+    "url": "https://www.iso.org/standard/68078.html",
+    "scope": "Concepts and principles for managing information across the asset life-cycle using BIM: information requirements (OIR, AIR, PIR, EIR), CDE, ISO 19650 information container model.",
+    "applicablePersonas": [
+      "bim-manager",
+      "information-manager",
+      "design-manager",
+      "project-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-19650-2",
+    "family": "BIM",
+    "title": "ISO 19650-2:2018 — BIM Information management — Part 2: Delivery phase of the assets",
+    "latestEdition": "1st Edition 2018 (BS EN ISO 19650-2:2018)",
+    "publisher": "ISO, Geneva (BSI in UK)",
+    "year": 2018,
+    "url": "https://www.iso.org/standard/68080.html",
+    "scope": "Requirements for the information management process during the delivery phase: appointment workflow, BEP, MIDP/TIDP, information delivery milestones. Basis of UK BIM Framework guidance and most GCC BIM mandates (UAE, KSA).",
+    "applicablePersonas": [
+      "bim-manager",
+      "information-manager",
+      "project-manager",
+      "design-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-19650-3",
+    "family": "BIM",
+    "title": "ISO 19650-3:2020 — BIM Information management — Part 3: Operational phase of the assets",
+    "latestEdition": "1st Edition 2020",
+    "publisher": "ISO, Geneva",
+    "year": 2020,
+    "url": "https://www.iso.org/standard/75109.html",
+    "scope": "Information management during asset operation/maintenance. Replaces PAS 1192-3. Used for AIM (Asset Information Model) handover and FM integration.",
+    "applicablePersonas": [
+      "bim-manager",
+      "fm-manager",
+      "asset-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "iso-19650-5",
+    "family": "BIM",
+    "title": "ISO 19650-5:2020 — Security-minded approach to information management",
+    "latestEdition": "1st Edition 2020 (some sources cite 2021 publication — verify against ISO catalogue for procurement)",
+    "publisher": "ISO, Geneva",
+    "year": 2020,
+    "url": "https://www.iso.org/standard/74206.html",
+    "scope": "Security-minded approach to information management for sensitive assets. Replaces PAS 1192-5.",
+    "applicablePersonas": [
+      "bim-manager",
+      "information-manager",
+      "security-officer"
+    ],
+    "verification": "verify"
+  },
+  {
+    "externalId": "iso-16739",
+    "family": "BIM",
+    "title": "ISO 16739-1:2024 — Industry Foundation Classes (IFC 4.3) for data sharing in the construction and facility management industries",
+    "latestEdition": "ISO 16739-1:2024 (IFC 4.3.2.0); buildingSMART announced ISO ratification January 2024",
+    "publisher": "ISO, Geneva — schema authored by buildingSMART International",
+    "year": 2024,
+    "url": "https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/",
+    "scope": "Open, vendor-neutral data schema for buildings AND now infrastructure (rail, road, bridge, ports, tunnels). >1300 entities, ~2500 properties in >750 sets. Mandatory exchange format in most GCC government BIM mandates.",
+    "applicablePersonas": [
+      "bim-manager",
+      "information-manager",
+      "interoperability-engineer"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "bimforum-lod-2023",
+    "family": "BIM",
+    "title": "BIMForum Level of Development (LOD) Specification — 2023 Edition",
+    "latestEdition": "2023 Edition (Parts I & II released 2024)",
+    "publisher": "BIMForum (a forum of AGC of America and AIA TAP)",
+    "year": 2023,
+    "url": "https://bimforum.org/2023-level-of-development-lod-specification/",
+    "scope": "Definitions and illustrations for LOD 100/200/300/350/400/500 across building systems. Aligned with AIA E201-2022 BIM Exhibit. Most-cited US/global LOD reference.",
+    "applicablePersonas": [
+      "bim-manager",
+      "design-manager",
+      "qa-qc-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "aace-tcm-2",
+    "family": "AACE",
+    "title": "AACE International Total Cost Management Framework — 2nd Edition",
+    "latestEdition": "2nd Edition 2015; ISBN 9781508804765; ed. H. Lance Stephenson, CCP FAACE",
+    "publisher": "AACE International, Morgantown, WV",
+    "year": 2015,
+    "url": "https://web.aacei.org/resources/tcm",
+    "scope": "Umbrella framework integrating cost engineering across portfolio/program/project life-cycle using a PDCA process map. Parent document referenced by every numbered AACE Recommended Practice.",
+    "applicablePersonas": [
+      "cost-engineer",
+      "planner",
+      "pmo-lead",
+      "project-control-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "aace-rp-17r-97",
+    "family": "AACE",
+    "title": "AACE RP 17R-97 — Cost Estimate Classification System",
+    "latestEdition": "17R-97 (industry-generic)",
+    "publisher": "AACE International",
+    "year": 1997,
+    "url": "https://web.aacei.org/docs/default-source/toc/toc_17r-97.pdf",
+    "scope": "Generic 5-class estimate classification matrix (Class 5 concept screening through Class 1 definitive). Parent RP for the 'as applied in' series (18R-97 process industries, 47R-11 mining, 56R-08 building/general construction, 96R-18 hydropower, etc.).",
+    "applicablePersonas": [
+      "cost-engineer",
+      "estimator",
+      "pmo-lead"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "aace-rp-14r-90",
+    "family": "AACE",
+    "title": "AACE RP 14R-90 — Required Skills and Knowledge of Project Cost Estimating (also covers Planning & Scheduling Professional skills set; verify which RP you intend)",
+    "latestEdition": "Rev. August 30, 2022",
+    "publisher": "AACE International",
+    "year": 2022,
+    "url": "https://web.aacei.org/docs/default-source/toc/toc_14r-90.pdf",
+    "scope": "Defines core skill sets that underpin AACE certifications (CCP, PSP). Note: there is some inconsistency in user-facing references — confirm against the AACE recommended-practice index before citing the title verbatim.",
+    "applicablePersonas": [
+      "cost-engineer",
+      "planner",
+      "training-coordinator"
+    ],
+    "verification": "verify"
+  },
+  {
+    "externalId": "aace-rp-29r-03",
+    "family": "AACE",
+    "title": "AACE RP 29R-03 — Forensic Schedule Analysis",
+    "latestEdition": "29R-03 (April 25, 2011 baseline, with subsequent ed. revisions)",
+    "publisher": "AACE International",
+    "year": 2011,
+    "url": "https://web.aacei.org/docs/default-source/toc/toc_29r-03.pdf",
+    "scope": "Nine CPM forensic methodologies (MIP 3.1–3.9: As-Planned vs As-Built, Impacted As-Planned, Collapsed As-Built, Time Impact Analysis, Windows, etc.) plus 11 selection factors. The de-facto global reference for delay claim analysis alongside the SCL Delay & Disruption Protocol.",
+    "applicablePersonas": [
+      "claims-engineer",
+      "planner",
+      "delay-analyst",
+      "quantum-expert"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "aace-rp-32r-04",
+    "family": "AACE",
+    "title": "AACE RP 32R-04 — Determining Activity Durations",
+    "latestEdition": "January 14, 2012",
+    "publisher": "AACE International",
+    "year": 2012,
+    "url": "https://web.aacei.org/docs/default-source/toc/toc_32r-04.pdf",
+    "scope": "Three-phase guideline for setting activity durations: unconstrained, constraint-adjusted, and revised for project requirements. Maps to TCM 7.2 (Planning).",
+    "applicablePersonas": [
+      "planner",
+      "scheduler",
+      "project-control-manager"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "aace-rp-49r-06",
+    "family": "AACE",
+    "title": "AACE RP 49R-06 — Identifying the Critical Path",
+    "latestEdition": "49R-06 (June 18, 2010 baseline)",
+    "publisher": "AACE International",
+    "year": 2010,
+    "url": "https://web.aacei.org/docs/default-source/toc/toc_49r-06.pdf",
+    "scope": "Guideline for correctly identifying and validating the critical path within a CPM schedule — total float, longest path, multi-calendar effects, near-critical activities.",
+    "applicablePersonas": [
+      "planner",
+      "scheduler",
+      "delay-analyst"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "aace-rp-38r-06",
+    "family": "AACE",
+    "title": "AACE RP 38R-06 — Documenting the Schedule Basis",
+    "latestEdition": "Originally June 18, 2009; Ed. Rev. August 6, 2025",
+    "publisher": "AACE International",
+    "year": 2025,
+    "url": "https://web.aacei.org/docs/default-source/toc/toc_38r-06.pdf",
+    "scope": "Standard outline for a Schedule Basis Document (assumptions, exclusions, calendars, constraints, resource loading rules, risks) — the backbone of defensible baselines and any later forensic claim.",
+    "applicablePersonas": [
+      "planner",
+      "scheduler",
+      "project-control-manager",
+      "claims-engineer"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "primavera-p6-eppm-user-guide",
+    "family": "PRIMAVERA",
+    "title": "Oracle Primavera P6 EPPM User Guide (Version 24)",
+    "latestEdition": "Version 24 (current); Version 22 / Version 20 still in use at clients",
+    "publisher": "Oracle Corporation",
+    "year": 2024,
+    "url": "https://docs.oracle.com/cd/F88966_01/English/User_Guides/p6_eppm_user/39346.htm",
+    "scope": "Authoritative reference for P6 EPPM features: EPS/OBS/WBS structures, activity types, relationships and lags, calendars, resource/role assignment, leveling, baselines, claim digger, Global Change, reflection projects, XER/XML import-export, P6 Visualizer.",
+    "applicablePersonas": [
+      "planner",
+      "scheduler",
+      "project-control-manager",
+      "pmo-lead"
+    ],
+    "verification": "confirmed"
+  },
+  {
+    "externalId": "primavera-p6-professional-user-guide",
+    "family": "PRIMAVERA",
+    "title": "Oracle Primavera P6 Professional User Guide",
+    "latestEdition": "Version 24 (aligned with EPPM 24)",
+    "publisher": "Oracle Corporation",
+    "year": 2024,
+    "url": "https://docs.oracle.com/en/industries/construction-engineering/primavera-p6-project/index.html",
+    "scope": "Standalone P6 Professional client guide — the offline desktop tool most contractors use. Cite by document title, not by paywalled URL (Oracle support requires login for some artifacts).",
+    "applicablePersonas": [
+      "planner",
+      "scheduler"
+    ],
+    "verification": "confirmed"
+  }
+]
