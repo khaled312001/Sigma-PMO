@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { OutboxEvent } from './outbox.entity';
 import { OutboxService } from './outbox.service';
+import { PriorityChainService } from './priority-chain.service';
 
 /**
  * Cross-layer Outbox (ADR-0012, Stage 1).
@@ -19,7 +20,7 @@ import { OutboxService } from './outbox.service';
  */
 @Module({
   imports: [TypeOrmModule.forFeature([OutboxEvent])],
-  providers: [OutboxService],
-  exports: [OutboxService, TypeOrmModule],
+  providers: [OutboxService, PriorityChainService],
+  exports: [OutboxService, PriorityChainService, TypeOrmModule],
 })
 export class OutboxModule {}

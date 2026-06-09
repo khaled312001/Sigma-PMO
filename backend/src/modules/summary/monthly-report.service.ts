@@ -20,6 +20,9 @@ import { MetricsSummary, PdfRendererService } from './pdf-renderer.service';
 /** Audience the report is written for. */
 export type MonthlyReportAudience = 'owner' | 'pd' | 'contractor';
 
+/** Cadence — Wave 4 introduced daily + weekly variants alongside monthly. */
+export type PeriodicCadence = 'day' | 'week' | 'month';
+
 /** Input to `generateMonthly`. */
 export interface MonthlyReportRequest {
   projectKey: string;
@@ -27,6 +30,21 @@ export interface MonthlyReportRequest {
   monthIso: string;
   audience: MonthlyReportAudience;
   /** Optional author override (sigma_admin = `system` when unset). */
+  authoredBy?: string | null;
+}
+
+/** Input to the cadence-aware `generatePeriodic` (Wave 4). */
+export interface PeriodicReportRequest {
+  projectKey: string;
+  cadence: PeriodicCadence;
+  /**
+   * Exact period key:
+   *  - `month` → `YYYY-MM`
+   *  - `week`  → `YYYY-Www` (ISO week, e.g. `2026-W23`)
+   *  - `day`   → `YYYY-MM-DD`
+   */
+  periodKey: string;
+  audience: MonthlyReportAudience;
   authoredBy?: string | null;
 }
 
@@ -92,31 +110,56 @@ export class MonthlyReportService {
 
   /**
    * Generate one monthly report for the (project, month, audience) triple.
-   * Inserts a NEW row every call — historical drafts stay queryable.
+   * Thin wrapper over `generatePeriodic` — kept so the Wave 2 callsite (and
+   * its DTO) does not have to learn about cadence.
    */
-  async generateMonthly(req: MonthlyReportRequest): Promise<MonthlyReport> {
-    this.assertMonth(req.monthIso);
+  generateMonthly(req: MonthlyReportRequest): Promise<MonthlyReport> {
+    return this.generatePeriodic({
+      projectKey: req.projectKey,
+      cadence: 'month',
+      periodKey: req.monthIso,
+      audience: req.audience,
+      authoredBy: req.authoredBy,
+    });
+  }
+
+  /**
+   * Cadence-aware generation (Wave 4). Daily and weekly reports reuse the
+   * exact monthly pipeline — deterministic facts block → optional persona
+   * rewrite → citation guard → row insert — only the window changes.
+   *
+   * Each call inserts a NEW row; historical drafts stay queryable via
+   * `list()` with the matching `periodKey`.
+   */
+  async generatePeriodic(req: PeriodicReportRequest): Promise<MonthlyReport> {
+    const window = resolvePeriodWindow(req.cadence, req.periodKey);
     const project = await this.resolveProject(req.projectKey);
     const snapshot = await this.snapshots.load(project.id);
 
-    const periodStart = `${req.monthIso}-01`;
-    const periodEnd = endOfMonthIso(req.monthIso);
-
     const [alertsInWindow, decisionsInWindow, confidenceAverage, boq] = await Promise.all([
-      this.loadAlertsInWindow(snapshot, periodStart, periodEnd),
-      this.loadDecisionsInWindow(snapshot, periodStart, periodEnd),
+      this.loadAlertsInWindow(snapshot, window.startIso, window.endIso),
+      this.loadDecisionsInWindow(snapshot, window.startIso, window.endIso),
       this.averageConfidenceFor(snapshot),
       this.loadCurrentBoq(project.businessKey),
     ]);
 
-    const metrics = buildMetrics(snapshot, alertsInWindow, decisionsInWindow, boq, confidenceAverage);
+    const metrics = buildMetrics(
+      snapshot,
+      alertsInWindow,
+      decisionsInWindow,
+      boq,
+      confidenceAverage,
+      req.cadence,
+      req.periodKey,
+    );
     const facts = composeFacts(
       snapshot,
       alertsInWindow,
       decisionsInWindow,
       boq,
       confidenceAverage,
-      req.monthIso,
+      req.cadence,
+      req.periodKey,
       req.audience,
     );
 
@@ -127,7 +170,7 @@ export class MonthlyReportService {
     let citations: string[] = [];
 
     if (this.claude.isEnabled()) {
-      const llm = await this.tryClaude(facts, req.audience, project.name);
+      const llm = await this.tryClaude(facts, req.audience, project.name, req.cadence);
       if (llm) {
         narrative = llm.narrative;
         narrativeSource = 'llm';
@@ -137,12 +180,9 @@ export class MonthlyReportService {
       }
     }
 
-    // Citation guard — `llm` rows MUST cite at least one curated source.
-    // Falling back to the deterministic block is the conservative move: the
-    // human reviewer sees the facts but knows the prose did not pass.
     if (narrativeSource === 'llm' && citations.length === 0) {
       this.logger.warn(
-        `Monthly narrative for ${project.businessKey}/${req.monthIso}/${req.audience} ` +
+        `${req.cadence} narrative for ${project.businessKey}/${req.periodKey}/${req.audience} ` +
           `produced 0 citations — falling back to deterministic facts.`,
       );
       narrative = facts;
@@ -151,14 +191,13 @@ export class MonthlyReportService {
       citations = [];
     }
 
-    // For `llm` rows: drop citations whose externalId is not in the curated
-    // SourceRegistry. The persona is allowed to *think* about anything, but
-    // it is not allowed to surface a claim under an unknown badge.
     citations = await this.filterToKnownSources(citations);
 
     const row = this.reports.create({
       projectBusinessKey: project.businessKey,
-      month: req.monthIso,
+      month: window.monthForLegacyFilter,
+      cadence: req.cadence,
+      periodKey: req.periodKey,
       audience: req.audience,
       personaSlug: REPORT_PERSONA_SLUG,
       personaVersion,
@@ -172,16 +211,27 @@ export class MonthlyReportService {
     });
     const saved = await this.reports.save(row);
     this.logger.log(
-      `Monthly report ${saved.id} generated for ${project.businessKey}/${req.monthIso}/${req.audience} ` +
+      `${req.cadence} report ${saved.id} generated for ` +
+        `${project.businessKey}/${req.periodKey}/${req.audience} ` +
         `(${narrativeSource}, ${citations.length} citations)`,
     );
     return saved;
   }
 
-  /** List reports for a project + month, newest first. */
-  list(projectKey: string, month?: string): Promise<MonthlyReport[]> {
+  /**
+   * List reports for a project, optionally filtered by month (coarse) and/or
+   * cadence + periodKey (exact). Newest first.
+   */
+  list(
+    projectKey: string,
+    month?: string,
+    cadence?: PeriodicCadence,
+    periodKey?: string,
+  ): Promise<MonthlyReport[]> {
     const where: Record<string, unknown> = { projectBusinessKey: projectKey };
     if (month) where.month = month;
+    if (cadence) where.cadence = cadence;
+    if (periodKey) where.periodKey = periodKey;
     return this.reports.find({
       where,
       order: { createdAt: 'DESC' },
@@ -207,10 +257,12 @@ export class MonthlyReportService {
     });
     const projectName = project?.name ?? row.projectBusinessKey;
     const metricsSummary = buildMetricsSummary(row.metrics);
+    // Daily/weekly rows print their `periodKey`; monthly stays as `month`.
+    const periodLabel = row.periodKey ?? row.month;
     const result = await this.pdf.render(row.id, {
       projectName,
       projectBusinessKey: row.projectBusinessKey,
-      month: row.month,
+      month: periodLabel,
       audience: row.audience,
       narrative: row.narrative,
       metricsSummary,
@@ -231,12 +283,17 @@ export class MonthlyReportService {
     facts: string,
     audience: MonthlyReportAudience,
     projectName: string,
+    cadence: PeriodicCadence,
   ): Promise<{ narrative: string; citations: string[]; personaVersion: number; model: string } | null> {
     try {
-      const userMessage = buildUserQuery(audience, projectName);
+      const userMessage = buildUserQuery(audience, projectName, cadence);
+      // Cadence importance: monthly (most) > weekly > daily — drop the daily
+      // call to the lighter tier even for owner/PD to keep cost sane on the
+      // daily heartbeat, while monthly + weekly keep their audience tier.
+      const tier = cadence === 'day' ? 'claude-sonnet' : TIER_BY_AUDIENCE[audience];
       const result = await this.claude.callPersona(REPORT_PERSONA_SLUG, userMessage, {
         context: facts,
-        modelTier: TIER_BY_AUDIENCE[audience],
+        modelTier: tier,
       });
       return {
         narrative: result.content,
@@ -245,7 +302,7 @@ export class MonthlyReportService {
         model: result.model,
       };
     } catch (err) {
-      this.logger.warn(`Claude call failed for monthly report: ${(err as Error).message}`);
+      this.logger.warn(`Claude call failed for ${cadence} report: ${(err as Error).message}`);
       return null;
     }
   }
@@ -258,11 +315,6 @@ export class MonthlyReportService {
     return project;
   }
 
-  private assertMonth(monthIso: string): void {
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthIso)) {
-      throw new NotFoundException(`monthIso must be YYYY-MM, got "${monthIso}"`);
-    }
-  }
 
   private async loadAlertsInWindow(
     snapshot: ProjectSnapshot,
@@ -347,12 +399,86 @@ export class MonthlyReportService {
 
 // ───────────────────────── helpers (pure) ─────────────────────────
 
-/** YYYY-MM → YYYY-MM-DD of the last day. */
-function endOfMonthIso(monthIso: string): string {
-  const [y, m] = monthIso.split('-').map((s) => Number.parseInt(s, 10));
-  // Day 0 of next month = last day of this month (JS Date is forgiving).
-  const last = new Date(Date.UTC(y, m, 0));
-  return last.toISOString().slice(0, 10);
+/** Resolved period window — start/end ISO dates + a month key for the legacy filter. */
+interface PeriodWindow {
+  startIso: string;
+  endIso: string;
+  monthForLegacyFilter: string;
+}
+
+/**
+ * Translate a cadence + periodKey into an absolute (start, end) day window.
+ * Daily: the day itself. Weekly: Monday–Sunday of that ISO week. Monthly:
+ * 1st–last day of the calendar month.
+ */
+export function resolvePeriodWindow(cadence: PeriodicCadence, periodKey: string): PeriodWindow {
+  if (cadence === 'month') {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(periodKey)) {
+      throw new NotFoundException(
+        `monthly periodKey (monthIso) must be YYYY-MM, got "${periodKey}"`,
+      );
+    }
+    const [y, m] = periodKey.split('-').map((s) => Number.parseInt(s, 10));
+    const last = new Date(Date.UTC(y, m, 0));
+    return {
+      startIso: `${periodKey}-01`,
+      endIso: last.toISOString().slice(0, 10),
+      monthForLegacyFilter: periodKey,
+    };
+  }
+  if (cadence === 'day') {
+    if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(periodKey)) {
+      throw new NotFoundException(`daily periodKey must be YYYY-MM-DD, got "${periodKey}"`);
+    }
+    return {
+      startIso: periodKey,
+      endIso: periodKey,
+      monthForLegacyFilter: periodKey.slice(0, 7),
+    };
+  }
+  if (cadence === 'week') {
+    const m = /^(\d{4})-W(0[1-9]|[1-4]\d|5[0-3])$/.exec(periodKey);
+    if (!m) {
+      throw new NotFoundException(`weekly periodKey must be YYYY-Www, got "${periodKey}"`);
+    }
+    const year = Number.parseInt(m[1], 10);
+    const week = Number.parseInt(m[2], 10);
+    const monday = isoWeekMonday(year, week);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(sunday.getUTCDate() + 6);
+    const startIso = monday.toISOString().slice(0, 10);
+    const endIso = sunday.toISOString().slice(0, 10);
+    return {
+      startIso,
+      endIso,
+      monthForLegacyFilter: startIso.slice(0, 7),
+    };
+  }
+  throw new NotFoundException(`Unknown cadence "${cadence as string}"`);
+}
+
+/** Monday (UTC) of the given ISO year + week number. */
+function isoWeekMonday(year: number, week: number): Date {
+  // ISO 8601: week 1 contains the year's first Thursday.
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const jan4Day = jan4.getUTCDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day - 1));
+  const monday = new Date(week1Monday);
+  monday.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+  return monday;
+}
+
+/** Arabic cadence label used in the prompt. */
+function cadenceLabelAr(cadence: PeriodicCadence): string {
+  switch (cadence) {
+    case 'day':
+      return 'اليومي';
+    case 'week':
+      return 'الأسبوعي';
+    case 'month':
+      return 'الشهري';
+  }
 }
 
 /**
@@ -365,7 +491,8 @@ function composeFacts(
   decisions: GovernanceDecision[],
   boq: BoQ | null,
   confidence: number,
-  monthIso: string,
+  cadence: PeriodicCadence,
+  periodKey: string,
   audience: MonthlyReportAudience,
 ): string {
   const { project, activities } = snapshot;
@@ -388,7 +515,9 @@ function composeFacts(
   const warnings = alerts.filter((a) => a.severity === 'warning');
 
   const lines: string[] = [];
-  lines.push(`## Deterministic facts — ${audience.toUpperCase()} view — ${monthIso}`);
+  lines.push(
+    `## Deterministic facts — ${audience.toUpperCase()} view — ${cadence.toUpperCase()} ${periodKey}`,
+  );
   lines.push('');
   lines.push(`Project: ${project.name} (businessKey ${project.businessKey}).`);
   if (project.dataDate) lines.push(`Schedule data date: ${project.dataDate}.`);
@@ -465,8 +594,12 @@ function composeFacts(
 }
 
 /** Compose the user-message prompt sent to the persona on top of the facts. */
-function buildUserQuery(audience: MonthlyReportAudience, projectName: string): string {
-  const intro = `اكتب التقرير الشهري لمشروع "${projectName}" للنسخة المخصّصة لـ ${audienceLabelAr(audience)}.`;
+function buildUserQuery(
+  audience: MonthlyReportAudience,
+  projectName: string,
+  cadence: PeriodicCadence,
+): string {
+  const intro = `اكتب التقرير ${cadenceLabelAr(cadence)} لمشروع "${projectName}" للنسخة المخصّصة لـ ${audienceLabelAr(audience)}.`;
   const rules =
     'اعتمد فقط على الحقائق الموجودة في "Deterministic facts" أعلاه. لا تستحضر معلومات خارجية. ' +
     'كل ادعاء مهني يجب أن يحمل علامة استشهاد [SOURCE: id] من قائمة المصادر المعتمدة (FIDIC, PMBOK, ISO, AACE, BIM, Primavera). ' +
@@ -494,6 +627,8 @@ function buildMetrics(
   decisions: GovernanceDecision[],
   boq: BoQ | null,
   confidence: number,
+  cadence: PeriodicCadence,
+  periodKey: string,
 ): Record<string, unknown> {
   const byCode: Record<string, number> = {};
   const bySeverity: Record<string, number> = {};
@@ -510,6 +645,8 @@ function buildMetrics(
   const deltaPp =
     plannedAvg !== null && actualAvg !== null ? (actualAvg - plannedAvg) * 100 : null;
   return {
+    cadence,
+    periodKey,
     activityCount: snapshot.activities.length,
     alertCount: alerts.length,
     alertsByCode: byCode,

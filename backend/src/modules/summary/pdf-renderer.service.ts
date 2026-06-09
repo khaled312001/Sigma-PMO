@@ -91,16 +91,17 @@ export class PdfRendererService {
    */
   async render(reportId: string, input: MonthlyReportPdfInput): Promise<PdfRenderResult> {
     const doc = await PDFDocument.create();
-    doc.setTitle(`Monthly Report — ${input.projectName} (${input.month}) — ${input.audience.toUpperCase()}`);
+    doc.setTitle(`Sigma PMO Report — ${input.projectName} (${input.month}) — ${input.audience.toUpperCase()}`);
     doc.setAuthor('Sigma PMO');
-    doc.setSubject(`Monthly narrative — ${input.audience}`);
-    doc.setCreator('Sigma PMO Wave 2');
+    doc.setSubject(`Periodic narrative — ${input.audience}`);
+    doc.setCreator('Sigma PMO');
     doc.setProducer('pdf-lib');
 
     const helv = await doc.embedFont(StandardFonts.Helvetica);
     const helvBold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const helvObl = await doc.embedFont(StandardFonts.HelveticaOblique);
 
-    this.drawCoverPage(doc, helv, helvBold, input);
+    this.drawCoverPage(doc, helv, helvBold, helvObl, input);
     this.drawNarrativePages(doc, helv, helvBold, input);
     this.drawCitationsPage(doc, helv, helvBold, input);
 
@@ -109,7 +110,7 @@ export class PdfRendererService {
     const absolutePath = join(this.storageDir, relativePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, bytes);
-    this.logger.log(`Rendered monthly PDF ${reportId} → ${relativePath} (${bytes.byteLength} bytes)`);
+    this.logger.log(`Rendered periodic PDF ${reportId} → ${relativePath} (${bytes.byteLength} bytes)`);
     return { storedPath: relativePath, byteSize: bytes.byteLength };
   }
 
@@ -120,77 +121,180 @@ export class PdfRendererService {
 
   // ───────────────────────── internals ─────────────────────────
 
+  // ── Brand palette (matches the front-end formal UAE identity) ──
+  private readonly crimson = rgb(0.55, 0.06, 0.13);
+  private readonly crimsonDeep = rgb(0.42, 0.04, 0.10);
+  private readonly inkDark = rgb(0.08, 0.09, 0.12);
+  private readonly inkMid = rgb(0.32, 0.34, 0.38);
+  private readonly inkSoft = rgb(0.55, 0.57, 0.62);
+  private readonly canvas = rgb(0.97, 0.97, 0.98);
+  private readonly cardBorder = rgb(0.86, 0.87, 0.90);
+  private readonly criticalAccent = rgb(0.78, 0.13, 0.13);
+  private readonly warningAccent = rgb(0.85, 0.53, 0.10);
+  private readonly successAccent = rgb(0.10, 0.50, 0.32);
+
   private drawCoverPage(
     doc: PDFDocument,
     helv: import('pdf-lib').PDFFont,
     helvBold: import('pdf-lib').PDFFont,
+    helvObl: import('pdf-lib').PDFFont,
     input: MonthlyReportPdfInput,
   ): void {
     const page = doc.addPage([595, 842]); // A4 portrait, points.
     const { width, height } = page.getSize();
 
-    // Title band
-    page.drawRectangle({
-      x: 0,
-      y: height - 110,
-      width,
-      height: 110,
-      color: rgb(0.15, 0.15, 0.2),
-    });
+    // Header band — crimson with crimson-deep slab on the left.
+    page.drawRectangle({ x: 0, y: height - 130, width, height: 130, color: this.crimson });
+    page.drawRectangle({ x: 0, y: height - 130, width: 12, height: 130, color: this.crimsonDeep });
+
     page.drawText('SIGMA PMO', {
-      x: 40,
-      y: height - 50,
-      font: helvBold,
-      size: 14,
-      color: rgb(1, 1, 1),
+      x: 40, y: height - 45, font: helvBold, size: 12, color: rgb(1, 1, 1),
     });
-    page.drawText('Monthly Narrative Report', {
-      x: 40,
-      y: height - 85,
-      font: helvBold,
-      size: 22,
-      color: rgb(1, 1, 1),
+    page.drawText('Governance & Transformation Platform', {
+      x: 40, y: height - 60, font: helvObl, size: 9, color: rgb(0.95, 0.90, 0.92),
     });
 
-    // Project + month + audience block
-    let y = height - 160;
-    const drawLabelValue = (label: string, value: string): void => {
-      page.drawText(label, { x: 40, y, font: helvBold, size: 10, color: rgb(0.35, 0.35, 0.4) });
-      page.drawText(value, { x: 200, y, font: helv, size: 11, color: rgb(0.05, 0.05, 0.1) });
-      y -= 20;
-    };
-    drawLabelValue('Project', this.safeAscii(input.projectName));
-    drawLabelValue('Project key', input.projectBusinessKey);
-    drawLabelValue('Reporting month', input.month);
-    drawLabelValue('Audience', input.audience.toUpperCase());
-    drawLabelValue('Narrative source', input.narrativeSource);
-    drawLabelValue('Persona', `${input.personaSlug} v${input.personaVersion}`);
+    const cadenceLabel = this.cadenceTitleFromMonthShape(input.month);
+    page.drawText(`${cadenceLabel} Performance Report`, {
+      x: 40, y: height - 95, font: helvBold, size: 22, color: rgb(1, 1, 1),
+    });
+    page.drawText(`${this.safeAscii(input.projectName)} • ${input.month}`, {
+      x: 40, y: height - 118, font: helv, size: 11, color: rgb(0.97, 0.93, 0.94),
+    });
 
-    // Key figures box
-    y -= 20;
-    page.drawText('Key figures', { x: 40, y, font: helvBold, size: 13, color: rgb(0.1, 0.1, 0.15) });
-    y -= 24;
-    const m = input.metricsSummary;
-    const figures: Array<[string, string]> = [
-      ['Activities tracked', `${m.activityCount}`],
-      ['Alerts (total)', `${m.alertCount}`],
-      ['Critical alerts', `${m.criticalAlertCount}`],
-      ['Warning alerts', `${m.warningAlertCount}`],
-      ['Data confidence', `${(m.confidenceAverage * 100).toFixed(1)}%`],
-      ['Schedule delta (actual − planned)', m.scheduleDeltaPp === null ? 'n/a' : `${m.scheduleDeltaPp.toFixed(1)} pp`],
-      ['BoQ total', m.boqTotalDisplay ?? 'n/a'],
+    // Audience pill in the top-right.
+    const pillText = input.audience.toUpperCase();
+    const pillWidth = helvBold.widthOfTextAtSize(pillText, 10) + 28;
+    page.drawRectangle({
+      x: width - pillWidth - 30, y: height - 75, width: pillWidth, height: 22,
+      color: rgb(1, 1, 1), borderColor: rgb(1, 1, 1), borderWidth: 0,
+    });
+    page.drawText(pillText, {
+      x: width - pillWidth - 30 + 14, y: height - 69, font: helvBold, size: 10, color: this.crimson,
+    });
+
+    // Identity block — clean two-column key-value table.
+    let y = height - 175;
+    const rows: Array<[string, string]> = [
+      ['Project', this.safeAscii(input.projectName)],
+      ['Project key', input.projectBusinessKey],
+      ['Reporting period', input.month],
+      ['Audience', input.audience.toUpperCase()],
+      ['Narrative source', input.narrativeSource],
+      ['Persona', `${input.personaSlug} v${input.personaVersion}`],
     ];
-    for (const [label, value] of figures) {
-      page.drawText(label, { x: 60, y, font: helv, size: 10, color: rgb(0.2, 0.2, 0.25) });
-      page.drawText(value, { x: 360, y, font: helvBold, size: 10, color: rgb(0.05, 0.05, 0.1) });
-      y -= 16;
+    for (const [label, value] of rows) {
+      page.drawText(label.toUpperCase(), { x: 40, y, font: helvBold, size: 8, color: this.inkSoft });
+      page.drawText(value, { x: 165, y, font: helv, size: 11, color: this.inkDark });
+      y -= 18;
     }
 
-    // Generation timestamp footer
+    // Section divider for "Key figures"
+    y -= 14;
+    page.drawRectangle({ x: 40, y, width: 4, height: 18, color: this.crimson });
+    page.drawText('KEY FIGURES', { x: 52, y: y + 4, font: helvBold, size: 12, color: this.inkDark });
+    y -= 24;
+
+    // 4-column KPI grid (2 rows × 4 cards).
+    const m = input.metricsSummary;
+    const cards: Array<{ label: string; value: string; accent: import('pdf-lib').RGB }> = [
+      { label: 'Activities tracked', value: `${m.activityCount}`, accent: this.crimson },
+      {
+        label: 'Critical alerts',
+        value: `${m.criticalAlertCount}`,
+        accent: m.criticalAlertCount > 0 ? this.criticalAccent : this.successAccent,
+      },
+      {
+        label: 'Warning alerts',
+        value: `${m.warningAlertCount}`,
+        accent: m.warningAlertCount > 0 ? this.warningAccent : this.successAccent,
+      },
+      {
+        label: 'Data confidence',
+        value: `${(m.confidenceAverage * 100).toFixed(0)}%`,
+        accent: m.confidenceAverage >= 0.75 ? this.successAccent : this.warningAccent,
+      },
+      { label: 'Alerts (total)', value: `${m.alertCount}`, accent: this.crimson },
+      {
+        label: 'Schedule delta',
+        value: m.scheduleDeltaPp === null ? 'n/a' : `${m.scheduleDeltaPp.toFixed(1)} pp`,
+        accent:
+          m.scheduleDeltaPp === null
+            ? this.inkMid
+            : m.scheduleDeltaPp >= 0
+              ? this.successAccent
+              : this.criticalAccent,
+      },
+      { label: 'BoQ total', value: m.boqTotalDisplay ?? 'n/a', accent: this.crimson },
+      { label: 'Confidence band', value: this.confidenceBand(m.confidenceAverage), accent: this.crimson },
+    ];
+
+    const cardW = 122;
+    const cardH = 64;
+    const gap = 8;
+    const gridLeft = 40;
+    for (let i = 0; i < cards.length; i += 1) {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      const cx = gridLeft + col * (cardW + gap);
+      const cy = y - row * (cardH + gap);
+      page.drawRectangle({
+        x: cx, y: cy - cardH, width: cardW, height: cardH,
+        color: this.canvas, borderColor: this.cardBorder, borderWidth: 0.6,
+      });
+      page.drawRectangle({
+        x: cx, y: cy - cardH, width: 3, height: cardH, color: cards[i].accent,
+      });
+      page.drawText(cards[i].label.toUpperCase(), {
+        x: cx + 10, y: cy - 18, font: helvBold, size: 7, color: this.inkSoft,
+      });
+      const valueStr = this.safeAscii(cards[i].value);
+      const valueSize = valueStr.length > 12 ? 13 : 18;
+      page.drawText(valueStr, {
+        x: cx + 10, y: cy - cardH + 14, font: helvBold, size: valueSize, color: this.inkDark,
+      });
+    }
+    y -= cardH * 2 + gap + 8;
+
+    // Executive-verdict callout block.
+    y -= 12;
+    page.drawRectangle({
+      x: 40, y: y - 70, width: width - 80, height: 70,
+      color: this.canvas, borderColor: this.cardBorder, borderWidth: 0.6,
+    });
+    page.drawRectangle({ x: 40, y: y - 70, width: 4, height: 70, color: this.crimson });
+    page.drawText('AUDIT CHAIN', { x: 56, y: y - 22, font: helvBold, size: 9, color: this.crimson });
     page.drawText(
-      `Generated ${new Date().toISOString()} — Sigma PMO Wave 2`,
-      { x: 40, y: 30, font: helv, size: 8, color: rgb(0.4, 0.4, 0.45) },
+      `Persona ${input.personaSlug} v${input.personaVersion} · narrative source: ${input.narrativeSource}`,
+      { x: 56, y: y - 40, font: helv, size: 9, color: this.inkMid },
     );
+    page.drawText(
+      `Citations attached: ${input.citations.length} · ${input.citations.length === 0 ? 'deterministic facts only' : 'sourced from curated registry'}`,
+      { x: 56, y: y - 55, font: helv, size: 9, color: this.inkMid },
+    );
+
+    // Footer band.
+    page.drawRectangle({ x: 0, y: 0, width, height: 30, color: this.canvas });
+    page.drawRectangle({ x: 0, y: 30, width, height: 0.6, color: this.cardBorder });
+    page.drawText(`Generated ${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`, {
+      x: 40, y: 12, font: helv, size: 8, color: this.inkSoft,
+    });
+    page.drawText('DRAFT — pending human approval (post-meeting plan §3.6)', {
+      x: width - 290, y: 12, font: helvBold, size: 8, color: this.criticalAccent,
+    });
+  }
+
+  private cadenceTitleFromMonthShape(periodLabel: string): string {
+    if (/^\d{4}-W\d{2}$/.test(periodLabel)) return 'Weekly';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(periodLabel)) return 'Daily';
+    return 'Monthly';
+  }
+
+  private confidenceBand(c: number): string {
+    if (c >= 0.85) return 'HIGH';
+    if (c >= 0.65) return 'MED';
+    if (c > 0) return 'LOW';
+    return 'N/A';
   }
 
   private drawNarrativePages(
@@ -200,38 +304,81 @@ export class PdfRendererService {
     input: MonthlyReportPdfInput,
   ): void {
     const lines = this.wrapNarrative(input.narrative, helv, 11, 515);
+    const pageWidth = 595;
     const pageHeight = 842;
-    const topMargin = 60;
+    const topMargin = 70;
     const bottomMargin = 60;
     const lineHeight = 16;
     const linesPerPage = Math.floor((pageHeight - topMargin - bottomMargin) / lineHeight);
 
     let cursor = 0;
     let pageNumber = 1;
+    const cadenceLabel = this.cadenceTitleFromMonthShape(input.month);
     while (cursor < lines.length) {
-      const page = doc.addPage([595, 842]);
-      page.drawText(`Monthly Narrative — ${input.audience.toUpperCase()} — p.${pageNumber}`, {
-        x: 40,
-        y: pageHeight - 35,
-        font: helvBold,
-        size: 9,
-        color: rgb(0.35, 0.35, 0.4),
+      const page = doc.addPage([pageWidth, pageHeight]);
+
+      // Top band — thin crimson rule with the running header.
+      page.drawRectangle({ x: 40, y: pageHeight - 38, width: pageWidth - 80, height: 1, color: this.crimson });
+      page.drawText(`${cadenceLabel.toUpperCase()} PERFORMANCE REPORT — ${input.audience.toUpperCase()}`, {
+        x: 40, y: pageHeight - 30, font: helvBold, size: 8, color: this.crimson,
       });
+      page.drawText(this.safeAscii(input.projectName), {
+        x: pageWidth - 40 - helv.widthOfTextAtSize(this.safeAscii(input.projectName), 8),
+        y: pageHeight - 30, font: helv, size: 8, color: this.inkSoft,
+      });
+
       let y = pageHeight - topMargin;
       const sliceEnd = Math.min(cursor + linesPerPage, lines.length);
       for (let i = cursor; i < sliceEnd; i += 1) {
         const line = lines[i];
-        const isHeading = line.startsWith('# ') || line.startsWith('## ') || line.startsWith('### ');
-        const text = isHeading ? line.replace(/^#+\s*/, '') : line;
+        const h3 = line.startsWith('### ');
+        const h2 = line.startsWith('## ');
+        const h1 = line.startsWith('# ');
+        const bullet = line.startsWith('- ') || line.startsWith('• ');
+        const text = h1 ? line.slice(2) : h2 ? line.slice(3) : h3 ? line.slice(4) : line;
+
+        if (h2 || h1) {
+          // Section heading with accent rule.
+          y -= 4;
+          page.drawRectangle({ x: 40, y: y - 2, width: 4, height: 14, color: this.crimson });
+          page.drawText(this.safeAscii(text), {
+            x: 52, y, font: helvBold, size: 13, color: this.inkDark,
+          });
+          y -= lineHeight + 2;
+          continue;
+        }
+        if (h3) {
+          page.drawText(this.safeAscii(text), {
+            x: 40, y, font: helvBold, size: 11, color: this.crimsonDeep,
+          });
+          y -= lineHeight;
+          continue;
+        }
+        if (bullet) {
+          page.drawCircle({ x: 46, y: y + 4, size: 1.5, color: this.crimson });
+          page.drawText(this.safeAscii(text.replace(/^[-•]\s*/, '')), {
+            x: 56, y, font: helv, size: 10.5, color: this.inkDark,
+          });
+          y -= lineHeight;
+          continue;
+        }
         page.drawText(this.safeAscii(text), {
-          x: 40,
-          y,
-          font: isHeading ? helvBold : helv,
-          size: isHeading ? 12 : 11,
-          color: rgb(0.05, 0.05, 0.1),
+          x: 40, y, font: helv, size: 10.5, color: this.inkDark,
         });
         y -= lineHeight;
       }
+
+      // Footer with page number + brand mark.
+      page.drawRectangle({ x: 40, y: 38, width: pageWidth - 80, height: 0.6, color: this.cardBorder });
+      page.drawText('Sigma PMO', {
+        x: 40, y: 24, font: helvBold, size: 8, color: this.crimson,
+      });
+      const pageLabel = `Page ${pageNumber}`;
+      page.drawText(pageLabel, {
+        x: pageWidth - 40 - helv.widthOfTextAtSize(pageLabel, 8),
+        y: 24, font: helv, size: 8, color: this.inkSoft,
+      });
+
       cursor = sliceEnd;
       pageNumber += 1;
     }
@@ -243,44 +390,68 @@ export class PdfRendererService {
     helvBold: import('pdf-lib').PDFFont,
     input: MonthlyReportPdfInput,
   ): void {
-    const page = doc.addPage([595, 842]);
-    const { height } = page.getSize();
-    page.drawText('Sources cited', {
-      x: 40,
-      y: height - 60,
-      font: helvBold,
-      size: 16,
-      color: rgb(0.05, 0.05, 0.1),
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const page = doc.addPage([pageWidth, pageHeight]);
+
+    // Header band.
+    page.drawRectangle({ x: 0, y: pageHeight - 90, width: pageWidth, height: 90, color: this.crimson });
+    page.drawRectangle({ x: 0, y: pageHeight - 90, width: 12, height: 90, color: this.crimsonDeep });
+    page.drawText('SOURCES & EVIDENCE CHAIN', {
+      x: 40, y: pageHeight - 50, font: helvBold, size: 16, color: rgb(1, 1, 1),
     });
     page.drawText(
-      'Every professional claim in this report is grounded in one of the Sigma PMO curated sources below.',
-      { x: 40, y: height - 90, font: helv, size: 10, color: rgb(0.3, 0.3, 0.35) },
+      'Every professional claim is grounded in the Sigma PMO curated source registry.',
+      { x: 40, y: pageHeight - 75, font: helv, size: 10, color: rgb(0.97, 0.93, 0.94) },
     );
 
-    let y = height - 130;
+    let y = pageHeight - 130;
     if (input.citations.length === 0) {
-      page.drawText('(deterministic narrative — no external sources cited)', {
-        x: 40,
-        y,
-        font: helv,
-        size: 10,
-        color: rgb(0.5, 0.2, 0.2),
+      page.drawRectangle({
+        x: 40, y: y - 50, width: pageWidth - 80, height: 60,
+        color: this.canvas, borderColor: this.cardBorder, borderWidth: 0.6,
+      });
+      page.drawRectangle({ x: 40, y: y - 50, width: 4, height: 60, color: this.warningAccent });
+      page.drawText('Deterministic narrative — no external citations attached', {
+        x: 56, y: y - 20, font: helvBold, size: 11, color: this.inkDark,
+      });
+      page.drawText(
+        'This report was assembled from canonical project facts only. The narrative is grounded in',
+        { x: 56, y: y - 36, font: helv, size: 9, color: this.inkMid },
+      );
+      page.drawText('the same DB rows that drive every other Sigma PMO surface.', {
+        x: 56, y: y - 48, font: helv, size: 9, color: this.inkMid,
       });
     } else {
-      for (const id of input.citations) {
-        page.drawText(`• [SOURCE: ${id}]`, { x: 60, y, font: helv, size: 11, color: rgb(0.05, 0.05, 0.1) });
-        y -= 18;
+      for (let i = 0; i < input.citations.length; i += 1) {
+        const id = input.citations[i];
+        const cardH = 32;
+        page.drawRectangle({
+          x: 40, y: y - cardH, width: pageWidth - 80, height: cardH,
+          color: this.canvas, borderColor: this.cardBorder, borderWidth: 0.6,
+        });
+        page.drawRectangle({ x: 40, y: y - cardH, width: 3, height: cardH, color: this.crimson });
+        page.drawText(`[${String(i + 1).padStart(2, '0')}]`, {
+          x: 56, y: y - 20, font: helvBold, size: 10, color: this.crimson,
+        });
+        page.drawText(this.safeAscii(id), {
+          x: 92, y: y - 20, font: helvBold, size: 11, color: this.inkDark,
+        });
+        y -= cardH + 6;
+        if (y < 100) break;
       }
     }
 
+    // Footer / audit trailer.
+    page.drawRectangle({ x: 40, y: 70, width: pageWidth - 80, height: 0.6, color: this.cardBorder });
+    page.drawText('AUDIT TRAIL', { x: 40, y: 56, font: helvBold, size: 8, color: this.crimson });
     page.drawText(
-      `Persona ${input.personaSlug} v${input.personaVersion} — narrative source: ${input.narrativeSource}`,
-      { x: 40, y: 50, font: helv, size: 8, color: rgb(0.4, 0.4, 0.45) },
+      `Persona ${input.personaSlug} v${input.personaVersion} · narrative source: ${input.narrativeSource}`,
+      { x: 40, y: 42, font: helv, size: 8, color: this.inkMid },
     );
-    page.drawText(
-      'DRAFT — not for distribution until a human approves (post-meeting plan §3.6).',
-      { x: 40, y: 35, font: helvBold, size: 8, color: rgb(0.6, 0.1, 0.1) },
-    );
+    page.drawText('DRAFT — not for distribution until a human approves (post-meeting plan §3.6).', {
+      x: 40, y: 24, font: helvBold, size: 8, color: this.criticalAccent,
+    });
   }
 
   /**

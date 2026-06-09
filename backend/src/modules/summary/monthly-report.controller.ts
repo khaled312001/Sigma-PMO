@@ -17,7 +17,8 @@ import type { Response } from 'express';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { MonthlyReport } from '../canonical/entities';
 import { GenerateMonthlyReportDto } from './dto/generate-monthly-report.dto';
-import { MonthlyReportService } from './monthly-report.service';
+import { GeneratePeriodicReportDto } from './dto/generate-periodic-report.dto';
+import { MonthlyReportService, PeriodicCadence } from './monthly-report.service';
 
 /**
  * Monthly Narrative Report endpoints (post-meeting plan §3.6, §5).
@@ -47,16 +48,37 @@ export class MonthlyReportController {
     });
   }
 
+  /**
+   * Cadence-aware generation (Wave 4). Same pipeline as monthly, just with
+   * a daily / weekly window. Daily is the lightest tier; weekly + monthly
+   * stay on the audience-tier policy.
+   */
+  @Post('periodic/generate')
+  @HttpCode(200)
+  @RequiresCapability('canGenerateSummary')
+  generatePeriodic(@Body() body: GeneratePeriodicReportDto): Promise<MonthlyReport> {
+    return this.service.generatePeriodic({
+      projectKey: body.projectKey,
+      cadence: body.cadence,
+      periodKey: body.periodKey,
+      audience: body.audience,
+      authoredBy: body.authoredBy ?? null,
+    });
+  }
+
   @Get()
   @RequiresCapability('canRead')
   list(
     @Query('projectKey') projectKey: string,
     @Query('month') month?: string,
+    @Query('cadence') cadence?: string,
+    @Query('periodKey') periodKey?: string,
   ): Promise<MonthlyReport[]> {
     if (!projectKey) {
       throw new NotFoundException('projectKey query parameter is required');
     }
-    return this.service.list(projectKey, month);
+    const c = cadence as PeriodicCadence | undefined;
+    return this.service.list(projectKey, month, c, periodKey);
   }
 
   @Get(':id')
@@ -83,9 +105,11 @@ export class MonthlyReportController {
       throw new NotFoundException(`Rendered PDF for monthly report ${id} not found on disk`);
     }
     res.setHeader('Content-Type', 'application/pdf');
+    const cadenceTag = row.cadence ?? 'monthly';
+    const periodTag = row.periodKey ?? row.month;
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="monthly-${row.projectBusinessKey}-${row.month}-${row.audience}.pdf"`,
+      `attachment; filename="${cadenceTag}-${row.projectBusinessKey}-${periodTag}-${row.audience}.pdf"`,
     );
     if (size !== null) res.setHeader('Content-Length', String(size));
     createReadStream(absolutePath).pipe(res);

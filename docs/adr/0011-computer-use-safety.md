@@ -1,6 +1,6 @@
 # ADR-0011 — Computer Use safety guardrails
 
-- **Status:** Proposed (pending Al Ayham sign-off on acceptable Computer Use failure rate — open question 6 in the 2026-06-08 post-meeting plan)
+- **Status:** Accepted (2026-06-09) — Al Ayham authorized the 12 guardrails under default thresholds: 5% per-session failure rate, 2 consecutive guarded rejections → automatic KILL_SWITCH, 4-hour session length cap, 60-second nonce TTL. Open question 6 from the 2026-06-08 post-meeting plan is closed at these values.
 - **Date:** 2026-06-09
 - **Layer / Cycle:** Layer 2 (Planning) primary, Layer 5 (Simulation) secondary — guardrails apply to every cycle that touches desktop automation, first wired in C11 (Demo Path)
 - **Decision owner:** Khaled Ahmed

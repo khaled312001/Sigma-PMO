@@ -10,6 +10,16 @@ interface SubmitBaselineJobBody {
   personaSlug?: string;
 }
 
+interface AuthorBaselineBody {
+  projectKey: string;
+  authoredBy: string;
+  baselineName?: string;
+}
+
+interface ApproveBody {
+  approvedBy: string;
+}
+
 /**
  * Baseline build surface (post-meeting plan §3.1, ADR-0011).
  *
@@ -53,5 +63,32 @@ export class BaselinesController {
   @RequiresCapability('canRead')
   get(@Param('id') id: string): Promise<BaselineBuildJob> {
     return this.baselines.getJob(id);
+  }
+
+  /**
+   * Author path (ADR-0017 Accepted). Generates a real P6 XER from the
+   * project's canonical activities via XerWriterService and parks the job
+   * in `awaiting-approval`. Requires `canSimulate` like submitJob.
+   */
+  @Post('jobs/author')
+  @HttpCode(200)
+  @RequiresCapability('canSimulate')
+  author(@Body() body: AuthorBaselineBody): Promise<BaselineBuildJob> {
+    if (!body?.projectKey) throw new BadRequestException('projectKey is required');
+    if (!body?.authoredBy) throw new BadRequestException('authoredBy is required');
+    return this.baselines.authorBaselineFromProject({
+      projectKey: body.projectKey,
+      authoredBy: body.authoredBy,
+      baselineName: body.baselineName,
+    });
+  }
+
+  /** Approve an `awaiting-approval` job → flips to `committed`. */
+  @Post('jobs/:id/approve')
+  @HttpCode(200)
+  @RequiresCapability('canEditPolicy')
+  approve(@Param('id') id: string, @Body() body: ApproveBody): Promise<BaselineBuildJob> {
+    if (!body?.approvedBy) throw new BadRequestException('approvedBy is required');
+    return this.baselines.approve(id, body.approvedBy);
   }
 }

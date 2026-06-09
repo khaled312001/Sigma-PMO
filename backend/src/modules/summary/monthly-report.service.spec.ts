@@ -334,6 +334,72 @@ describe('MonthlyReportService', () => {
     });
   });
 
+  describe('periodic path (Wave 4 daily + weekly)', () => {
+    it('produces a daily row stamped with cadence=day + periodKey=YYYY-MM-DD', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const { service } = buildService({ claude, sources });
+
+      const row = await service.generatePeriodic({
+        projectKey: 'P-1000',
+        cadence: 'day',
+        periodKey: '2026-05-15',
+        audience: 'pd',
+      });
+
+      expect(row.cadence).toBe('day');
+      expect(row.periodKey).toBe('2026-05-15');
+      expect(row.month).toBe('2026-05');
+      expect(row.narrative).toContain('DAY 2026-05-15');
+    });
+
+    it('produces a weekly row stamped with cadence=week + ISO week periodKey', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const { service } = buildService({ claude, sources });
+
+      const row = await service.generatePeriodic({
+        projectKey: 'P-1000',
+        cadence: 'week',
+        periodKey: '2026-W20',
+        audience: 'owner',
+      });
+
+      expect(row.cadence).toBe('week');
+      expect(row.periodKey).toBe('2026-W20');
+      expect(row.month).toMatch(/^\d{4}-\d{2}$/);
+      expect(row.narrative).toContain('WEEK 2026-W20');
+    });
+
+    it('rejects malformed daily periodKey', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const { service } = buildService({ claude, sources });
+      await expect(
+        service.generatePeriodic({
+          projectKey: 'P-1000',
+          cadence: 'day',
+          periodKey: '2026/05/15',
+          audience: 'owner',
+        }),
+      ).rejects.toThrow(/daily periodKey/);
+    });
+
+    it('rejects malformed weekly periodKey', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const { service } = buildService({ claude, sources });
+      await expect(
+        service.generatePeriodic({
+          projectKey: 'P-1000',
+          cadence: 'week',
+          periodKey: '2026-20',
+          audience: 'owner',
+        }),
+      ).rejects.toThrow(/weekly periodKey/);
+    });
+  });
+
   describe('deterministic path (Claude disabled)', () => {
     it('produces a row with narrativeSource=deterministic and zero citations', async () => {
       const claude = makeClaudeService({ enabled: false });

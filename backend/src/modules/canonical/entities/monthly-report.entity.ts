@@ -35,10 +35,33 @@ export class MonthlyReport extends UuidEntity {
   @Column({ type: 'varchar', length: 64 })
   projectBusinessKey!: string;
 
-  /** Calendar month covered by the report, stored as `YYYY-MM`. */
+  /**
+   * Parent calendar month, `YYYY-MM`. For daily/weekly rows this is the
+   * month the period falls into (first day's month if a week spans two) —
+   * keeps the legacy `month` index useful as a coarse filter while
+   * `periodKey` carries the exact window.
+   */
   @Index()
   @Column({ type: 'varchar', length: 7 })
   month!: string;
+
+  /**
+   * Cadence flag — added Wave 4 alongside daily/weekly variants. Existing
+   * rows are NULL in dev and treated as `'month'` by the service layer.
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 8, nullable: true })
+  cadence!: 'day' | 'week' | 'month' | null;
+
+  /**
+   * Exact period covered by the report:
+   *  - `month`  →  `YYYY-MM`
+   *  - `week`   →  `YYYY-Www` (ISO week)
+   *  - `day`    →  `YYYY-MM-DD`
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  periodKey!: string | null;
 
   /**
    * Stakeholder view this row was written for. Each audience gets the same

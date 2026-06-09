@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 
 import { CanonicalModule } from '../canonical/canonical.module';
+import { IngestionModule } from '../ingestion/ingestion.module';
 import { BaselineBuildService } from './baseline-build.service';
 import { BaselinesController } from './baselines.controller';
+import { ComputerUseOrchestratorService } from './computer-use-orchestrator.service';
+import { XerWriterService } from './xer-writer.service';
 
 /**
  * Baseline build surface (post-meeting plan §3.1, ADR-0011).
@@ -13,9 +16,9 @@ import { BaselinesController } from './baselines.controller';
  * module until ADR-0011 is Accepted.
  */
 @Module({
-  imports: [CanonicalModule],
+  imports: [CanonicalModule, IngestionModule],
   controllers: [BaselinesController],
-  providers: [BaselineBuildService],
-  exports: [BaselineBuildService],
+  providers: [BaselineBuildService, XerWriterService, ComputerUseOrchestratorService],
+  exports: [BaselineBuildService, XerWriterService, ComputerUseOrchestratorService],
 })
 export class BaselinesModule {}

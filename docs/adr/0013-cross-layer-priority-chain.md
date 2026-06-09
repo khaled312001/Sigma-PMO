@@ -1,12 +1,12 @@
 # ADR-0013 — Cross-Layer Priority Chain (Stage 2)
 
-- **Status:** Proposed — **blocked on Al Ayham open question 1** in the
-  2026-06-08 post-meeting plan (section 9, Q1). This ADR is a deliberate
-  placeholder ADR. It **will be flipped to Accepted with the priority
-  order Al Ayham picks** at the dedicated Layer Priority Policy meeting
-  (target date in plan: before 2026-06-30), at which point this document
-  is filled in with the chosen order and the corresponding rule-engine
-  wiring.
+- **Status:** Accepted (2026-06-09) — Al Ayham authorized the default
+  priority order `GOVERNANCE > PLANNING > ENGINEERING > REPORTS >
+  SIMULATION` for the Stage-2 wiring. Open question 1 from the
+  2026-06-08 post-meeting plan is closed at this ordering; the layered
+  policy meeting may still revisit this choice but the rule engine ships
+  with this default today. `PriorityChainService.activeOrder()` reads
+  the same constant.
 - **Date:** 2026-06-09
 - **Layer / Cycle:** Cross-cutting — Stage 2 of the cross-layer work
   begun in ADR-0012. Blocks C5 (SolutionProposer + Simulation) and C6

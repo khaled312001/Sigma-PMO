@@ -1,11 +1,12 @@
 # ADR-0017 — Baseline Build Job lifecycle
 
-- **Status:** Accepted (stub portion — entity + state machine + Author Path
-  hand-off). The **Computer Use replay path** (driving P6 Pro inside a
-  Windows VM after `APPROVED`) is **pending** and remains gated on
-  ADR-0011 flipping from `Proposed` to `Accepted` once Al Ayham closes
-  open question 6 in the 2026-06-08 post-meeting plan (acceptable
-  Computer Use failure rate).
+- **Status:** Accepted (2026-06-09) — Author Path is fully delivered as
+  the pure-TypeScript `XerWriterService` (drops the MPXJ commercial Java
+  library, generates P6-compatible `.xer` from the canonical Project +
+  Activity rows). State machine: `pending → running → awaiting-approval
+  → committed`, with `failed` as a terminal off-path. The Computer Use
+  replay path is now ungated since ADR-0011 was also Accepted on the
+  same day.
 - **Date:** 2026-06-09
 - **Layer / Cycle:** Layer 2 (Planning) — locked here so C10 (Author Path)
   starts from a settled lifecycle contract; C11 (Demo Path) will extend
