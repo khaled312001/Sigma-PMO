@@ -25,10 +25,25 @@ export const ROLE_CAPABILITIES: Record<Role, {
   canEditPolicy: boolean;
   canGenerateSummary: boolean;
   canReadAll: boolean;
+  /**
+   * Whether the role may fork a `Scenario` (what-if sandbox). Wave 1 enables
+   * this for every role except `contractor` per section 3.4 of the
+   * 2026-06-08 post-meeting plan. The Sigma Reviewer / Consultant / Client
+   * defaults are deliberately permissive — they only ever write to a
+   * Scenario branch, never to canonical truth.
+   */
+  canSimulate: boolean;
+  /**
+   * Whether the role may edit the platform's expert personas (append-only,
+   * each edit produces a new `PromptVersion`). Personas are platform voice,
+   * not per-tenant configuration — only `sigma_admin` qualifies. See
+   * ADR-0010 §7.
+   */
+  canEditPersonas: boolean;
 }> = {
-  [Role.SIGMA_ADMIN]:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true  },
-  [Role.SIGMA_REVIEWER]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true  },
-  [Role.CLIENT]:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true  },
-  [Role.CONSULTANT]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true  },
-  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false },
+  [Role.SIGMA_ADMIN]:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: true  },
+  [Role.SIGMA_REVIEWER]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
+  [Role.CLIENT]:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
+  [Role.CONSULTANT]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
+  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: false, canEditPersonas: false },
 };

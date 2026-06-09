@@ -13,7 +13,9 @@ import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PersonasModule } from './modules/personas/personas.module';
 import { RulesModule } from './modules/rules/rules.module';
+import { SimulationModule } from './modules/simulation/simulation.module';
 import { SummaryModule } from './modules/summary/summary.module';
 
 @Module({
@@ -34,6 +36,8 @@ import { SummaryModule } from './modules/summary/summary.module';
     IntegrationsModule,
     RulesModule,
     SummaryModule,
+    PersonasModule,
+    SimulationModule,
   ],
   controllers: [HealthController],
 })

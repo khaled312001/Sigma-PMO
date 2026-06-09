@@ -46,3 +46,19 @@ export enum RuleEvaluationStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
 }
+
+/**
+ * Platform layer a persona / alert / decision / evidence belongs to. Introduced
+ * by ADR-0010 (per-page expert persona system) and reserved by ADR-0012 for
+ * cross-layer Evidence/Alert/Decision tagging once cross-layer wiring lands.
+ *
+ * Wave 1 uses this only on `Persona.layer`; the other entities adopt it in a
+ * later cycle without re-declaring the enum.
+ */
+export enum Layer {
+  ENGINEERING = 'engineering',
+  PLANNING = 'planning',
+  GOVERNANCE = 'governance',
+  REPORTS = 'reports',
+  SIMULATION = 'simulation',
+}
