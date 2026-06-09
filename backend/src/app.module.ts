@@ -22,6 +22,7 @@ import { OrgChartsModule } from './modules/org-charts/org-charts.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { RulesModule } from './modules/rules/rules.module';
+import { SettingsModule } from './modules/settings/settings.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
 import { SourcesModule } from './modules/sources/sources.module';
 import { SummaryModule } from './modules/summary/summary.module';
@@ -83,6 +84,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     // Imported after LettersModule so the drafter is available, and after
     // IngestionModule so StorageService (re-exported) is in scope.
     OrgChartsModule,
+    // Wave 4 — runtime-configurable platform settings. Surfaces the Claude
+    // API key entry form at /admin/settings + AES-256-GCM-encrypted storage
+    // in the `SystemSetting` table.
+    SettingsModule,
   ],
   controllers: [HealthController],
 })

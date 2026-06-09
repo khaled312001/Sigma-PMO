@@ -17,7 +17,7 @@ interface IngestOutcome {
   confidence: { overall: number } | null;
 }
 
-const ACCEPTED_EXT = /\.(xer|xml|xlsx|csv)$/i;
+const ACCEPTED_EXT = /\.(xer|xml|xlsx|csv|pdf)$/i;
 const MAX_BYTES = 24 * 1024 * 1024;
 
 export default function InputPageRoute() {
@@ -44,7 +44,7 @@ function InputPage() {
   const setFileSafe = (f: File | null) => {
     if (!f) { setFile(null); return; }
     if (!ACCEPTED_EXT.test(f.name)) {
-      toast.error('Unsupported file', 'Accepted formats: .xer, .xml, .xlsx, .csv');
+      toast.error('Unsupported file', 'Accepted formats: .xer, .xml, .xlsx, .csv, .pdf (Primavera P6 PDF export)');
       return;
     }
     if (f.size > MAX_BYTES) {
@@ -105,7 +105,7 @@ function InputPage() {
             </>
           ) : (
             <>
-              <p className="text-sm text-slate-200">Drag a P6 / MS Project / Excel / CSV file here</p>
+              <p className="text-sm text-slate-200">Drag a P6 (.xer / .xml / .pdf) · MS Project · Excel · CSV file here</p>
               <p className="text-xs text-slate-400">or click below to browse</p>
             </>
           )}
@@ -113,7 +113,7 @@ function InputPage() {
             <input
               ref={fileInput}
               type="file"
-              accept=".xer,.xml,.xlsx,.csv"
+              accept=".xer,.xml,.xlsx,.csv,.pdf,application/pdf"
               onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)}
               className="hidden"
               aria-label="File to ingest"

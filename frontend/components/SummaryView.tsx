@@ -264,11 +264,11 @@ function CriticalFindings({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2">
       {parsed.map((p, i) => (
-        <li key={i} className="flex items-start gap-3 rounded-lg border border-rose-500/30 bg-rose-500/5 p-3">
+        <li key={i} className="flex items-start gap-3 rounded-lg border border-rose-500/60 bg-slate-900/60 p-3">
           <div className="mt-0.5 shrink-0"><SeverityBadge severity="critical" /></div>
           <div className="min-w-0 flex-1">
-            {p.code && <span className="me-2 inline-flex rounded bg-rose-500/15 px-1.5 py-0.5 font-mono text-[10px] text-rose-200" dir="ltr">{p.code}</span>}
-            <span className="text-sm text-slate-100" dir="auto">{p.text}</span>
+            {p.code && <span className="me-2 inline-flex rounded bg-rose-600 px-1.5 py-0.5 font-mono text-[10px] font-bold text-white shadow-sm" dir="ltr">{p.code}</span>}
+            <span className="text-sm font-medium text-slate-50" dir="auto">{p.text}</span>
           </div>
         </li>
       ))}
@@ -366,49 +366,52 @@ interface ToneSpec {
 }
 
 function sectionTone(title: string): ToneSpec {
+  // Section tones — `headerBg` keeps a tinted ribbon header; the BODY drops
+  // the tint and uses the neutral surface so child pills/badges remain
+  // legible against it. Borders and icons keep the accent colour.
   const k = title.toLowerCase();
   if (k.startsWith('critical')) {
     return {
-      border: 'border-rose-500/30',
-      borderSoft: 'border-rose-500/15',
-      headerBg: 'bg-rose-500/10',
-      iconBg: 'bg-rose-500/15 ring-1 ring-rose-500/40',
-      iconColor: 'text-rose-300',
+      border: 'border-rose-500/60',
+      borderSoft: 'border-rose-500/30',
+      headerBg: 'bg-rose-500/30 text-rose-50',
+      iconBg: 'bg-rose-600 ring-1 ring-rose-700 text-white',
+      iconColor: 'text-white',
     };
   }
   if (k.startsWith('alert')) {
     return {
-      border: 'border-amber-500/30',
-      borderSoft: 'border-amber-500/15',
-      headerBg: 'bg-amber-500/10',
-      iconBg: 'bg-amber-500/15 ring-1 ring-amber-500/40',
-      iconColor: 'text-amber-300',
+      border: 'border-amber-500/60',
+      borderSoft: 'border-amber-500/30',
+      headerBg: 'bg-amber-500/30 text-amber-50',
+      iconBg: 'bg-amber-500 ring-1 ring-amber-600 text-amber-950',
+      iconColor: 'text-amber-950',
     };
   }
   if (k.startsWith('schedule')) {
     return {
-      border: 'border-sky-500/30',
-      borderSoft: 'border-sky-500/15',
-      headerBg: 'bg-sky-500/10',
-      iconBg: 'bg-sky-500/15 ring-1 ring-sky-500/40',
-      iconColor: 'text-sky-300',
+      border: 'border-sky-500/60',
+      borderSoft: 'border-sky-500/30',
+      headerBg: 'bg-sky-500/30 text-sky-50',
+      iconBg: 'bg-sky-600 ring-1 ring-sky-700 text-white',
+      iconColor: 'text-white',
     };
   }
   if (k.startsWith('reporting')) {
     return {
-      border: 'border-violet-500/30',
-      borderSoft: 'border-violet-500/15',
-      headerBg: 'bg-violet-500/10',
-      iconBg: 'bg-violet-500/15 ring-1 ring-violet-500/40',
-      iconColor: 'text-violet-300',
+      border: 'border-violet-500/60',
+      borderSoft: 'border-violet-500/30',
+      headerBg: 'bg-violet-500/30 text-violet-50',
+      iconBg: 'bg-violet-600 ring-1 ring-violet-700 text-white',
+      iconColor: 'text-white',
     };
   }
   return {
-    border: 'border-slate-800',
+    border: 'border-slate-700',
     borderSoft: 'border-slate-800',
-    headerBg: 'bg-slate-900/60',
-    iconBg: 'bg-slate-800 ring-1 ring-slate-700',
-    iconColor: 'text-slate-300',
+    headerBg: 'bg-slate-800',
+    iconBg: 'bg-slate-700 ring-1 ring-slate-600',
+    iconColor: 'text-slate-100',
   };
 }
 

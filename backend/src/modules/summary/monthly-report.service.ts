@@ -270,6 +270,7 @@ export class MonthlyReportService {
       personaSlug: row.personaSlug,
       personaVersion: row.personaVersion,
       narrativeSource: row.narrativeSource,
+      fullMetrics: row.metrics,
     });
     row.pdfStoredPath = result.storedPath;
     row.status = 'pdf-rendered';

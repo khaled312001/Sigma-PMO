@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { BaselineBuildService } from './baseline-build.service';
+import { BaselinePdfRendererService } from './baseline-pdf-renderer.service';
+import { BaselineTemplateService } from './baseline-template.service';
 import { BaselinesController } from './baselines.controller';
 import { ComputerUseOrchestratorService } from './computer-use-orchestrator.service';
 import { XerWriterService } from './xer-writer.service';
@@ -18,7 +20,19 @@ import { XerWriterService } from './xer-writer.service';
 @Module({
   imports: [CanonicalModule, IngestionModule],
   controllers: [BaselinesController],
-  providers: [BaselineBuildService, XerWriterService, ComputerUseOrchestratorService],
-  exports: [BaselineBuildService, XerWriterService, ComputerUseOrchestratorService],
+  providers: [
+    BaselineBuildService,
+    XerWriterService,
+    ComputerUseOrchestratorService,
+    BaselineTemplateService,
+    BaselinePdfRendererService,
+  ],
+  exports: [
+    BaselineBuildService,
+    XerWriterService,
+    ComputerUseOrchestratorService,
+    BaselineTemplateService,
+    BaselinePdfRendererService,
+  ],
 })
 export class BaselinesModule {}

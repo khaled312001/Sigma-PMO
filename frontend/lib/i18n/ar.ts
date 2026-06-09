@@ -13,6 +13,11 @@ export const ar: Dictionary = {
     review: 'المراجعة',
     evidence: 'الأدلة',
     approval: 'الاعتماد',
+    baselines: 'خطط بريمافيرا',
+    planning: 'التخطيط',
+    reports: 'التقارير',
+    reporting: 'التقارير',
+    settings: 'الإعدادات المتقدمة',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',
@@ -117,7 +122,7 @@ export const ar: Dictionary = {
   input: {
     eyebrow: 'الإدخال',
     title: 'إدخال بيانات الجدول الزمني',
-    description: 'ارفع ملف P6 (XER/PMXML) أو MS Project XML أو Excel أو CSV. كل بايت يُؤرشف مع بصمة SHA-256 الخاصة به.',
+    description: 'ارفع ملف P6 (XER / XML / تقرير PDF) أو MS Project XML أو Excel أو CSV. كل بايت يُؤرشف مع بصمة SHA-256 الخاصة به.',
   },
   review: {
     eyebrow: 'المراجعة',

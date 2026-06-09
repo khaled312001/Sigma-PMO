@@ -21,6 +21,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { API_BASE, api, getApiKey } from '../../../lib/api';
 import { AuthGate } from '../../../components/AuthGate';
+import {
+  BarChart,
+  DonutChart,
+  GaugeChart,
+  StackedBar,
+  CHART_PALETTE,
+  SEVERITY_ACCENT,
+} from '../../../components/Charts';
 import { SkeletonRow } from '../../../components/Skeleton';
 import { SummaryView } from '../../../components/SummaryView';
 import { useToast } from '../../../components/ToastProvider';
@@ -51,10 +59,14 @@ import {
 
 type Audience = 'owner' | 'pd' | 'contractor';
 
+type Cadence = 'day' | 'week' | 'month';
+
 interface MonthlyReportRow {
   id: string;
   projectBusinessKey: string;
   month: string;
+  cadence: Cadence | null;
+  periodKey: string | null;
   audience: Audience | string;
   personaSlug: string;
   personaVersion: number;
@@ -94,7 +106,10 @@ function MonthlyReportsPage() {
   const [rows, setRows] = useState<MonthlyReportRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [cadence, setCadence] = useState<Cadence>('month');
   const [month, setMonth] = useState<string>(defaultMonth());
+  const [day, setDay] = useState<string>(defaultDay());
+  const [week, setWeek] = useState<string>(defaultIsoWeek());
   const [audience, setAudience] = useState<Audience>('owner');
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -152,30 +167,38 @@ function MonthlyReportsPage() {
   const authoredBy = me?.user?.displayName ?? null;
   const onGenerate = useCallback(async (): Promise<void> => {
     if (!projectKey) return;
-    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    // Pick the periodKey from the cadence-matching input.
+    const periodKey = cadence === 'month' ? month : cadence === 'week' ? week : day;
+    const re =
+      cadence === 'month'
+        ? /^\d{4}-(0[1-9]|1[0-2])$/
+        : cadence === 'week'
+          ? /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/
+          : /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+    if (!re.test(periodKey)) {
       toast.error(
         t('reportsMonthly.toast.invalidMonthTitle'),
-        t('reportsMonthly.toast.invalidMonthBody'),
+        `Period key "${periodKey}" does not match the ${cadence} format.`,
       );
       return;
     }
     setGenerating(true);
     try {
-      const created = await api<MonthlyReportRow>('/reports/monthly/generate', {
+      const path =
+        cadence === 'month'
+          ? '/reports/monthly/generate'
+          : '/reports/monthly/periodic/generate';
+      const body =
+        cadence === 'month'
+          ? { projectKey, monthIso: month, audience, authoredBy }
+          : { projectKey, cadence, periodKey, audience, authoredBy };
+      const created = await api<MonthlyReportRow>(path, {
         method: 'POST',
-        body: JSON.stringify({
-          projectKey,
-          monthIso: month,
-          audience,
-          authoredBy,
-        }),
+        body: JSON.stringify(body),
       });
       toast.success(
         t('reportsMonthly.toast.generatedTitle'),
-        t('reportsMonthly.toast.generatedBody', {
-          month: created.month,
-          audience: audienceLabel(t, created.audience as Audience),
-        }),
+        `${cadence.toUpperCase()} ${periodKey} · ${audienceLabel(t, created.audience as Audience)}`,
       );
       setOpenId(created.id);
       await refresh();
@@ -187,7 +210,7 @@ function MonthlyReportsPage() {
     } finally {
       setGenerating(false);
     }
-  }, [projectKey, month, audience, authoredBy, t, toast, refresh]);
+  }, [projectKey, cadence, month, week, day, audience, authoredBy, t, toast, refresh]);
 
   const openRow = useMemo(
     () => (openId ? rows?.find((r) => r.id === openId) ?? null : null),
@@ -215,11 +238,17 @@ function MonthlyReportsPage() {
 
       {canGenerate ? (
         <GenerateForm
+          cadence={cadence}
           month={month}
+          week={week}
+          day={day}
           audience={audience}
           generating={generating}
           projectKey={projectKey}
+          onCadenceChange={setCadence}
           onMonthChange={setMonth}
+          onWeekChange={setWeek}
+          onDayChange={setDay}
           onAudienceChange={setAudience}
           onSubmit={onGenerate}
         />
@@ -247,19 +276,31 @@ function MonthlyReportsPage() {
 // ---------------------------------------------------------------------------
 
 function GenerateForm({
+  cadence,
   month,
+  week,
+  day,
   audience,
   generating,
   projectKey,
+  onCadenceChange,
   onMonthChange,
+  onWeekChange,
+  onDayChange,
   onAudienceChange,
   onSubmit,
 }: {
+  cadence: Cadence;
   month: string;
+  week: string;
+  day: string;
   audience: Audience;
   generating: boolean;
   projectKey: string;
+  onCadenceChange: (v: Cadence) => void;
   onMonthChange: (v: string) => void;
+  onWeekChange: (v: string) => void;
+  onDayChange: (v: string) => void;
   onAudienceChange: (v: Audience) => void;
   onSubmit: () => void;
 }) {
@@ -276,22 +317,80 @@ function GenerateForm({
           onSubmit();
         }}
       >
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="font-semibold uppercase tracking-[0.14em] text-slate-400">
-            {t('reportsMonthly.form.monthLabel')}
-          </span>
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => onMonthChange(e.target.value)}
-            required
-            className="rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500/60"
-            dir="ltr"
-          />
-        </label>
+        <fieldset className="flex flex-col gap-1 text-xs">
+          <legend className="font-semibold uppercase tracking-[0.14em] text-slate-300">
+            Cadence
+          </legend>
+          <div className="flex flex-wrap gap-1.5">
+            {(['day', 'week', 'month'] as const).map((c) => {
+              const labels: Record<Cadence, string> = { day: 'Daily', week: 'Weekly', month: 'Monthly' };
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={cadence === c}
+                  onClick={() => onCadenceChange(c)}
+                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    cadence === c
+                      ? 'border-sky-400 bg-sky-500/30 text-sky-50 shadow-sm scale-105'
+                      : 'border-slate-600 bg-slate-900/60 text-slate-200 hover:border-slate-400 hover:scale-105'
+                  }`}
+                >
+                  {labels[c]}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {cadence === 'month' && (
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
+              Month (YYYY-MM)
+            </span>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => onMonthChange(e.target.value)}
+              required
+              className="rounded-lg border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-sky-400/80 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)]"
+              dir="ltr"
+            />
+          </label>
+        )}
+        {cadence === 'week' && (
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
+              ISO Week (YYYY-Www)
+            </span>
+            <input
+              type="week"
+              value={week}
+              onChange={(e) => onWeekChange(e.target.value)}
+              required
+              className="rounded-lg border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-sky-400/80 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)]"
+              dir="ltr"
+            />
+          </label>
+        )}
+        {cadence === 'day' && (
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
+              Day (YYYY-MM-DD)
+            </span>
+            <input
+              type="date"
+              value={day}
+              onChange={(e) => onDayChange(e.target.value)}
+              required
+              className="rounded-lg border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-sky-400/80 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)]"
+              dir="ltr"
+            />
+          </label>
+        )}
 
         <fieldset className="flex flex-col gap-1 text-xs">
-          <legend className="font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <legend className="font-semibold uppercase tracking-[0.14em] text-slate-300">
             {t('reportsMonthly.form.audienceLabel')}
           </legend>
           <div className="flex flex-wrap gap-1.5">
@@ -301,10 +400,10 @@ function GenerateForm({
                 type="button"
                 aria-pressed={audience === a}
                 onClick={() => onAudienceChange(a)}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs transition ${
+                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                   audience === a
-                    ? 'border-sky-500/50 bg-sky-500/15 text-sky-100'
-                    : 'border-slate-700 bg-slate-900/40 text-slate-300 hover:border-slate-500'
+                    ? 'border-sky-400 bg-sky-500/30 text-sky-50 shadow-sm scale-105'
+                    : 'border-slate-600 bg-slate-900/60 text-slate-200 hover:border-slate-400 hover:scale-105'
                 }`}
               >
                 {audienceLabel(t, a)}
@@ -453,8 +552,15 @@ function ReportDetail({ row }: { row: MonthlyReportRow }) {
       hint={t('reportsMonthly.detail.hint', {
         persona: `${row.personaSlug} v${row.personaVersion}`,
       })}
-      actions={<PdfLink rowId={row.id} variant="button" />}
+      actions={
+        <span className="flex items-center gap-2">
+          <PrintButton />
+          <PdfLink rowId={row.id} variant="button" />
+        </span>
+      }
+      className="print:!border-0 print:!bg-white print:!shadow-none print:!p-0"
     >
+      <ChartsStrip metrics={row.metrics} />
       <div className="space-y-5">
         <MetricsStrip metrics={row.metrics} />
 
@@ -717,6 +823,94 @@ function SourceBadge({ source }: { source: string }) {
   );
 }
 
+function PrintButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => window.print()}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-900/60 px-2.5 py-1.5 text-xs font-medium text-slate-100 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:text-sky-100 print:hidden"
+      title="Print / Save as PDF (Ctrl+P)"
+    >
+      Print
+    </button>
+  );
+}
+
+function ChartsStrip({ metrics }: { metrics: Record<string, unknown> }) {
+  const activityCount = readNumber(metrics?.activityCount) ?? 0;
+  const critical = readNumber(metrics?.criticalAlertCount) ?? 0;
+  const warning = readNumber(metrics?.warningAlertCount) ?? 0;
+  const alertCount = readNumber(metrics?.alertCount) ?? 0;
+  const info = Math.max(0, alertCount - critical - warning);
+  const confidence = readNumber(metrics?.confidenceAverage) ?? 0;
+  const planned = readNumber(metrics?.plannedAverage);
+  const actual = readNumber(metrics?.actualAverage);
+  const byCode = (metrics?.alertsByCode ?? {}) as Record<string, number>;
+
+  const severityDonut = [
+    { label: 'Critical', value: critical, accent: SEVERITY_ACCENT.critical },
+    { label: 'Warning', value: warning, accent: SEVERITY_ACCENT.warning },
+    { label: 'Info', value: info, accent: SEVERITY_ACCENT.info },
+  ].filter((d) => d.value > 0);
+
+  const byCodeBars = Object.entries(byCode)
+    .map(([label, value]) => ({ label, value: Number(value) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 6);
+
+  return (
+    <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <GaugeChart
+        title="Data confidence"
+        value={confidence}
+        max={1}
+        label={`${(confidence * 100).toFixed(0)}%`}
+        hint={confidence >= 0.85 ? 'HIGH' : confidence >= 0.65 ? 'MED' : 'LOW'}
+      />
+      {planned !== null && actual !== null && (
+        <StackedBar
+          title="Planned vs Actual"
+          caption={`${activityCount} activities`}
+          data={[
+            { label: `Planned ${(planned * 100).toFixed(0)}%`, value: planned * 100, accent: CHART_PALETTE.crimson },
+            { label: `Actual ${(actual * 100).toFixed(0)}%`, value: actual * 100, accent: actual >= planned ? CHART_PALETTE.emerald : CHART_PALETTE.amber },
+          ]}
+        />
+      )}
+      {severityDonut.length > 0 ? (
+        <DonutChart
+          title="Alerts by severity"
+          data={severityDonut}
+          size={150}
+          thickness={20}
+          centerValue={alertCount}
+          centerLabel="open"
+        />
+      ) : (
+        <DonutChart
+          title="Alerts by severity"
+          data={[{ label: 'No open alerts', value: 1, accent: CHART_PALETTE.emerald }]}
+          size={150}
+          thickness={20}
+          centerValue={0}
+          centerLabel="clear"
+        />
+      )}
+      {byCodeBars.length > 0 && (
+        <div className="md:col-span-3">
+          <BarChart
+            title="Alerts by rule code"
+            caption="top six"
+            data={byCodeBars}
+            labelWidth={180}
+            rowHeight={26}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function audienceLabel(
   t: (k: string, vars?: Record<string, string | number>) => string,
   audience: Audience,
@@ -741,6 +935,24 @@ function audienceLabel(
 function defaultMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Current day in `YYYY-MM-DD` form for the picker default. */
+function defaultDay(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Current ISO week in `YYYY-Www` form for the picker default. */
+function defaultIsoWeek(): string {
+  const d = new Date();
+  // Thursday of the current week determines the ISO year.
+  const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${target.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
 /** Used for the list-row excerpt. Strips heading + citation markers + collapses. */

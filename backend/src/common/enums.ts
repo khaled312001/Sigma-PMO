@@ -7,6 +7,8 @@ export enum SourceType {
   MSPROJECT_XML = 'msproject_xml',
   EXCEL = 'excel',
   CSV = 'csv',
+  /** Primavera P6 Activity Table PDF exports (e.g. "Critical Path.pdf"). */
+  P6_PDF = 'p6_pdf',
 }
 
 /** Lifecycle of a single ingest → validate → normalise execution. */

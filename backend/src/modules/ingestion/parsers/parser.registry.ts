@@ -3,6 +3,7 @@ import { Injectable, UnsupportedMediaTypeException } from '@nestjs/common';
 import { CsvParser } from './csv.parser';
 import { ExcelParser } from './excel.parser';
 import { MSProjectXmlParser } from './msproject-xml.parser';
+import { P6PdfParser } from './p6-pdf.parser';
 import { P6XerParser } from './p6-xer.parser';
 import { P6XmlParser } from './p6-xml.parser';
 import { SourceParser } from './parser.interface';
@@ -23,15 +24,16 @@ export class ParserRegistry {
     msproject: MSProjectXmlParser,
     excel: ExcelParser,
     csv: CsvParser,
+    p6Pdf: P6PdfParser,
   ) {
-    this.parsers = [p6Xer, p6Xml, msproject, excel, csv];
+    this.parsers = [p6Xer, p6Xml, msproject, excel, csv, p6Pdf];
   }
 
   resolve(filename: string, buffer: Buffer): SourceParser {
     const parser = this.parsers.find((p) => p.supports(filename, buffer));
     if (!parser) {
       throw new UnsupportedMediaTypeException(
-        `No parser supports file "${filename}". Supported: .xer, .xml (PMXML or MS Project), .xlsx, .csv`,
+        `No parser supports file "${filename}". Supported: .xer, .xml (PMXML or MS Project), .xlsx, .csv, .pdf (P6 export)`,
       );
     }
     return parser;

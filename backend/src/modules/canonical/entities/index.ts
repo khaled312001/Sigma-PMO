@@ -40,6 +40,7 @@ import { Letter } from '../../letters/letter.entity';
 // added to `CANONICAL_ENTITIES` — OrgChartsModule owns its own forFeature.
 import { OrgChartReview } from '../../org-charts/org-chart-review.entity';
 import { SourceFile } from './source-file.entity';
+import { SystemSetting } from './system-setting.entity';
 import { User } from './user.entity';
 
 export {
@@ -68,6 +69,7 @@ export {
   Scenario,
   Source,
   SourceFile,
+  SystemSetting,
   User,
 };
 
@@ -99,4 +101,6 @@ export const CANONICAL_ENTITIES = [
   // Lives in canonical so the same `forFeature(CANONICAL_ENTITIES)` pattern
   // every feature module already uses picks it up automatically.
   MonthlyReport,
+  // Wave 4 — runtime-configurable settings (Claude API key entry from /admin/settings).
+  SystemSetting,
 ];

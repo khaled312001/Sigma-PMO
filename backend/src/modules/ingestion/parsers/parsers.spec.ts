@@ -76,6 +76,7 @@ describe('ParserRegistry', () => {
     new MSProjectXmlParser(),
     new ExcelParser(),
     new CsvParser(),
+    new (require('./p6-pdf.parser').P6PdfParser)(),
   );
 
   it('resolves by file extension and content', () => {

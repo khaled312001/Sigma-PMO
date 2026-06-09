@@ -11,6 +11,11 @@ export const en: Dictionary = {
     review: 'Review',
     evidence: 'Evidence',
     approval: 'Approval',
+    baselines: 'Baselines',
+    planning: 'Planning',
+    reports: 'Reports',
+    reporting: 'Reporting',
+    settings: 'Advanced settings',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -115,7 +120,7 @@ export const en: Dictionary = {
   input: {
     eyebrow: 'Input',
     title: 'Ingest schedule data',
-    description: 'Upload a P6 (XER/PMXML), MS Project XML, Excel, or CSV file. Every byte is archived with its SHA-256 hash.',
+    description: 'Upload a P6 file (.xer / .xml / .pdf Activity Table), MS Project XML, Excel, or CSV. Every byte is archived with its SHA-256 hash.',
   },
   review: {
     eyebrow: 'Review',
@@ -449,6 +454,9 @@ export interface Dictionary {
   nav: {
     operations: string; admin: string;
     overview: string; input: string; review: string; evidence: string; approval: string;
+    baselines: string; planning: string;
+    reports: string; reporting: string;
+    settings: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

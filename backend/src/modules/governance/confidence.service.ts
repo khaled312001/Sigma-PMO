@@ -26,6 +26,9 @@ const SOURCE_RELIABILITY: Record<SourceType, number> = {
   [SourceType.MSPROJECT_XML]: 0.95,
   [SourceType.EXCEL]: 0.85,
   [SourceType.CSV]: 0.7,
+  // PDF exports are lossy (no relationships, no calendars, no costs); rank
+  // below structured exports but above free-form CSV / Excel.
+  [SourceType.P6_PDF]: 0.75,
 };
 
 /** Composite weights — overall = 0.4·completeness + 0.4·consistency + 0.2·source. */

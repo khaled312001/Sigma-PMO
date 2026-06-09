@@ -59,29 +59,32 @@
  * ======================================================================== */
 :root,
 [data-theme="dark"] {
-  --neutral-50:  oklch(0.985 0.004 60);
-  --neutral-100: oklch(0.965 0.005 60);
-  --neutral-200: oklch(0.925 0.007 60);
-  --neutral-300: oklch(0.870 0.009 60);
-  --neutral-400: oklch(0.745 0.012 60);
-  --neutral-500: oklch(0.625 0.014 60);
-  --neutral-600: oklch(0.515 0.015 55);
-  --neutral-700: oklch(0.395 0.014 50);
-  --neutral-800: oklch(0.290 0.012 45);
-  --neutral-900: oklch(0.205 0.010 40);
-  --neutral-950: oklch(0.135 0.008 35);
+  /* Sharper contrast pass (2026-06-09): brighter text tones (50-300),
+   * punchier muted text (400-500), slightly deeper surfaces (800-950) so
+   * borders and headings hold against the warm-neutral canvas. */
+  --neutral-50:  oklch(0.995 0.004 60);
+  --neutral-100: oklch(0.975 0.005 60);
+  --neutral-200: oklch(0.945 0.007 60);
+  --neutral-300: oklch(0.890 0.009 60);
+  --neutral-400: oklch(0.795 0.013 60);
+  --neutral-500: oklch(0.680 0.015 60);
+  --neutral-600: oklch(0.560 0.016 55);
+  --neutral-700: oklch(0.430 0.015 50);
+  --neutral-800: oklch(0.310 0.013 45);
+  --neutral-900: oklch(0.190 0.011 40);
+  --neutral-950: oklch(0.115 0.009 35);
 
-  /* UAE crimson — official UAE flag-derived red. Maps onto the sky-* family. */
-  --crimson-50:  oklch(0.965 0.020 25);
-  --crimson-100: oklch(0.920 0.045 25);
-  --crimson-200: oklch(0.840 0.090 25);
-  --crimson-300: oklch(0.745 0.140 26);
-  --crimson-400: oklch(0.640 0.175 26);
-  --crimson-500: oklch(0.535 0.190 27);  /* ~#C8102E equivalent */
-  --crimson-600: oklch(0.460 0.180 27);
-  --crimson-700: oklch(0.385 0.155 28);
-  --crimson-800: oklch(0.310 0.120 28);
-  --crimson-900: oklch(0.245 0.085 28);
+  /* UAE crimson — saturated for dark surfaces; 400-600 punch hardest against neutral-900. */
+  --crimson-50:  oklch(0.965 0.025 25);
+  --crimson-100: oklch(0.920 0.055 25);
+  --crimson-200: oklch(0.840 0.105 25);
+  --crimson-300: oklch(0.745 0.155 26);
+  --crimson-400: oklch(0.665 0.190 26);
+  --crimson-500: oklch(0.560 0.205 27);
+  --crimson-600: oklch(0.480 0.195 27);
+  --crimson-700: oklch(0.405 0.165 28);
+  --crimson-800: oklch(0.325 0.130 28);
+  --crimson-900: oklch(0.255 0.090 28);
 
   /* Gold — UAE premium accent (badges, official seals). Use sparingly. */
   --gold-500: oklch(0.760 0.115 80);
@@ -97,24 +100,30 @@
  * foreground, crimson primary accent stays the same colour.
  * ======================================================================== */
 [data-theme="light"] {
-  --neutral-50:  oklch(0.135 0.010 35);
-  --neutral-100: oklch(0.205 0.011 40);
-  --neutral-200: oklch(0.290 0.013 45);
-  --neutral-300: oklch(0.395 0.014 50);
-  --neutral-400: oklch(0.515 0.015 55);
-  --neutral-500: oklch(0.625 0.014 60);
-  --neutral-600: oklch(0.745 0.010 60);
-  --neutral-700: oklch(0.870 0.008 60);
-  --neutral-800: oklch(0.925 0.006 60);
-  --neutral-900: oklch(0.965 0.005 60);
-  --neutral-950: oklch(0.992 0.003 60);  /* warm off-white, not stark white */
+  /* Sharper contrast pass (2026-06-09): inverted ramp now lands real ink on
+   * paper. The default fg (`neutral-100`) is deeper (0.18 vs 0.205) and the
+   * muted tones (400-500) are darker so the existing `text-slate-400`
+   * captions are readable instead of washed out. Surfaces (700-900) keep
+   * the warm paper feel but borders (`neutral-800`) get a visible step. */
+  --neutral-50:  oklch(0.115 0.011 35);
+  --neutral-100: oklch(0.180 0.012 40);
+  --neutral-200: oklch(0.260 0.013 45);
+  --neutral-300: oklch(0.350 0.014 50);
+  --neutral-400: oklch(0.450 0.015 55);
+  --neutral-500: oklch(0.560 0.014 60);
+  --neutral-600: oklch(0.690 0.011 60);
+  --neutral-700: oklch(0.795 0.011 60);
+  --neutral-800: oklch(0.860 0.009 60);
+  --neutral-900: oklch(0.920 0.007 60);
+  --neutral-950: oklch(0.985 0.003 60);  /* warm off-white page background */
 
-  --crimson-50:  oklch(0.245 0.085 28);
-  --crimson-100: oklch(0.310 0.120 28);
-  --crimson-200: oklch(0.385 0.155 28);
-  --crimson-300: oklch(0.460 0.180 27);
-  --crimson-400: oklch(0.535 0.190 27);
-  --crimson-500: oklch(0.495 0.185 27);  /* slightly darker than dark mode for ink-on-paper contrast */
+  /* Light-mode crimson: inks darker so #C8102E reads as ink on paper. */
+  --crimson-50:  oklch(0.245 0.090 28);
+  --crimson-100: oklch(0.310 0.125 28);
+  --crimson-200: oklch(0.385 0.160 28);
+  --crimson-300: oklch(0.460 0.190 27);
+  --crimson-400: oklch(0.510 0.205 27);
+  --crimson-500: oklch(0.475 0.200 27);
   --crimson-600: oklch(0.640 0.175 26);
   --crimson-700: oklch(0.745 0.140 26);
   --crimson-800: oklch(0.840 0.090 25);
@@ -126,6 +135,109 @@
   --app-bg: var(--neutral-950);
   --app-fg: var(--neutral-100);
 }
+
+/* =========================================================================
+ * Light-mode accent inversion
+ *
+ * Tailwind's emerald/rose/amber/violet/red/fuchsia ramps default to LIGHT
+ * tints at 50-300 — designed as text on dark canvas. On our warm-paper
+ * light canvas those classes vanish. The override blocks below invert the
+ * 50-300 tints so `text-emerald-100` still reads as "saturated emerald"
+ * but as INK on paper rather than HIGHLIGHT on dark.
+ *
+ * The 400-700 shades stay default — they're already readable in both
+ * modes when used as actual accents (badges, buttons, ring borders).
+ * ======================================================================== */
+[data-theme="light"] {
+  /* Emerald — success / committed / FIDIC-compliant. */
+  --color-emerald-50:  oklch(0.378 0.077 168.94);
+  --color-emerald-100: oklch(0.432 0.095 166.91);
+  --color-emerald-200: oklch(0.508 0.118 165.61);
+  --color-emerald-300: oklch(0.596 0.135 163.22);
+
+  /* Rose — critical / failure / rejection. */
+  --color-rose-50:  oklch(0.395 0.150 18);
+  --color-rose-100: oklch(0.430 0.175 20);
+  --color-rose-200: oklch(0.480 0.190 22);
+  --color-rose-300: oklch(0.540 0.200 24);
+
+  /* Red — destructive / error banners (synonym of rose). */
+  --color-red-50:  oklch(0.395 0.165 27);
+  --color-red-100: oklch(0.430 0.180 27);
+  --color-red-200: oklch(0.490 0.190 27);
+  --color-red-300: oklch(0.555 0.200 27);
+
+  /* Amber — warning / look-ahead actions. */
+  --color-amber-50:  oklch(0.395 0.130 70);
+  --color-amber-100: oklch(0.440 0.150 70);
+  --color-amber-200: oklch(0.500 0.165 70);
+  --color-amber-300: oklch(0.570 0.165 70);
+
+  /* Violet — LLM / persona / AI-authored badges. */
+  --color-violet-50:  oklch(0.382 0.158 295);
+  --color-violet-100: oklch(0.432 0.175 295);
+  --color-violet-200: oklch(0.500 0.190 295);
+  --color-violet-300: oklch(0.560 0.200 295);
+
+  /* Fuchsia — evidence / archival pages. */
+  --color-fuchsia-50:  oklch(0.378 0.180 325);
+  --color-fuchsia-100: oklch(0.430 0.195 325);
+  --color-fuchsia-200: oklch(0.490 0.210 325);
+  --color-fuchsia-300: oklch(0.555 0.220 325);
+}
+
+/* =========================================================================
+ * Light-mode accent BACKGROUNDS — boost translucent fills so they stand
+ * out against the warm-paper canvas instead of dissolving into it. The
+ * dark mode keeps Tailwind's defaults (they look right on dark already).
+ * ======================================================================== */
+[data-theme="light"] [class*="bg-emerald-500/0"],
+[data-theme="light"] [class*="bg-emerald-500/1"],
+[data-theme="light"] [class*="bg-emerald-500/2"],
+[data-theme="light"] [class*="bg-emerald-500/3"],
+[data-theme="light"] [class*="bg-emerald-500/4"] { background-color: color-mix(in oklch, oklch(0.696 0.170 162) 24%, transparent) !important; }
+[data-theme="light"] [class*="bg-rose-500/0"],
+[data-theme="light"] [class*="bg-rose-500/1"],
+[data-theme="light"] [class*="bg-rose-500/2"],
+[data-theme="light"] [class*="bg-rose-500/3"],
+[data-theme="light"] [class*="bg-rose-500/4"]    { background-color: color-mix(in oklch, oklch(0.635 0.234 22) 24%, transparent) !important; }
+[data-theme="light"] [class*="bg-rose-600"]      { background-color: oklch(0.520 0.220 27) !important; color: white; }
+[data-theme="light"] [class*="bg-red-500/0"],
+[data-theme="light"] [class*="bg-red-500/1"],
+[data-theme="light"] [class*="bg-red-500/2"],
+[data-theme="light"] [class*="bg-red-500/3"],
+[data-theme="light"] [class*="bg-red-500/4"]     { background-color: color-mix(in oklch, oklch(0.635 0.234 22) 24%, transparent) !important; }
+[data-theme="light"] [class*="bg-red-600"]       { background-color: oklch(0.520 0.220 27) !important; color: white; }
+[data-theme="light"] [class*="bg-amber-500/0"],
+[data-theme="light"] [class*="bg-amber-500/1"],
+[data-theme="light"] [class*="bg-amber-500/2"],
+[data-theme="light"] [class*="bg-amber-500/3"],
+[data-theme="light"] [class*="bg-amber-500/4"]   { background-color: color-mix(in oklch, oklch(0.769 0.188 70) 30%, transparent) !important; }
+[data-theme="light"] [class*="bg-amber-400/0"],
+[data-theme="light"] [class*="bg-amber-400/1"],
+[data-theme="light"] [class*="bg-amber-400/2"],
+[data-theme="light"] [class*="bg-amber-400/3"]   { background-color: color-mix(in oklch, oklch(0.828 0.189 84) 32%, transparent) !important; }
+[data-theme="light"] [class*="bg-violet-500/0"],
+[data-theme="light"] [class*="bg-violet-500/1"],
+[data-theme="light"] [class*="bg-violet-500/2"],
+[data-theme="light"] [class*="bg-violet-500/3"]  { background-color: color-mix(in oklch, oklch(0.606 0.250 292) 24%, transparent) !important; }
+[data-theme="light"] [class*="bg-fuchsia-500/0"],
+[data-theme="light"] [class*="bg-fuchsia-500/1"],
+[data-theme="light"] [class*="bg-fuchsia-500/2"],
+[data-theme="light"] [class*="bg-fuchsia-500/3"] { background-color: color-mix(in oklch, oklch(0.667 0.295 322) 24%, transparent) !important; }
+[data-theme="light"] [class*="bg-sky-500/0"],
+[data-theme="light"] [class*="bg-sky-500/1"],
+[data-theme="light"] [class*="bg-sky-500/2"],
+[data-theme="light"] [class*="bg-sky-500/3"]     { background-color: color-mix(in oklch, var(--crimson-500) 24%, transparent) !important; }
+
+/* Borders for the same families also get a contrast boost in light mode. */
+[data-theme="light"] [class*="border-emerald-500"]  { border-color: color-mix(in oklch, oklch(0.508 0.118 165) 60%, transparent) !important; }
+[data-theme="light"] [class*="border-rose-500"]     { border-color: color-mix(in oklch, oklch(0.480 0.190 22) 65%, transparent) !important; }
+[data-theme="light"] [class*="border-red-500"]      { border-color: color-mix(in oklch, oklch(0.490 0.190 27) 65%, transparent) !important; }
+[data-theme="light"] [class*="border-amber-500"],
+[data-theme="light"] [class*="border-amber-400"]    { border-color: color-mix(in oklch, oklch(0.500 0.165 70) 65%, transparent) !important; }
+[data-theme="light"] [class*="border-violet-500"]   { border-color: color-mix(in oklch, oklch(0.500 0.190 295) 65%, transparent) !important; }
+[data-theme="light"] [class*="border-fuchsia-500"]  { border-color: color-mix(in oklch, oklch(0.490 0.210 325) 65%, transparent) !important; }
 
 /* =========================================================================
  * Body base
@@ -179,6 +291,101 @@ html, body, * {
   font-family: var(--font-sans);
   font-weight: 600;
   letter-spacing: -0.012em;
+}
+
+/* =========================================================================
+ * Animations — used by Sidebar (NEW badge), brand mark shimmer, top bar.
+ * Kept short and subtle so the surface stays formal.
+ * ======================================================================== */
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1);    opacity: 1;   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.40); }
+  50%      { transform: scale(1.05); opacity: 0.95; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes slide-in-from-start {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+html[dir="rtl"] @keyframes slide-in-from-start {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0);   }
+}
+
+/* Honor reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* Print stylesheet — clean, ink-economic. Browsers can save the printed
+ * preview as PDF via the standard print dialog (Ctrl+P / Cmd+P). The page
+ * surface drops the dark canvas, expands the report content, and hides
+ * the sidebar / top bar / non-essential UI chrome. */
+@media print {
+  @page { size: A4; margin: 14mm; }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide everything except the active main content + the report card */
+  aside,
+  header,
+  nav,
+  button.print\:hidden,
+  .print\:hidden { display: none !important; }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Cards become flat sheets when printed. */
+  section, article {
+    box-shadow: none !important;
+    background: white !important;
+    color: black !important;
+    border-color: #d1d5db !important;
+  }
+
+  /* Critical findings, alerts, decisions stay readable on white. */
+  .text-slate-50, .text-slate-100, .text-slate-200, .text-slate-300 {
+    color: #1f2937 !important;
+  }
+  .text-slate-400, .text-slate-500 {
+    color: #4b5563 !important;
+  }
+
+  /* Avoid bad page-breaks in the middle of a report section. */
+  section, .chart-frame, article {
+    break-inside: avoid;
+  }
+}
+
+/* Thin themed scrollbar for sidebar nav. */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklch, var(--neutral-600) 50%, transparent);
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklch, var(--neutral-500) 70%, transparent);
 }
 .text-gold      { color: var(--gold-500); }
 .text-gold-soft { color: var(--gold-300); }

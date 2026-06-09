@@ -49,6 +49,8 @@ async function main(): Promise<void> {
     new MSProjectXmlParser(),
     new ExcelParser(),
     new CsvParser(),
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    new (require('../src/modules/ingestion/parsers/p6-pdf.parser').P6PdfParser)(),
   );
   const validator = new ValidationService();
   let failures = 0;

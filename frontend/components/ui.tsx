@@ -43,7 +43,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border border-slate-800 bg-slate-900/40 shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] ${className}`}>
+    <section className={`rounded-xl border border-slate-700 bg-slate-900/85 shadow-sm ${className}`}>
       {(title || actions) && (
         <header className="flex items-center justify-between border-b border-slate-800/70 px-5 py-3">
           <div>
@@ -58,31 +58,34 @@ export function Card({
   );
 }
 
-/** Severity pill — single source of truth for alert/decision colour. */
+/** Severity pill — single source of truth for alert/decision colour.
+ *  Opacity bumped so the badge reads against tinted parent surfaces
+ *  (e.g. the rose-tinted "Critical findings" ribbon) instead of vanishing. */
 export function SeverityBadge({ severity }: { severity: AlertRecord['severity'] }) {
   const map: Record<AlertRecord['severity'], string> = {
-    critical: 'bg-red-500/15 text-red-200 ring-red-500/30',
-    warning:  'bg-amber-500/15 text-amber-200 ring-amber-500/30',
-    info:     'bg-sky-500/15 text-sky-200 ring-sky-500/30',
+    critical: 'bg-red-600 text-white ring-red-700',
+    warning:  'bg-amber-500 text-amber-950 ring-amber-600',
+    info:     'bg-sky-600 text-white ring-sky-700',
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ring-1 ${map[severity]}`}>
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1 shadow-sm ${map[severity]}`}>
       {severity}
     </span>
   );
 }
 
-/** Generic label pill. */
+/** Generic label pill — opacity bumped (was /10 → /30+border) so it stands
+ *  out on tinted backgrounds. Text uses light-mode-friendly weights. */
 export function Pill({ children, tone = 'slate', className = '' }: { children: React.ReactNode; tone?: 'slate' | 'sky' | 'emerald' | 'amber' | 'rose' | 'violet'; className?: string }) {
   const tones: Record<string, string> = {
-    slate:   'bg-slate-800/80 text-slate-200 ring-slate-700',
-    sky:     'bg-sky-500/10 text-sky-200 ring-sky-500/30',
-    emerald: 'bg-emerald-500/10 text-emerald-200 ring-emerald-500/30',
-    amber:   'bg-amber-500/10 text-amber-200 ring-amber-500/30',
-    rose:    'bg-rose-500/10 text-rose-200 ring-rose-500/30',
-    violet:  'bg-violet-500/10 text-violet-200 ring-violet-500/30',
+    slate:   'bg-slate-700 text-slate-100 ring-slate-600',
+    sky:     'bg-sky-500/30 text-sky-100 ring-sky-400/70',
+    emerald: 'bg-emerald-500/30 text-emerald-100 ring-emerald-400/70',
+    amber:   'bg-amber-500/35 text-amber-50 ring-amber-400/70',
+    rose:    'bg-rose-500/35 text-rose-50 ring-rose-400/70',
+    violet:  'bg-violet-500/30 text-violet-100 ring-violet-400/70',
   };
-  return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ring-1 ${tones[tone]} ${className}`}>{children}</span>;
+  return <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ${tones[tone]} ${className}`}>{children}</span>;
 }
 
 /** Confidence bar with deterministic colour. */
@@ -142,7 +145,7 @@ export function Button({
 /** Empty state with icon slot + helper text. */
 export function EmptyState({ icon, title, description, action }: { icon?: React.ReactNode; title: string; description?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-900/20 px-6 py-12 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-600 bg-slate-900/60 px-6 py-12 text-center">
       {icon && <div className="mb-3 text-slate-500">{icon}</div>}
       <p className="text-sm font-medium text-slate-200">{title}</p>
       {description && <p className="mt-1 max-w-md text-xs text-slate-400">{description}</p>}
@@ -154,5 +157,5 @@ export function EmptyState({ icon, title, description, action }: { icon?: React.
 /** Inline error banner. */
 export function ErrorBanner({ message }: { message: string | null }) {
   if (!message) return null;
-  return <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{message}</div>;
+  return <div className="rounded-lg border border-red-500 bg-red-500/25 px-4 py-3 text-sm font-medium text-red-50 shadow-sm">{message}</div>;
 }

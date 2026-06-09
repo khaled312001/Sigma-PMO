@@ -19,13 +19,20 @@ export interface XerWritePayload {
    * inside P6.
    */
   baselineName?: string;
+  /**
+   * Predecessor / successor pairs to emit as TASKPRED rows. Pairs are
+   * resolved by `Activity.businessKey` — any activity referenced here that
+   * is not in `activities` is silently skipped (we keep a warning so the
+   * caller knows). When undefined / empty no TASKPRED block is emitted.
+   */
+  relationships?: Array<{ predecessorBusinessKey: string; successorBusinessKey: string; type: 'FS' | 'SS' | 'FF' | 'SF' }>;
 }
 
 /** Output bundle: the raw XER text + a SHA-256-friendly Buffer. */
 export interface XerWriteResult {
   text: string;
   buffer: Buffer;
-  rowCounts: { project: number; wbs: number; task: number };
+  rowCounts: { project: number; wbs: number; task: number; taskpred: number };
   warnings: string[];
 }
 
@@ -317,6 +324,58 @@ export class XerWriterService {
       );
     }
 
+    // ---- TASKPRED (predecessor / successor relationships) --------------
+    // We emit Finish-to-Start (default) relationships when the caller
+    // supplies them. P6 needs `task_pred_id` to be unique inside the file
+    // and both endpoints must already be in the TASK block.
+    let predCount = 0;
+    if (payload.relationships && payload.relationships.length > 0) {
+      // Resolve businessKey → taskId via the order we just emitted activities.
+      const taskIdByKey = new Map<string, number>();
+      let ord = 1;
+      for (const a of payload.activities) {
+        taskIdByKey.set(a.businessKey, projId * 1000 + ord++);
+      }
+      lines.push('%T\tTASKPRED');
+      lines.push(
+        '%F\ttask_pred_id\ttask_id\tpred_task_id\tproj_id\tpred_proj_id\tpred_type\tlag_hr_cnt\tcomments\tfloat_path\taref\tarls',
+      );
+      let predOrd = 1;
+      for (const r of payload.relationships) {
+        const predId = taskIdByKey.get(r.predecessorBusinessKey);
+        const succId = taskIdByKey.get(r.successorBusinessKey);
+        if (predId === undefined || succId === undefined) {
+          warnings.push(
+            `Skipping relationship ${r.predecessorBusinessKey} → ${r.successorBusinessKey}: at least one endpoint is not in the TASK set.`,
+          );
+          continue;
+        }
+        const predType =
+          r.type === 'FS' ? 'PR_FS' :
+          r.type === 'SS' ? 'PR_SS' :
+          r.type === 'FF' ? 'PR_FF' :
+          r.type === 'SF' ? 'PR_SF' : 'PR_FS';
+        const taskPredId = projId * 10000 + predOrd++;
+        lines.push(
+          '%R\t' +
+            [
+              taskPredId,
+              succId,      // successor task_id
+              predId,      // predecessor pred_task_id
+              projId,
+              projId,
+              predType,
+              '0',         // lag in hours
+              '',          // comments
+              '',          // float path
+              '',          // aref
+              '',          // arls
+            ].join('\t'),
+        );
+        predCount += 1;
+      }
+    }
+
     // ---- End of file ----------------------------------------------------
     lines.push('%E\t0');
 
@@ -328,6 +387,7 @@ export class XerWriterService {
         project: 1,
         wbs: wbsCodes.size + 1,
         task: payload.activities.length,
+        taskpred: predCount,
       },
       warnings,
     };

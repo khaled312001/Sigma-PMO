@@ -73,17 +73,19 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <MobileSidebar me={me} onSignOut={onSignOut} open={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="flex min-h-screen flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-800/70 bg-slate-950/80 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-slate-700/70 bg-slate-950/90 px-4 py-2.5 backdrop-blur-xl shadow-sm sm:px-6">
+          {/* subtle ambient crimson rule across the top edge */}
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-sky-500/30 to-transparent" />
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="rounded-lg border border-slate-800 p-1.5 text-slate-300 hover:border-slate-600 hover:text-white md:hidden"
+              className="rounded-lg border border-slate-700 p-1.5 text-slate-200 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:bg-sky-500/10 hover:text-sky-100 md:hidden"
               aria-label={t('nav.openMenu')}
             >
               <IconMenu className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="hidden sm:inline text-slate-500">{t('nav.project')}</span>
+            <div className="flex items-center gap-2 text-xs text-slate-300">
+              <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('nav.project')}</span>
               <ProjectSwitcher />
             </div>
           </div>
@@ -96,7 +98,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             ) : (
               <Link
                 href="/auth"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 transition hover:border-sky-500/60 hover:text-sky-200"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-100 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:text-sky-100"
               >
                 <IconLogIn className="h-3.5 w-3.5" />
                 {t('nav.signIn')}
@@ -104,9 +106,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 animate-[fade-in-up_220ms_ease-out]">
           {!loaded ? (
-            <div className="grid h-64 place-items-center text-sm text-slate-400">{t('common.loadingWorkspace')}</div>
+            <div className="grid h-64 place-items-center text-sm text-slate-300">{t('common.loadingWorkspace')}</div>
           ) : (
             children
           )}
