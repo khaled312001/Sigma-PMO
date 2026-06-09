@@ -23,7 +23,7 @@ import { useMe } from '../../../lib/me-context';
 import { useToast } from '../../../components/ToastProvider';
 import { CAPABILITIES } from '../../../lib/capabilities';
 import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../../components/ui';
-import { IconCheck, IconShield, IconSparkles, IconX } from '../../../components/Icons';
+import { IconCheck, IconRefresh, IconShield, IconSparkles, IconX } from '../../../components/Icons';
 
 interface SettingDescriptor {
   settingKey: string;
@@ -31,6 +31,13 @@ interface SettingDescriptor {
   fingerprint: string | null;
   updatedBy: string | null;
   updatedAt: string | null;
+}
+
+interface ClaudeStatus {
+  enabled: boolean;
+  keySource: 'db' | 'env' | 'none';
+  defaultModel: string;
+  defaultTier: string;
 }
 
 interface Definition {
@@ -88,13 +95,18 @@ function AdminSettingsPage() {
   const canEdit = !!me?.user && CAPABILITIES[me.user.role].canEditPolicy;
 
   const [catalogue, setCatalogue] = useState<SettingDescriptor[] | null>(null);
+  const [claudeStatus, setClaudeStatus] = useState<ClaudeStatus | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setErr(null);
     try {
-      const r = await api<{ catalogue: SettingDescriptor[] }>('/admin/settings');
+      const [r, status] = await Promise.all([
+        api<{ catalogue: SettingDescriptor[] }>('/admin/settings'),
+        api<ClaudeStatus>('/admin/claude/status').catch(() => null),
+      ]);
       setCatalogue(r.catalogue);
+      setClaudeStatus(status);
     } catch (e) {
       setCatalogue([]);
       setErr((e as Error).message);
@@ -156,6 +168,8 @@ function AdminSettingsPage() {
 
       <SecurityNotice />
 
+      <ClaudeStatusBanner status={claudeStatus} onRefresh={refresh} />
+
       <div className="grid grid-cols-1 gap-3">
         {DEFS.map((def) => {
           const state = catalogue?.find((c) => c.settingKey === def.key);
@@ -170,6 +184,73 @@ function AdminSettingsPage() {
             />
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function ClaudeStatusBanner({
+  status,
+  onRefresh,
+}: {
+  status: ClaudeStatus | null;
+  onRefresh: () => Promise<void>;
+}) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+
+  const doRefresh = useCallback(async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ refreshed: true; hasDbKey: boolean; enabled: boolean }>('/admin/claude/refresh', {
+        method: 'POST',
+      });
+      toast.success(
+        'Claude refreshed',
+        r.enabled ? 'API key recognized — Claude is enabled.' : 'No API key found — Claude stays disabled.',
+      );
+      await onRefresh();
+    } catch (e) {
+      toast.error('Refresh failed', (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [toast, onRefresh]);
+
+  if (!status) return null;
+
+  const tone = status.enabled ? 'emerald' : 'amber';
+  const bgClass = tone === 'emerald' ? 'border-emerald-500/40 bg-emerald-500/15' : 'border-amber-500/40 bg-amber-500/15';
+  const textClass = tone === 'emerald' ? 'text-emerald-100' : 'text-amber-100';
+  const iconBg = tone === 'emerald' ? 'bg-emerald-500/30 ring-emerald-400/50 text-emerald-100' : 'bg-amber-500/30 ring-amber-400/50 text-amber-100';
+
+  return (
+    <div className={`relative overflow-hidden rounded-xl border p-4 shadow-sm ${bgClass}`}>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ring-1 ${iconBg}`}>
+          <IconSparkles className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className={`text-sm font-semibold ${textClass}`}>
+              {status.enabled ? 'Claude is enabled' : 'Claude is disabled'}
+            </p>
+            <Pill tone={status.enabled ? 'emerald' : 'amber'}>
+              {status.keySource === 'db' ? 'Key from /admin/settings' : status.keySource === 'env' ? 'Key from ENV' : 'No key'}
+            </Pill>
+            <Pill tone="slate">{status.defaultModel}</Pill>
+            <Pill tone="slate">{status.defaultTier}</Pill>
+          </div>
+          <p className={`mt-1 text-xs leading-relaxed ${textClass}`}>
+            {status.enabled
+              ? 'The Anthropic SDK is wired and every persona call (Letter drafter, Monthly narrator, Clash solver, etc.) will use the resolved key. Changes to the API key below are picked up automatically — no restart required.'
+              : 'No API key configured. Personas fall back to deterministic-only output. Set the Anthropic API key in the form below; the change is detected within seconds via the SettingsService change listener.'}
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => void doRefresh()} disabled={busy}>
+          <IconRefresh className="h-3.5 w-3.5" />
+          {busy ? 'Refreshing…' : 'Refresh status'}
+        </Button>
       </div>
     </div>
   );

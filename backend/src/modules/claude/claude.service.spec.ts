@@ -112,7 +112,7 @@ describe('ClaudeService', () => {
       const personas = makePersonasService(makePersona());
       const svc = new ClaudeService(config, personas);
       await expect(svc.callPersona('planner-p6-25yr', 'hi')).rejects.toThrow(
-        /ANTHROPIC_API_KEY is unset/,
+        /no Anthropic API key configured/,
       );
     });
 

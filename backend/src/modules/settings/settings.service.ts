@@ -20,10 +20,34 @@ import { SystemSetting } from '../canonical/entities';
  * `configured` boolean + a fingerprint (first 8 + last 4 chars). Internal
  * services (ClaudeService) get a `decrypt(key)` call.
  */
+type ChangeListener = (settingKey: string) => void | Promise<void>;
+
 @Injectable()
 export class SettingsService {
   private readonly logger = new Logger(SettingsService.name);
   private readonly masterKey: Buffer;
+  /**
+   * Subscribers notified after every `set()` or `clear()` so dependent
+   * services (e.g. ClaudeService when the Anthropic key changes) can
+   * invalidate their caches. Listeners run sequentially after the write;
+   * a thrown listener does NOT roll the write back, only logs.
+   */
+  private readonly changeListeners: ChangeListener[] = [];
+
+  /** Register a callback fired after any setting changes. */
+  onChange(cb: ChangeListener): void {
+    this.changeListeners.push(cb);
+  }
+
+  private async fireChange(settingKey: string): Promise<void> {
+    for (const cb of this.changeListeners) {
+      try {
+        await cb(settingKey);
+      } catch (e) {
+        this.logger.warn(`Setting "${settingKey}" change listener threw: ${(e as Error).message}`);
+      }
+    }
+  }
 
   constructor(
     @InjectRepository(SystemSetting)
@@ -63,6 +87,7 @@ export class SettingsService {
       );
     }
     this.logger.log(`Setting "${settingKey}" updated by ${updatedBy ?? 'unknown'} (fingerprint ${fingerprint}).`);
+    await this.fireChange(settingKey);
   }
 
   /** Fetch the plaintext value of a setting, or null if not configured. */
@@ -102,6 +127,7 @@ export class SettingsService {
   async clear(settingKey: string): Promise<void> {
     await this.repo.delete({ settingKey });
     this.logger.log(`Setting "${settingKey}" cleared.`);
+    await this.fireChange(settingKey);
   }
 
   // ── crypto helpers ──

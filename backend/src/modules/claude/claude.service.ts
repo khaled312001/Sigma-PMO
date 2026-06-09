@@ -1,10 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import type { AnthropicConfig, AppConfiguration } from '../../config/configuration';
 import type { Persona } from '../canonical/entities';
 import { PersonasService } from '../personas/personas.service';
+import { SETTING_KEYS, SettingsService } from '../settings/settings.service';
 
 /**
  * Minimal structural type of the SDK surface we actually call. Defining it
@@ -137,13 +138,21 @@ const SOURCE_CITATION_RE = /\[SOURCE:\s*([A-Za-z0-9._:-]+)\s*\]/g;
  * for migrations and other scripts that load the Nest module graph).
  */
 @Injectable()
-export class ClaudeService {
+export class ClaudeService implements OnModuleInit {
   private readonly logger = new Logger(ClaudeService.name);
 
   private readonly config: AnthropicConfig;
 
   /** Lazily-constructed real SDK client. Test-overridden via constructor. */
   private clientCache: AnthropicClientLike | null = null;
+
+  /**
+   * API key loaded from the SystemSetting table at boot (and on subsequent
+   * SettingsService change events). When present, overrides the env-only
+   * apiKey from `AnthropicConfig`. This is how the `/admin/settings` UI
+   * actually flips Claude on without requiring a backend restart.
+   */
+  private dbApiKey: string | null = null;
 
   constructor(
     private readonly configService: ConfigService<AppConfiguration, true>,
@@ -153,6 +162,7 @@ export class ClaudeService {
      * unconditionally and the lazy constructor is skipped.
      */
     @Optional() injectedClient?: AnthropicClientLike,
+    @Optional() private readonly settings?: SettingsService,
   ) {
     this.config = this.configService.get('anthropic', { infer: true });
     if (injectedClient) {
@@ -161,18 +171,53 @@ export class ClaudeService {
   }
 
   /**
-   * True when the service is wired and can serve Claude calls. Either the
-   * env-provided key is present (production path) or a test client was
-   * injected (unit-test path).
+   * Lifecycle: load the DB-stored API key (if any) at boot and subscribe
+   * to subsequent changes. SettingsService is optional so unit tests that
+   * stand up ClaudeService in isolation still work without the DB wiring.
+   */
+  async onModuleInit(): Promise<void> {
+    if (!this.settings) return;
+    await this.refreshFromSettings();
+    this.settings.onChange(async (settingKey) => {
+      if (settingKey === SETTING_KEYS.ANTHROPIC_API_KEY) {
+        await this.refreshFromSettings();
+      }
+    });
+  }
+
+  /**
+   * Re-read the Anthropic API key from SystemSetting and invalidate the
+   * cached SDK client so the next call rebuilds with the new key. Safe to
+   * call repeatedly; idempotent when the key is unchanged.
+   */
+  async refreshFromSettings(): Promise<{ hasDbKey: boolean }> {
+    if (!this.settings) return { hasDbKey: false };
+    const before = this.dbApiKey;
+    const next = await this.settings.getPlaintext(SETTING_KEYS.ANTHROPIC_API_KEY);
+    this.dbApiKey = next;
+    if (before !== next) {
+      // Force the next call to rebuild the SDK client with the new key.
+      this.clientCache = null;
+      this.logger.log(
+        `Anthropic API key refreshed from SystemSetting (configured=${!!next}, source=${next ? 'db' : 'env-only'}).`,
+      );
+    }
+    return { hasDbKey: !!next };
+  }
+
+  /**
+   * True when the service is wired and can serve Claude calls. Order of
+   * precedence: injected test client > DB-stored key > env-provided key.
    */
   isEnabled(): boolean {
-    return !!this.clientCache || this.config.enabled;
+    return !!this.clientCache || !!this.dbApiKey || this.config.enabled;
   }
 
   /** Expose the resolved config (sans key) for diagnostics and tests. */
-  getConfigSummary(): Omit<AnthropicConfig, 'apiKey'> & { hasApiKey: boolean } {
+  getConfigSummary(): Omit<AnthropicConfig, 'apiKey'> & { hasApiKey: boolean; keySource: 'db' | 'env' | 'none' } {
     const { apiKey, ...rest } = this.config;
-    return { ...rest, hasApiKey: !!apiKey };
+    const keySource: 'db' | 'env' | 'none' = this.dbApiKey ? 'db' : apiKey ? 'env' : 'none';
+    return { ...rest, hasApiKey: !!(apiKey || this.dbApiKey), keySource };
   }
 
   /**
@@ -259,8 +304,9 @@ export class ClaudeService {
   private assertEnabled(): void {
     if (!this.isEnabled()) {
       throw new Error(
-        'ClaudeService is disabled: ANTHROPIC_API_KEY is unset. ' +
-          'Set it in the environment (see .env.example) or inject a test client.',
+        'ClaudeService is disabled: no Anthropic API key configured. ' +
+          'Set ANTHROPIC_API_KEY in the environment, or save a key from /admin/settings, ' +
+          'or inject a test client.',
       );
     }
   }
@@ -347,10 +393,11 @@ export class ClaudeService {
   private getClient(): AnthropicClientLike {
     if (this.clientCache) return this.clientCache;
     // Construct on demand so importing this module never requires the key.
-    // The SDK constructor itself reads process.env.ANTHROPIC_API_KEY when
-    // `apiKey` is omitted; we pass it explicitly so config-precedence stays
-    // visible at the call site.
-    this.clientCache = new Anthropic({ apiKey: this.config.apiKey }) as unknown as AnthropicClientLike;
+    // Precedence: DB-stored key (set via /admin/settings) wins over the
+    // env-provided one — admins can rotate the key from the UI without
+    // touching the .env file.
+    const resolved = this.dbApiKey ?? this.config.apiKey;
+    this.clientCache = new Anthropic({ apiKey: resolved }) as unknown as AnthropicClientLike;
     return this.clientCache;
   }
 }
