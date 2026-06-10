@@ -42,6 +42,7 @@ import { Letter } from '../../letters/letter.entity';
 // `Letter` — modules import via this canonical barrel by convention. Not
 // added to `CANONICAL_ENTITIES` — OrgChartsModule owns its own forFeature.
 import { OrgChartReview } from '../../org-charts/org-chart-review.entity';
+import { OutputComparison } from './output-comparison.entity';
 import { SourceFile } from './source-file.entity';
 import { SystemSetting } from './system-setting.entity';
 import { User } from './user.entity';
@@ -64,6 +65,7 @@ export {
   MonthlyReport,
   OrgChartReview,
   OutboxEvent,
+  OutputComparison,
   Persona,
   Project,
   ProjectMemory,
@@ -115,4 +117,6 @@ export const CANONICAL_ENTITIES = [
   ProjectMemory,
   // Wave 7 — phase-1 drawings ingestion (correction-plan §2.1/§2.7).
   DrawingPackage,
+  // Wave 8 — AI-vs-Human output comparison (correction-plan §2.10).
+  OutputComparison,
 ];

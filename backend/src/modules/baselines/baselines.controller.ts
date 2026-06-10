@@ -43,6 +43,13 @@ interface ApproveBody {
   approvedBy: string;
 }
 
+interface RejectBody {
+  rejectedBy: string;
+  reason: string;
+  /** Optional partial rejection — the offending activity businessKeys. */
+  rejectedActivityKeys?: string[];
+}
+
 /**
  * Baseline build surface (post-meeting plan §3.1, ADR-0011).
  *
@@ -221,10 +228,23 @@ export class BaselinesController {
   /** Approve an `awaiting-approval` job → flips to `committed`. */
   @Post('jobs/:id/approve')
   @HttpCode(200)
-  @RequiresCapability('canEditPolicy')
+  // Plan §7: baseline approval is its own named gate (Admin + Client).
+  // Dual-signature (§3.1): first call → awaiting-second-approval; a second
+  // DISTINCT approver commits.
+  @RequiresCapability('canApproveBaseline')
   approve(@Param('id') id: string, @Body() body: ApproveBody): Promise<BaselineBuildJob> {
     if (!body?.approvedBy) throw new BadRequestException('approvedBy is required');
     return this.baselines.approve(id, body.approvedBy);
+  }
+
+  /** Rejection gate (§3.1) — whole-build or partial (named activities). */
+  @Post('jobs/:id/reject')
+  @HttpCode(200)
+  @RequiresCapability('canApproveBaseline')
+  rejectJob(@Param('id') id: string, @Body() body: RejectBody): Promise<BaselineBuildJob> {
+    if (!body?.rejectedBy) throw new BadRequestException('rejectedBy is required');
+    if (!body?.reason) throw new BadRequestException('reason is required');
+    return this.baselines.reject(id, body.rejectedBy, body.reason, body.rejectedActivityKeys);
   }
 
   /**

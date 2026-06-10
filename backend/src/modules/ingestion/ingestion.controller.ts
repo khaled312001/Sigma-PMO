@@ -35,7 +35,7 @@ export class IngestionController {
   @Post('ingest-path')
   @HttpCode(200)
   @Throttle({ ingest: { limit: 30, ttl: 60_000 } })
-  @RequiresCapability('canIngest')
+  @RequiresCapability('canIngestSchedule')
   async ingestPath(@Body() body: IngestPathDto): Promise<IngestionOutcome> {
     const safePath = resolveAllowedPath(body.path, this.allowedRoots);
     const buffer = await fs.readFile(safePath);
@@ -46,7 +46,7 @@ export class IngestionController {
   @Post('upload')
   @HttpCode(200)
   @Throttle({ ingest: { limit: 30, ttl: 60_000 } })
-  @RequiresCapability('canIngest')
+  @RequiresCapability('canIngestSchedule')
   async upload(@Body() body: IngestUploadDto): Promise<IngestionOutcome> {
     const buffer = Buffer.from(body.contentBase64, 'base64');
     return this.ingestion.ingest(body.filename, buffer);

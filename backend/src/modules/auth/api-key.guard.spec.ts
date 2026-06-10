@@ -91,11 +91,14 @@ describe('ApiKeyGuard', () => {
   });
 
   it('allows valid keys whose role grants the capability', async () => {
-    const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({
+    // Plan §7 flipped consultant canIngest to false — the consultant's
+    // remaining grant set is read/propose/simulate, so the positive-path
+    // assertion now rides canEvaluateRules.
+    const guard = new ApiKeyGuard(fakeReflector('canEvaluateRules'), fakeAuthService({
       userCount: 1,
       user: { id: 'u1', role: Role.CONSULTANT, active: true },
     }));
-    const { ctx, req } = makeContext({ 'x-api-key': 'sk_ok' }, 'canIngest');
+    const { ctx, req } = makeContext({ 'x-api-key': 'sk_ok' }, 'canEvaluateRules');
     expect(await guard.canActivate(ctx)).toBe(true);
     expect(req.user).toBeDefined();
   });

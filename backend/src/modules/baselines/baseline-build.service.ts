@@ -283,7 +283,22 @@ export class BaselineBuildService {
             businessKey: t.businessKey,
             version: 1,
             isCurrent: true,
-            rawSource: { source: 'BaselineTemplateService', phase: t.phase, idx: t.idx },
+            // Plan §3.1: every synthesised activity carries an explainable
+            // rationale + a confidence the approver can interrogate before
+            // signing. Template-derived rows are method-of-works defaults,
+            // not project-measured durations — hence the fixed 0.7.
+            rawSource: {
+              source: 'BaselineTemplateService',
+              phase: t.phase,
+              idx: t.idx,
+              rationale:
+                `Method-of-works template default for the "${t.phase}" phase` +
+                (floorCount
+                  ? ` (floor count ${floorCount} derived from the drawing package)`
+                  : '') +
+                '; duration from standard crew-productivity references, not project-measured data.',
+              confidence: 0.7,
+            },
             projectId: project.id,
             wbsCode: t.wbsCode,
             name: t.name,
@@ -379,20 +394,70 @@ export class BaselineBuildService {
   }
 
   /**
-   * Human approval — flips an `awaiting-approval` job to `committed`. This is
-   * the gate Al Ayham asked for: the AI authored, the human approves, then
-   * the XER bytes are released for whichever downstream surface (P6 desktop,
-   * Computer Use replay, manual copy) wants them.
+   * Dual-signature approval (post-meeting plan §3.1: «توقيع الاثنين
+   * مطلوب» — the planner-side reviewer AND the client-side PD).
+   *
+   * Flow: `awaiting-approval` --first signer--> `awaiting-second-approval`
+   * --second DISTINCT signer--> `committed`. The same person cannot sign
+   * twice; both signatures land on the audit trail. Role-typing of the
+   * two signatures (planner vs PD) follows the §7 matrix: only
+   * `canApproveBaseline` holders (Admin + Client) reach this endpoint,
+   * so the two-distinct-humans rule is the enforceable core.
    */
   async approve(id: string, approvedBy: string): Promise<BaselineBuildJob> {
     const job = await this.getJob(id);
-    if (job.status !== 'awaiting-approval') {
+    if (job.status === 'awaiting-approval') {
+      job.status = 'awaiting-second-approval';
+      job.firstApprovedBy = approvedBy;
+      job.firstApprovedAt = new Date();
+      job.operatorNotes =
+        `${job.operatorNotes ?? ''}\nFirst signature by ${approvedBy} at ${new Date().toISOString()} (1/2).`.trim();
+      return this.jobs.save(job);
+    }
+    if (job.status === 'awaiting-second-approval') {
+      if (job.firstApprovedBy && job.firstApprovedBy === approvedBy) {
+        throw new BadRequestException(
+          `Second signature must come from a DIFFERENT approver — ${approvedBy} already signed first.`,
+        );
+      }
+      job.status = 'committed';
+      job.operatorNotes =
+        `${job.operatorNotes ?? ''}\nSecond signature by ${approvedBy} at ${new Date().toISOString()} (2/2) — committed.`.trim();
+      return this.jobs.save(job);
+    }
+    throw new BadRequestException(
+      `Job ${id} is in status "${job.status}" — only "awaiting-approval" or "awaiting-second-approval" can be approved.`,
+    );
+  }
+
+  /**
+   * Rejection gate (post-meeting plan §3.1: «يمكن للمُراجِع رفض البناء
+   * كاملاً، أو رفض أجزاء … ودفع الـ Agent لإعادة المحاولة بتوجيه»).
+   * Records the reason + the optionally-named offending activities; the
+   * retry is a fresh author run with the rejection guidance available in
+   * the audit trail.
+   */
+  async reject(
+    id: string,
+    rejectedBy: string,
+    reason: string,
+    rejectedActivityKeys?: string[],
+  ): Promise<BaselineBuildJob> {
+    if (!reason?.trim()) throw new BadRequestException('A rejection reason is required.');
+    const job = await this.getJob(id);
+    if (job.status !== 'awaiting-approval' && job.status !== 'awaiting-second-approval') {
       throw new BadRequestException(
-        `Job ${id} is in status "${job.status}" — only "awaiting-approval" can be approved.`,
+        `Job ${id} is in status "${job.status}" — only pending-approval jobs can be rejected.`,
       );
     }
-    job.status = 'committed';
-    job.operatorNotes = `${job.operatorNotes ?? ''}\nApproved by ${approvedBy} at ${new Date().toISOString()}`.trim();
+    job.status = 'rejected';
+    job.failureReason = reason.trim();
+    const partial =
+      rejectedActivityKeys && rejectedActivityKeys.length > 0
+        ? ` Rejected activities: ${rejectedActivityKeys.join(', ')}.`
+        : '';
+    job.operatorNotes =
+      `${job.operatorNotes ?? ''}\nRejected by ${rejectedBy} at ${new Date().toISOString()}: ${reason.trim()}.${partial}`.trim();
     return this.jobs.save(job);
   }
 }

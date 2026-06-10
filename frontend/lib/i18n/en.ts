@@ -23,6 +23,7 @@ export const en: Dictionary = {
     letters: 'Letters',
     sources: 'Source registry',
     simulation: 'Simulation',
+    comparison: 'AI vs Human',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -467,6 +468,7 @@ export interface Dictionary {
     settings: string;
     engineering: string; governance: string;
     clashes: string; drawings: string; letters: string; sources: string; simulation: string;
+    comparison: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

@@ -25,6 +25,7 @@ export const ar: Dictionary = {
     letters: 'الخطابات',
     sources: 'سجل المصادر',
     simulation: 'المحاكاة',
+    comparison: 'AI مقابل الإنسان',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',

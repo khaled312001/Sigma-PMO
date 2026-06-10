@@ -83,6 +83,14 @@ interface LetterRecord {
   status: 'draft' | 'approved' | 'sent' | string;
   citations: string[];
   incomingLetterSourceFileId: string | null;
+  /**
+   * Deterministic deadline math computed SERVER-side (plan §3.5 step 4 —
+   * `letters/deadline-math.ts`, never the LLM). `null` = deadline unknown
+   * ("TBD pending data") or obligation already discharged (`sent`).
+   */
+  mustRespondBy: string | null;
+  remainingDays: number | null;
+  overdue: boolean;
 }
 
 type StatusKey = 'draft' | 'approved' | 'sent';
@@ -120,7 +128,7 @@ function LettersPage() {
   const role = me?.user?.role;
   const caps = role ? CAPABILITIES[role] : null;
   const canDraft = !!caps?.canEvaluateRules;
-  const canApprove = !!caps?.canEditPolicy;
+  const canApprove = !!caps?.canApproveLetter;
 
   const [letters, setLetters] = useState<LetterRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +180,21 @@ function LettersPage() {
     () => filtered.find((l) => l.id === selectedId) ?? null,
     [filtered, selectedId],
   );
+
+  /**
+   * The most urgent OPEN obligation (plan §3.5 step 4 banner): the
+   * not-yet-sent letter with a known deadline and the fewest days left.
+   * Drives the must-respond-by banner above the list.
+   */
+  const mostUrgent = useMemo<LetterRecord | null>(() => {
+    const open = (letters ?? []).filter(
+      (l) => l.status !== 'sent' && l.remainingDays !== null,
+    );
+    if (open.length === 0) return null;
+    return open.reduce((a, b) =>
+      (a.remainingDays as number) <= (b.remainingDays as number) ? a : b,
+    );
+  }, [letters]);
 
   // ────── draft actions ──────
 
@@ -324,6 +347,49 @@ function LettersPage() {
 
       <ErrorBanner message={error} />
 
+      {/* Must-respond-by banner (plan §3.5 step 4) — the single most urgent
+          open obligation, computed deterministically server-side. */}
+      {mostUrgent && mostUrgent.mustRespondBy && (
+        <div
+          role="alert"
+          dir="rtl"
+          className={`flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-sm ${
+            mostUrgent.overdue
+              ? 'border-rose-500/50 bg-rose-500/10 text-rose-200'
+              : (mostUrgent.remainingDays as number) <= 7
+                ? 'border-amber-500/50 bg-amber-500/10 text-amber-200'
+                : 'border-sky-500/40 bg-sky-500/10 text-sky-200'
+          }`}
+        >
+          <IconClock className="h-4 w-4 shrink-0" />
+          {mostUrgent.overdue ? (
+            <span>
+              خطاب متأخر عن موعد الرد — كان يجب الرد قبل{' '}
+              <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
+              (متأخر {Math.abs(mostUrgent.remainingDays as number)} يوم)
+            </span>
+          ) : (
+            <span>
+              خطاب يجب الرد قبل{' '}
+              <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
+              ({mostUrgent.remainingDays} أيام متبقية)
+            </span>
+          )}
+          {mostUrgent.fidicClauseRef && (
+            <Pill tone={mostUrgent.overdue ? 'rose' : 'amber'}>
+              <span className="font-mono" dir="ltr">{mostUrgent.fidicClauseRef}</span>
+            </Pill>
+          )}
+          <button
+            type="button"
+            onClick={() => setSelectedId(mostUrgent.id)}
+            className="ms-auto rounded-md bg-slate-900/50 px-2.5 py-1 text-xs underline-offset-2 hover:underline"
+          >
+            عرض الخطاب
+          </button>
+        </div>
+      )}
+
       {/* Inline draft forms — only one is open at a time. Mounted below the
           header so the user keeps the filter row + list in view. */}
       {openForm === 'incoming' && canDraft && (
@@ -434,7 +500,7 @@ function LetterRowCard({
   selected: boolean;
   onSelect: () => void;
 }) {
-  const deadline = useDeadlineCountdown(letter.createdAt, letter.deadlineDays);
+  const deadline = deadlineCountdownOf(letter);
   return (
     <button
       type="button"
@@ -530,12 +596,33 @@ function LetterDetailCard({
           </div>
         </div>
 
-        {/* Deadline strip — only meaningful if a numeric day count was returned. */}
+        {/* Deadline strip — only meaningful if a numeric day count was returned.
+            mustRespondBy is the SERVER's deterministic computation. */}
         {letter.deadlineDays !== null && (
-          <div className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1 text-[11px] text-slate-200 ring-1 ring-slate-700">
+          <div
+            className={`mt-3 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] ring-1 ${
+              letter.overdue && letter.status !== 'sent'
+                ? 'bg-rose-500/10 text-rose-200 ring-rose-500/50'
+                : 'bg-slate-800/60 text-slate-200 ring-slate-700'
+            }`}
+          >
             <IconClock className="h-3.5 w-3.5" />
             Contractual deadline: <span className="font-semibold">{letter.deadlineDays} d</span>
-            <span className="text-slate-500">from drafting</span>
+            {letter.mustRespondBy ? (
+              <>
+                <span className="text-slate-500">·</span>
+                must respond by <span className="font-semibold" dir="ltr">{letter.mustRespondBy}</span>
+                {typeof letter.remainingDays === 'number' && (
+                  <span className={letter.overdue ? 'font-semibold' : 'text-slate-400'}>
+                    ({letter.overdue
+                      ? `${Math.abs(letter.remainingDays)} d overdue`
+                      : `${letter.remainingDays} d remaining`})
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-slate-500">from receipt</span>
+            )}
           </div>
         )}
       </div>
@@ -805,26 +892,27 @@ type DeadlineCountdown =
   | { kind: 'overdue'; days: number };
 
 /**
- * Compute days remaining until the contractual deadline.
+ * Bucket a letter's deadline for the badge.
  *
- *  - `letter.deadlineDays` is the deadline length in days the persona
- *    extracted from the Sub-Clause (e.g. 28 for the standard FIDIC 20.1 reply).
- *  - We anchor it at `createdAt` because that is the timestamp the audit
- *    trail will use. NOT `approvedAt` — the contractor's clock started when
- *    the reply was drafted in the system, not when we approved it.
+ *  - Primary source is the SERVER-computed countdown (`remainingDays` from
+ *    `letters/deadline-math.ts` — deterministic, plan §3.5 step 4). The
+ *    client never re-derives the date math when the server already did.
+ *  - `sent` rows come back with a null countdown (obligation discharged);
+ *    we reconstruct the historical window client-side from `deadlineDays`
+ *    so the muted "was Xd overdue / Xd window" context still renders.
  *  - `null` deadlineDays = persona returned "TBD pending data" — we surface
  *    the {kind: 'none'} bucket so the badge can render an explicit "—".
  */
-function useDeadlineCountdown(
-  createdAtIso: string,
-  deadlineDays: number | null,
-): DeadlineCountdown {
-  if (deadlineDays === null) return { kind: 'none' };
-  const created = new Date(createdAtIso).getTime();
-  const due = created + deadlineDays * 24 * 60 * 60 * 1000;
-  const now = Date.now();
-  const diffMs = due - now;
-  const days = Math.round(diffMs / (24 * 60 * 60 * 1000));
+function deadlineCountdownOf(letter: LetterRecord): DeadlineCountdown {
+  if (typeof letter.remainingDays === 'number') {
+    return letter.remainingDays < 0
+      ? { kind: 'overdue', days: Math.abs(letter.remainingDays) }
+      : { kind: 'remaining', days: letter.remainingDays };
+  }
+  if (letter.deadlineDays === null) return { kind: 'none' };
+  const created = new Date(letter.createdAt).getTime();
+  const due = created + letter.deadlineDays * 24 * 60 * 60 * 1000;
+  const days = Math.round((due - Date.now()) / (24 * 60 * 60 * 1000));
   if (days < 0) return { kind: 'overdue', days: Math.abs(days) };
   return { kind: 'remaining', days };
 }

@@ -12,6 +12,7 @@ import {
 import type { Response } from 'express';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
+import { computeDeadline } from './deadline-math';
 import {
   ComplianceLetterContext,
   LetterDrafterService,
@@ -25,6 +26,27 @@ interface DraftFromIncomingBody {
   letterSourceFileId: string;
   /** `Project.businessKey`. */
   projectKey: string;
+}
+
+/**
+ * A `Letter` enriched with the deterministic deadline countdown
+ * (plan §3.5 step 4). `null` fields mean "deadline unknown — do not run a
+ * countdown" per the entity contract; `sent` letters carry no countdown
+ * because the obligation is discharged.
+ */
+type LetterWithDeadline = Letter & {
+  mustRespondBy: string | null;
+  remainingDays: number | null;
+  overdue: boolean;
+};
+
+/** Pure mapping — clause days + receipt anchor (`createdAt`) → countdown. */
+function withDeadline(letter: Letter): LetterWithDeadline {
+  if (letter.deadlineDays == null || letter.status === 'sent') {
+    return { ...letter, mustRespondBy: null, remainingDays: null, overdue: false };
+  }
+  const d = computeDeadline(letter.createdAt, letter.deadlineDays, 'calendar');
+  return { ...letter, ...d };
 }
 
 /** Body for POST /letters/draft-compliance. */
@@ -71,7 +93,9 @@ export class LettersController {
 
   @Post('draft-from-incoming')
   @HttpCode(200)
-  @RequiresCapability('canEditPolicy')
+  // Plan §7: incoming-letter intake belongs to canIngestLetter
+  // (Admin + Client + Contractor) — the contractor delivers his own letters.
+  @RequiresCapability('canIngestLetter')
   async draftFromIncoming(@Body() body: DraftFromIncomingBody): Promise<Letter> {
     if (!body?.letterSourceFileId) {
       throw new BadRequestException('letterSourceFileId is required');
@@ -109,22 +133,24 @@ export class LettersController {
 
   @Get()
   @RequiresCapability('canRead')
-  list(@Query('projectKey') projectKey?: string): Promise<Letter[]> {
+  async list(@Query('projectKey') projectKey?: string): Promise<LetterWithDeadline[]> {
     if (!projectKey) {
       throw new BadRequestException('projectKey query parameter is required');
     }
-    return this.drafter.listByProject(projectKey);
+    const letters = await this.drafter.listByProject(projectKey);
+    return letters.map(withDeadline);
   }
 
   @Get(':id')
   @RequiresCapability('canRead')
-  get(@Param('id') id: string): Promise<Letter> {
-    return this.drafter.getById(id);
+  async get(@Param('id') id: string): Promise<LetterWithDeadline> {
+    return withDeadline(await this.drafter.getById(id));
   }
 
   @Post(':id/approve')
   @HttpCode(200)
-  @RequiresCapability('canEditPolicy')
+  // Plan §7: letter approval is its own named gate (Admin + Client).
+  @RequiresCapability('canApproveLetter')
   approve(@Param('id') id: string): Promise<Letter> {
     return this.drafter.approve(id);
   }

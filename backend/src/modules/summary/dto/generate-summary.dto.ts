@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
 
 export class GenerateSummaryDto {
   @IsOptional()
@@ -19,4 +19,13 @@ export class GenerateSummaryDto {
   @Min(1)
   @Max(90)
   periodDays?: number;
+
+  /**
+   * Narrative locale (plan §8 — domain-tuned language). `ar` emits the
+   * construction-industry Arabic terms; default `en` keeps the legacy
+   * English literals existing rows were generated with.
+   */
+  @IsOptional()
+  @IsIn(['en', 'ar'])
+  locale?: 'en' | 'ar';
 }

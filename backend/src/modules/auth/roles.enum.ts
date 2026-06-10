@@ -45,18 +45,41 @@ export const ROLE_CAPABILITIES: Record<Role, {
    * Whether the role may edit the platform's expert personas (append-only,
    * each edit produces a new `PromptVersion`). Personas are platform voice,
    * not per-tenant configuration — only `sigma_admin` qualifies. See
-   * ADR-0010 §7.
+   * ADR-0010 §7. (The post-meeting plan §7 names this `canEditPrompts` —
+   * same capability, this is the canonical key.)
    */
   canEditPersonas: boolean;
+  /**
+   * Per-source-type ingestion split (post-meeting plan §7 / §2.9):
+   * the umbrella `canIngest` survives for generic surfaces (clash lists,
+   * drawings), while the three named flows gate on their specific flag.
+   */
+  canIngestSchedule: boolean;
+  canIngestBoQ: boolean;
+  canIngestLetter: boolean;
+  /** Approval gates the plan names explicitly (§7). */
+  canApproveLetter: boolean;
+  canApproveBaseline: boolean;
+  /** Computer Use sessions (Demo Path) — admin-only per plan §7. */
+  canTriggerComputerUse: boolean;
 }> = {
-  [Role.SIGMA_ADMIN]:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: true  },
-  [Role.SIGMA_REVIEWER]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
-  [Role.CLIENT]:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
-  [Role.CONSULTANT]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
-  // canSimulate flipped TRUE in Wave 7 — the 2026-06-08 meeting explicitly
-  // grants the contractor sandbox simulation («يعطي فرضية ويشاهد نتائجها…
-  // دون الدخول على إعدادات المشروع أو تغيير بياناته» @ 00:14:14–00:15:25).
-  // Scenario writes never touch canonical truth, so the wider gate is safe.
-  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false },
-  [Role.SUBCONTRACTOR]:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false },
+  //
+  // Post-meeting plan §7 matrix, applied Wave 8:
+  //  - Contractor: canEvaluateRules + canGenerateSummary flipped TRUE
+  //    (his slice) per the plan's explicit rows.
+  //  - Consultant: canIngest flipped FALSE — plan §7 + Layer-1 role access
+  //    ("Consultant: قراءة + اقتراح + محاكاة", no upload). Inferred from
+  //    "Consultant مثل Client ناقص تعديل السياسة"; flagged for confirmation
+  //    in the Sizing meeting (open question in plan §7 notes).
+  //  - Sigma Reviewer: canSimulate FALSE — the plan's Khaled-default
+  //    (read-only charter; open question 13). Flip back on Al Ayham's word.
+  //  - Contractor/Subcontractor keep canSimulate TRUE (meeting transcript
+  //    @ 00:14:14–00:15:25 grants it explicitly; sandbox-only writes).
+  //
+  [Role.SIGMA_ADMIN]:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: true,  canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: true  },
+  [Role.SIGMA_REVIEWER]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
+  [Role.CLIENT]:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: false },
+  [Role.CONSULTANT]:     { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
+  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
+  [Role.SUBCONTRACTOR]:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
 };

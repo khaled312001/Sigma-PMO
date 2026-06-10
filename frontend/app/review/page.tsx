@@ -25,7 +25,7 @@ export default function ReviewPageRoute() {
 }
 
 function ReviewPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
@@ -80,7 +80,7 @@ function ReviewPage() {
     setGeneratingSummary(true);
     try {
       const next = await api<ExecutiveSummary>('/summary/generate', {
-        method: 'POST', body: JSON.stringify({ projectKey, periodDays: 7 }),
+        method: 'POST', body: JSON.stringify({ projectKey, periodDays: 7, locale: lang }),
       });
       setSummary(next);
       toast.success('Summary generated', `Source: ${next.source}`);

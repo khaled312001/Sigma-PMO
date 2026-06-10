@@ -46,8 +46,10 @@ interface BaselineJobRow {
   projectBusinessKey: string;
   personaSlug: string;
   status:
-    | 'pending' | 'running' | 'awaiting-approval' | 'awaiting-enablement'
-    | 'committed' | 'failed' | string;
+    | 'pending' | 'running' | 'awaiting-approval' | 'awaiting-second-approval'
+    | 'awaiting-enablement' | 'committed' | 'failed' | 'rejected' | string;
+  /** First of the two §3.1 signatures, when present. */
+  firstApprovedBy?: string | null;
   progressPercent: number;
   startedAt: string | null;
   completedAt: string | null;
@@ -127,7 +129,7 @@ function BaselinesPage() {
   const toast = useToast();
 
   const canAuthor = !!me?.user && CAPABILITIES[me.user.role].canSimulate;
-  const canApprove = !!me?.user && CAPABILITIES[me.user.role].canEditPolicy;
+  const canApprove = !!me?.user && CAPABILITIES[me.user.role].canApproveBaseline;
 
   const [rows, setRows] = useState<BaselineJobRow[] | null>(null);
   const [project, setProject] = useState<ProjectInfo | null>(null);
@@ -216,10 +218,38 @@ function BaselinesPage() {
             body: JSON.stringify({ approvedBy: me.user.displayName }),
           },
         );
-        toast.success('Approved', `Job ${updated.id.slice(0, 8)} → committed.`);
+        toast.success(
+          updated.status === 'committed' ? 'Committed (2/2 signatures)' : 'First signature recorded (1/2)',
+          updated.status === 'committed'
+            ? `Job ${updated.id.slice(0, 8)} is now the approved baseline.`
+            : 'A second, different approver must sign to commit.',
+        );
         await refresh();
       } catch (e) {
         toast.error('Approval failed', (e as Error).message);
+      } finally {
+        setBusy(null);
+      }
+    },
+    [me?.user?.displayName, refresh, toast],
+  );
+
+  /** Rejection gate (plan §3.1) — whole-build, with a mandatory reason. */
+  const onReject = useCallback(
+    async (jobId: string) => {
+      if (!me?.user?.displayName) return;
+      const reason = window.prompt('سبب الرفض (إلزامي) — يصل للمخطط كتوجيه لإعادة المحاولة:');
+      if (!reason?.trim()) return;
+      setBusy(jobId);
+      try {
+        await api<BaselineJobRow>(`/baselines/jobs/${jobId}/reject`, {
+          method: 'POST',
+          body: JSON.stringify({ rejectedBy: me.user.displayName, reason: reason.trim() }),
+        });
+        toast.success('Rejected', 'Recorded with the reason — re-run the author path with adjustments.');
+        await refresh();
+      } catch (e) {
+        toast.error('Rejection failed', (e as Error).message);
       } finally {
         setBusy(null);
       }
@@ -295,6 +325,7 @@ function BaselinesPage() {
         openId={openId}
         canApprove={canApprove}
         onApprove={onApprove}
+        onReject={onReject}
         onToggleOpen={(id) => setOpenId((cur) => (cur === id ? null : id))}
       />
     </div>
@@ -661,6 +692,7 @@ function JobsList({
   openId,
   canApprove,
   onApprove,
+  onReject,
   onToggleOpen,
 }: {
   rows: BaselineJobRow[] | null;
@@ -668,6 +700,7 @@ function JobsList({
   openId: string | null;
   canApprove: boolean;
   onApprove: (id: string) => void;
+  onReject: (id: string) => void;
   onToggleOpen: (id: string) => void;
 }) {
   if (rows === null) {
@@ -694,6 +727,7 @@ function JobsList({
             expanded={openId === row.id}
             canApprove={canApprove}
             onApprove={onApprove}
+            onReject={onReject}
             onToggleOpen={onToggleOpen}
           />
         ))}
@@ -727,6 +761,7 @@ function JobRow({
   expanded,
   canApprove,
   onApprove,
+  onReject,
   onToggleOpen,
 }: {
   row: BaselineJobRow;
@@ -734,9 +769,10 @@ function JobRow({
   expanded: boolean;
   canApprove: boolean;
   onApprove: (id: string) => void;
+  onReject: (id: string) => void;
   onToggleOpen: (id: string) => void;
 }) {
-  const isAwaitingApproval = row.status === 'awaiting-approval';
+  const isAwaitingApproval = row.status === 'awaiting-approval' || row.status === 'awaiting-second-approval';
   const isCommitted = row.status === 'committed';
   const hasXer = !!row.outputXerSourceFileId;
   const isRunning = row.status === 'running' || (row.progressPercent > 0 && row.progressPercent < 100);
@@ -798,15 +834,29 @@ function JobRow({
             </>
           )}
           {isAwaitingApproval && canApprove && (
-            <Button
-              variant="success"
-              size="sm"
-              onClick={() => onApprove(row.id)}
-              disabled={busy}
-            >
-              <IconCheck className="h-3.5 w-3.5" />
-              {busy ? 'Approving…' : 'Approve'}
-            </Button>
+            <>
+              <Button
+                variant="success"
+                size="sm"
+                onClick={() => onApprove(row.id)}
+                disabled={busy}
+              >
+                <IconCheck className="h-3.5 w-3.5" />
+                {busy
+                  ? 'Approving…'
+                  : row.status === 'awaiting-second-approval'
+                    ? 'Sign 2/2 & commit'
+                    : 'Sign 1/2'}
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => onReject(row.id)}
+                disabled={busy}
+              >
+                Reject
+              </Button>
+            </>
           )}
         </span>
       </button>
@@ -1013,8 +1063,10 @@ function StatusPill({ status }: { status: string }) {
   const map: Record<string, { tone: 'slate' | 'sky' | 'emerald' | 'amber' | 'rose'; label: string }> = {
     pending: { tone: 'slate', label: 'Pending' },
     running: { tone: 'sky', label: 'Running' },
-    'awaiting-approval': { tone: 'amber', label: 'Awaiting approval' },
+    'awaiting-approval': { tone: 'amber', label: 'Awaiting approval (0/2)' },
+    'awaiting-second-approval': { tone: 'amber', label: 'Awaiting 2nd signature (1/2)' },
     'awaiting-enablement': { tone: 'slate', label: 'Gated' },
+    rejected: { tone: 'rose', label: 'Rejected' },
     committed: { tone: 'emerald', label: 'Committed' },
     failed: { tone: 'rose', label: 'Failed' },
   };

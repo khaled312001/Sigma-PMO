@@ -53,4 +53,16 @@ export class BaselineBuildJob extends UuidEntity {
 
   @Column({ type: 'text', nullable: true })
   failureReason!: string | null;
+
+  /**
+   * Dual-signature approval (post-meeting plan §3.1: «توقيع الاثنين مطلوب»).
+   * First signer lands here; the job moves to `awaiting-second-approval`
+   * and only a DIFFERENT `canApproveBaseline` holder can complete the
+   * commit. NULL until the first signature.
+   */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  firstApprovedBy!: string | null;
+
+  @Column({ type: 'datetime', precision: 6, nullable: true })
+  firstApprovedAt!: Date | null;
 }

@@ -75,7 +75,7 @@ export class BoqController {
   @Post('upload')
   @HttpCode(200)
   @Throttle({ ingest: { limit: 30, ttl: 60_000 } })
-  @RequiresCapability('canIngest')
+  @RequiresCapability('canIngestBoQ')
   upload(@Body() body: BoqUploadDto): Promise<BoqIngestionOutcome> {
     const buffer = Buffer.from(body.contentBase64, 'base64');
     return this.boqIngestion.ingest(

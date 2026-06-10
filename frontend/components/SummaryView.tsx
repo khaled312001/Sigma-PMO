@@ -30,11 +30,11 @@ export function SummaryView({ text, confidence }: { text: string; confidence?: n
   const parsed = useMemo(() => parse(text), [text]);
 
   const sectionTitle = (rawTitle: string): string => {
-    const k = rawTitle.toLowerCase();
-    if (k.startsWith('schedule')) return t('summaryView.sections.schedule');
-    if (k.startsWith('alert'))    return t('summaryView.sections.alerts');
-    if (k.startsWith('critical')) return t('summaryView.sections.criticalFindings');
-    if (k.startsWith('reporting'))return t('summaryView.sections.reporting');
+    const key = sectionKey(rawTitle);
+    if (key === 'schedule')  return t('summaryView.sections.schedule');
+    if (key === 'alerts')    return t('summaryView.sections.alerts');
+    if (key === 'critical')  return t('summaryView.sections.criticalFindings');
+    if (key === 'reporting') return t('summaryView.sections.reporting');
     return rawTitle;
   };
 
@@ -47,7 +47,7 @@ export function SummaryView({ text, confidence }: { text: string; confidence?: n
       {parsed.sections.map((s, i) => {
         const tone = sectionTone(s.title);
         const Icon = sectionIcon(s.title);
-        const k = s.title.toLowerCase();
+        const k = sectionKey(s.title);
         return (
           <section
             key={i}
@@ -63,13 +63,13 @@ export function SummaryView({ text, confidence }: { text: string; confidence?: n
             </header>
 
             <div className="p-4">
-              {k.startsWith('schedule') ? (
+              {k === 'schedule' ? (
                 <ScheduleStatus items={s.items} t={t} />
-              ) : k.startsWith('alert') ? (
+              ) : k === 'alerts' ? (
                 <AlertsBlock items={s.items} t={t} />
-              ) : k.startsWith('critical') ? (
+              ) : k === 'critical' ? (
                 <CriticalFindings items={s.items} />
-              ) : k.startsWith('reporting') ? (
+              ) : k === 'reporting' ? (
                 <ReportingBlock items={s.items} t={t} />
               ) : (
                 <GenericList items={s.items} />
@@ -100,7 +100,22 @@ interface ParsedSummary {
   trailing: Array<{ label: string; value: string }>;
 }
 
-const KNOWN_SECTION_HEADERS = ['schedule status', 'alerts', 'critical findings', 'reporting'];
+// Both protocol columns (summary.service.ts NARRATIVE_TERMS) — English for
+// legacy rows, construction-Arabic (plan §8) for locale='ar' rows.
+const KNOWN_SECTION_HEADERS = [
+  'schedule status', 'alerts', 'critical findings', 'reporting',
+  'حالة الجدول الزمني', 'التنبيهات', 'النتائج الحرجة', 'التقارير',
+];
+
+/** Canonical section key — matches the English AND Arabic header columns. */
+function sectionKey(title: string): 'schedule' | 'alerts' | 'critical' | 'reporting' | null {
+  const k = title.toLowerCase();
+  if (k.startsWith('schedule') || title.startsWith('حالة الجدول')) return 'schedule';
+  if (k.startsWith('alert') || title.startsWith('التنبيهات')) return 'alerts';
+  if (k.startsWith('critical') || title.startsWith('النتائج الحرجة')) return 'critical';
+  if (k.startsWith('reporting') || title === 'التقارير') return 'reporting';
+  return null;
+}
 
 function parse(text: string): ParsedSummary {
   const meta: ParsedSummary['meta'] = [];
@@ -157,6 +172,11 @@ function MetaRow({
     'reporting period': t('summaryView.labels.reportingPeriod'),
     'schedule data date': t('summaryView.labels.dataDate'),
     'planned duration': t('summaryView.labels.plannedDuration'),
+    // Arabic protocol column (summary.service.ts NARRATIVE_TERMS.ar).
+    'المشروع': t('summaryView.labels.project'),
+    'فترة التقرير': t('summaryView.labels.reportingPeriod'),
+    'تاريخ بيانات الجدول الزمني': t('summaryView.labels.dataDate'),
+    'المدة المخططة': t('summaryView.labels.plannedDuration'),
   };
   return (
     <div className="grid grid-cols-1 gap-2 rounded-xl border border-slate-800 bg-slate-900/40 p-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -179,14 +199,14 @@ function ScheduleStatus({ items, t }: { items: string[]; t: (k: string) => strin
   // Progress line:   "Avg planned progress: X% vs actual Y% (delta Zpp)"
   const counts = (() => {
     for (const item of items) {
-      const m = item.match(/Activities:\s*(\d+)\s*\(completed\s*(\d+),\s*in progress\s*(\d+),\s*not started\s*(\d+)\)/i);
+      const m = item.match(/(?:Activities|الأنشطة):\s*(\d+)\s*\((?:completed|مكتملة)\s*(\d+)[,،]\s*(?:in progress|قيد التنفيذ)\s*(\d+)[,،]\s*(?:not started|لم تبدأ)\s*(\d+)\)/i);
       if (m) return { total: +m[1], completed: +m[2], inProgress: +m[3], notStarted: +m[4] };
     }
     return null;
   })();
   const progress = (() => {
     for (const item of items) {
-      const m = item.match(/Avg planned progress:\s*([\d.]+)%\s*vs actual\s*([\d.]+)%\s*\(delta\s*(-?[\d.]+)pp\)/i);
+      const m = item.match(/(?:Avg planned progress|متوسط الإنجاز المخطط):\s*([\d.]+)%\s*(?:vs actual|مقابل الفعلي)\s*([\d.]+)%\s*\((?:delta|الفرق)\s*(-?[\d.]+)pp\)/i);
       if (m) return { planned: +m[1], actual: +m[2], delta: +m[3] };
     }
     return null;
@@ -218,7 +238,7 @@ function AlertsBlock({ items, t }: { items: string[]; t: (k: string) => string }
   // Then per-code: "RESOURCE_UNDERUSE: 2"
   const totals = (() => {
     for (const item of items) {
-      const m = item.match(/Total\s+(\d+);\s*critical\s+(\d+);\s*warning\s+(\d+)/i);
+      const m = item.match(/(?:Total|الإجمالي)\s+(\d+)[;؛]\s*(?:critical|حرجة)\s+(\d+)[;؛]\s*(?:warning|تحذيرية)\s+(\d+)/i);
       if (m) return { total: +m[1], critical: +m[2], warning: +m[3] };
     }
     return null;
@@ -279,12 +299,12 @@ function CriticalFindings({ items }: { items: string[] }) {
 function ReportingBlock({ items, t }: { items: string[]; t: (k: string) => string }) {
   const inWindow = (() => {
     for (const it of items) {
-      const m = it.match(/Reports in window:\s*(\d+)/i);
+      const m = it.match(/(?:Reports in window|التقارير ضمن الفترة):\s*(\d+)/i);
       if (m) return +m[1];
     }
     return null;
   })();
-  const latest = items.find((it) => /^Latest report/i.test(it));
+  const latest = items.find((it) => /^(?:Latest report|أحدث تقرير)/i.test(it));
   return (
     <div className="space-y-3">
       {inWindow != null && (
@@ -298,7 +318,7 @@ function ReportingBlock({ items, t }: { items: string[]; t: (k: string) => strin
           <span className="me-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-sky-300">
             <IconClock className="h-3 w-3" /> {t('summaryView.labels.latestReport')}
           </span>
-          <span dir="auto">{latest.replace(/^Latest report\s*/i, '')}</span>
+          <span dir="auto">{latest.replace(/^(?:Latest report|أحدث تقرير)\s*/i, '')}</span>
         </blockquote>
       )}
     </div>
@@ -323,7 +343,7 @@ function ConfidenceFooter({
 }: { trailing: Array<{ label: string; value: string }>; confidence: number | null; t: (k: string) => string }) {
   return (
     <div className="space-y-2">
-      {trailing.length > 0 && trailing.filter((it) => !/data confidence/i.test(it.label)).map((it, i) => (
+      {trailing.length > 0 && trailing.filter((it) => !/data confidence|موثوقية البيانات/i.test(it.label)).map((it, i) => (
         <p key={i} className="text-xs text-slate-400">
           <span className="text-slate-500">{it.label}:</span> <span className="text-slate-200">{it.value}</span>
         </p>
@@ -349,7 +369,7 @@ function ConfidenceFooter({
 
 function extractConfidence(trailing: Array<{ label: string; value: string }>): number | null {
   for (const it of trailing) {
-    if (/confidence/i.test(it.label)) {
+    if (/confidence|موثوقية/i.test(it.label)) {
       const m = it.value.match(/([\d.]+)\s*%/);
       if (m) return Number(m[1]) / 100;
     }
@@ -369,8 +389,8 @@ function sectionTone(title: string): ToneSpec {
   // Section tones — `headerBg` keeps a tinted ribbon header; the BODY drops
   // the tint and uses the neutral surface so child pills/badges remain
   // legible against it. Borders and icons keep the accent colour.
-  const k = title.toLowerCase();
-  if (k.startsWith('critical')) {
+  const k = sectionKey(title);
+  if (k === 'critical') {
     return {
       border: 'border-rose-500/60',
       borderSoft: 'border-rose-500/30',
@@ -379,7 +399,7 @@ function sectionTone(title: string): ToneSpec {
       iconColor: 'text-white',
     };
   }
-  if (k.startsWith('alert')) {
+  if (k === 'alerts') {
     return {
       border: 'border-amber-500/60',
       borderSoft: 'border-amber-500/30',
@@ -388,7 +408,7 @@ function sectionTone(title: string): ToneSpec {
       iconColor: 'text-amber-950',
     };
   }
-  if (k.startsWith('schedule')) {
+  if (k === 'schedule') {
     return {
       border: 'border-sky-500/60',
       borderSoft: 'border-sky-500/30',
@@ -397,7 +417,7 @@ function sectionTone(title: string): ToneSpec {
       iconColor: 'text-white',
     };
   }
-  if (k.startsWith('reporting')) {
+  if (k === 'reporting') {
     return {
       border: 'border-violet-500/60',
       borderSoft: 'border-violet-500/30',
@@ -416,11 +436,11 @@ function sectionTone(title: string): ToneSpec {
 }
 
 function sectionIcon(title: string) {
-  const k = title.toLowerCase();
-  if (k.startsWith('critical')) return IconAlertCritical;
-  if (k.startsWith('alert'))    return IconAlertWarning;
-  if (k.startsWith('schedule')) return IconActivity;
-  if (k.startsWith('reporting'))return IconDatabase;
+  const k = sectionKey(title);
+  if (k === 'critical')  return IconAlertCritical;
+  if (k === 'alerts')    return IconAlertWarning;
+  if (k === 'schedule')  return IconActivity;
+  if (k === 'reporting') return IconDatabase;
   return IconList;
 }
 

@@ -20,6 +20,8 @@ export interface SummaryGenerationOptions {
   periodEnd?: string;
   /** Window length in days from periodEnd backwards; default 7. */
   periodDays?: number;
+  /** Narrative locale — `ar` emits §8 construction-Arabic terms. Default `en`. */
+  locale?: 'en' | 'ar';
 }
 
 /**
@@ -55,7 +57,14 @@ export class SummaryService {
     });
 
     const confidenceAverage = await this.averageConfidenceFor(snapshot);
-    const grounded = composeGrounded(snapshot, alertsForProject, periodStart, periodEnd, confidenceAverage);
+    const grounded = composeGrounded(
+      snapshot,
+      alertsForProject,
+      periodStart,
+      periodEnd,
+      confidenceAverage,
+      options.locale ?? 'en',
+    );
 
     let narrative = grounded;
     let source = 'deterministic';
@@ -129,13 +138,75 @@ export class SummaryService {
 
 // -- Deterministic narrative composition (the source of truth) -----------------
 
+/**
+ * Per-locale narrative vocabulary (plan §8 — «اللغة المستخدمة في المجال
+ * نفسه»). The Arabic column uses the construction-industry terms from the
+ * §8 table — «الجدول الزمني» (never the dictionary-literal «الجدول»),
+ * «النتائج الحرجة», «موثوقية البيانات» — not machine translations. The
+ * SECTION HEADERS double as the parsing protocol with the frontend
+ * `SummaryView`; its matchers accept both columns so legacy English rows
+ * keep rendering.
+ */
+const NARRATIVE_TERMS = {
+  en: {
+    project: 'Project',
+    reportingPeriod: 'Reporting period',
+    dataDate: 'Schedule data date',
+    plannedDuration: 'Planned duration',
+    days: 'days',
+    scheduleStatus: 'Schedule status',
+    activities: (n: number, c: number, p: number, ns: number) =>
+      `Activities: ${n} (completed ${c}, in progress ${p}, not started ${ns}).`,
+    progress: (plan: string, act: string, delta: string) =>
+      `Avg planned progress: ${plan}% vs actual ${act}% (delta ${delta}pp).`,
+    alerts: 'Alerts',
+    alertTotals: (t: number, c: number, w: number) =>
+      `Total ${t}; critical ${c}; warning ${w}.`,
+    criticalFindings: 'Critical findings',
+    reporting: 'Reporting',
+    reportsInWindow: (n: number) => `Reports in window: ${n}.`,
+    latestReport: (date: string, by: string, narrative: string) =>
+      `Latest report ${date} by ${by}: ${narrative}`,
+    unknown: 'unknown',
+    noNarrative: '(no narrative)',
+    confidence: (pct: string) =>
+      `Data confidence (avg across this project's data): ${pct}%.`,
+  },
+  ar: {
+    project: 'المشروع',
+    reportingPeriod: 'فترة التقرير',
+    dataDate: 'تاريخ بيانات الجدول الزمني',
+    plannedDuration: 'المدة المخططة',
+    days: 'يوماً',
+    scheduleStatus: 'حالة الجدول الزمني',
+    activities: (n: number, c: number, p: number, ns: number) =>
+      `الأنشطة: ${n} (مكتملة ${c}، قيد التنفيذ ${p}، لم تبدأ ${ns}).`,
+    progress: (plan: string, act: string, delta: string) =>
+      `متوسط الإنجاز المخطط: ${plan}% مقابل الفعلي ${act}% (الفرق ${delta}pp).`,
+    alerts: 'التنبيهات',
+    alertTotals: (t: number, c: number, w: number) =>
+      `الإجمالي ${t}؛ حرجة ${c}؛ تحذيرية ${w}.`,
+    criticalFindings: 'النتائج الحرجة',
+    reporting: 'التقارير',
+    reportsInWindow: (n: number) => `التقارير ضمن الفترة: ${n}.`,
+    latestReport: (date: string, by: string, narrative: string) =>
+      `أحدث تقرير ${date} بواسطة ${by}: ${narrative}`,
+    unknown: 'غير معروف',
+    noNarrative: '(بدون سرد)',
+    confidence: (pct: string) =>
+      `موثوقية البيانات (متوسط بيانات هذا المشروع): ${pct}%.`,
+  },
+} as const;
+
 function composeGrounded(
   snapshot: ProjectSnapshot,
   alerts: Alert[],
   periodStart: string,
   periodEnd: string,
   confidence: number,
+  locale: 'en' | 'ar' = 'en',
 ): string {
+  const T = NARRATIVE_TERMS[locale];
   const { project, activities, reports } = snapshot;
   const completed = activities.filter((a) => a.actualPctComplete !== null && a.actualPctComplete >= 1).length;
   const inProgress = activities.filter((a) => (a.actualPctComplete ?? 0) > 0 && (a.actualPctComplete ?? 0) < 1).length;
@@ -153,34 +224,34 @@ function composeGrounded(
   const latestReport = [...reports].sort((a, b) => (a.reportDate < b.reportDate ? 1 : -1))[0] ?? null;
 
   const lines: string[] = [];
-  lines.push(`Project: ${project.name}`);
-  lines.push(`Reporting period: ${periodStart} → ${periodEnd}.`);
-  if (project.dataDate) lines.push(`Schedule data date: ${project.dataDate}.`);
+  lines.push(`${T.project}: ${project.name}`);
+  lines.push(`${T.reportingPeriod}: ${periodStart} → ${periodEnd}.`);
+  if (project.dataDate) lines.push(`${T.dataDate}: ${project.dataDate}.`);
   if (project.plannedStart && project.plannedFinish) {
     const total = daysBetween(project.plannedStart, project.plannedFinish);
-    lines.push(`Planned duration: ${project.plannedStart} → ${project.plannedFinish}${total ? ` (${total} days)` : ''}.`);
+    lines.push(`${T.plannedDuration}: ${project.plannedStart} → ${project.plannedFinish}${total ? ` (${total} ${T.days})` : ''}.`);
   }
   lines.push('');
-  lines.push('Schedule status:');
-  lines.push(`  - Activities: ${activities.length} (completed ${completed}, in progress ${inProgress}, not started ${notStarted}).`);
+  lines.push(`${T.scheduleStatus}:`);
+  lines.push(`  - ${T.activities(activities.length, completed, inProgress, notStarted)}`);
   if (overallPlannedAvg !== null && overallActualAvg !== null) {
-    lines.push(`  - Avg planned progress: ${(overallPlannedAvg * 100).toFixed(1)}% vs actual ${(overallActualAvg * 100).toFixed(1)}% (delta ${((overallActualAvg - overallPlannedAvg) * 100).toFixed(1)}pp).`);
+    lines.push(`  - ${T.progress((overallPlannedAvg * 100).toFixed(1), (overallActualAvg * 100).toFixed(1), ((overallActualAvg - overallPlannedAvg) * 100).toFixed(1))}`);
   }
   lines.push('');
-  lines.push('Alerts:');
-  lines.push(`  - Total ${alerts.length}; critical ${criticalAlerts.length}; warning ${warningAlerts.length}.`);
+  lines.push(`${T.alerts}:`);
+  lines.push(`  - ${T.alertTotals(alerts.length, criticalAlerts.length, warningAlerts.length)}`);
   for (const [code, n] of Object.entries(byCode)) lines.push(`  - ${code}: ${n}`);
   if (criticalAlerts.length > 0) {
     lines.push('');
-    lines.push('Critical findings:');
+    lines.push(`${T.criticalFindings}:`);
     for (const a of criticalAlerts.slice(0, 5)) lines.push(`  - [${a.code}] ${a.summary}`);
   }
   lines.push('');
-  lines.push('Reporting:');
-  lines.push(`  - Reports in window: ${periodReports.length}.`);
-  if (latestReport) lines.push(`  - Latest report ${latestReport.reportDate} by ${latestReport.submittedBy ?? 'unknown'}: ${latestReport.narrative ?? '(no narrative)'}`);
+  lines.push(`${T.reporting}:`);
+  lines.push(`  - ${T.reportsInWindow(periodReports.length)}`);
+  if (latestReport) lines.push(`  - ${T.latestReport(latestReport.reportDate, latestReport.submittedBy ?? T.unknown, latestReport.narrative ?? T.noNarrative)}`);
   lines.push('');
-  lines.push(`Data confidence (avg across this project's data): ${(confidence * 100).toFixed(1)}%.`);
+  lines.push(T.confidence((confidence * 100).toFixed(1)));
   return lines.join('\n');
 }
 

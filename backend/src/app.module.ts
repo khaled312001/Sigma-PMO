@@ -14,6 +14,7 @@ import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClashesModule } from './modules/clashes/clashes.module';
 import { ClaudeModule } from './modules/claude/claude.module';
+import { ComparisonModule } from './modules/comparison/comparison.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
@@ -102,6 +103,9 @@ import { SummaryModule } from './modules/summary/summary.module';
     // Wave 7 — phase-1 drawings ingestion (PDF sets; correction-plan §2.7).
     // The detected floor count feeds the drawing-driven baseline generator.
     DrawingsModule,
+    // Wave 8 — AI-vs-Human output comparison (correction-plan §2.10,
+    // transcript 00:46:14). Human verdicts feed persona refinement.
+    ComparisonModule,
   ],
   controllers: [HealthController],
 })
