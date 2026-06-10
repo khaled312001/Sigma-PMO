@@ -21,6 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrgChartsModule } from './modules/org-charts/org-charts.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { PersonasModule } from './modules/personas/personas.module';
+import { PolicyAddonsModule } from './modules/policy-addons/policy-addons.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
@@ -88,6 +89,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     // API key entry form at /admin/settings + AES-256-GCM-encrypted storage
     // in the `SystemSetting` table.
     SettingsModule,
+    // Wave 6 — project-scoped AI instructions authored inline from every
+    // AI surface (correction-plan §2.6). ClaudeModule consumes the addon
+    // block in its prompt builder.
+    PolicyAddonsModule,
   ],
   controllers: [HealthController],
 })

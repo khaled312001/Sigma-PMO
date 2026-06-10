@@ -20,6 +20,8 @@ import {
   DonutChart,
   CHART_PALETTE,
 } from '../../components/Charts';
+import { PersonaActiveBadge } from '../../components/PersonaActiveBadge';
+import { PolicyAddonInline } from '../../components/PolicyAddonInline';
 import { useToast } from '../../components/ToastProvider';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
@@ -242,17 +244,26 @@ function BaselinesPage() {
         title="Programme Baseline Builder"
         description="An AI planner persona builds a real Primavera-style baseline from your project window — WBS, activities, dependencies, and critical path — and parks it for human review before release."
         actions={
-          <button
-            onClick={() => void refresh()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-2.5 py-1.5 text-xs text-slate-100 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:bg-sky-500/10 hover:text-sky-100"
-          >
-            <IconRefresh className="h-3.5 w-3.5" />
-            <span>Refresh</span>
-          </button>
+          <span className="flex items-center gap-2">
+            <PersonaActiveBadge
+              personaSlug="planner-p6-25yr"
+              expertise="Primavera P6 planner — 25-30 years. Builds WBS + baseline + critical path from the contract window; vets compression candidates downward only."
+              surface="planning"
+            />
+            <button
+              onClick={() => void refresh()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-2.5 py-1.5 text-xs text-slate-100 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:bg-sky-500/10 hover:text-sky-100"
+            >
+              <IconRefresh className="h-3.5 w-3.5" />
+              <span>Refresh</span>
+            </button>
+          </span>
         }
       />
 
       <ErrorBanner message={loadError} />
+
+      <PolicyAddonInline projectKey={projectKey} surface="planning" />
 
       <ProjectHeroCard project={project} counts={counts} />
 

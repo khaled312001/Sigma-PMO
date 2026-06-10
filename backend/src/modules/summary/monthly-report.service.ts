@@ -170,7 +170,7 @@ export class MonthlyReportService {
     let citations: string[] = [];
 
     if (this.claude.isEnabled()) {
-      const llm = await this.tryClaude(facts, req.audience, project.name, req.cadence);
+      const llm = await this.tryClaude(facts, req.audience, project.name, req.cadence, project.businessKey);
       if (llm) {
         narrative = llm.narrative;
         narrativeSource = 'llm';
@@ -285,6 +285,7 @@ export class MonthlyReportService {
     audience: MonthlyReportAudience,
     projectName: string,
     cadence: PeriodicCadence,
+    projectKey?: string,
   ): Promise<{ narrative: string; citations: string[]; personaVersion: number; model: string } | null> {
     try {
       const userMessage = buildUserQuery(audience, projectName, cadence);
@@ -295,6 +296,8 @@ export class MonthlyReportService {
       const result = await this.claude.callPersona(REPORT_PERSONA_SLUG, userMessage, {
         context: facts,
         modelTier: tier,
+        projectKey,
+        surface: 'reports',
       });
       return {
         narrative: result.content,

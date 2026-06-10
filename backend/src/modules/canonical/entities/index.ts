@@ -13,6 +13,7 @@ import { IngestionRun } from './ingestion-run.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
 import { Project } from './project.entity';
+import { ProjectPolicyAddon } from './project-policy-addon.entity';
 import { Report } from './report.entity';
 import { Resource } from './resource.entity';
 import { ResourceAssignment } from './resource-assignment.entity';
@@ -62,6 +63,7 @@ export {
   OutboxEvent,
   Persona,
   Project,
+  ProjectPolicyAddon,
   Report,
   Resource,
   ResourceAssignment,
@@ -103,4 +105,6 @@ export const CANONICAL_ENTITIES = [
   MonthlyReport,
   // Wave 4 — runtime-configurable settings (Claude API key entry from /admin/settings).
   SystemSetting,
+  // Wave 6 — project-scoped AI instructions authored inline (correction-plan §2.6).
+  ProjectPolicyAddon,
 ];

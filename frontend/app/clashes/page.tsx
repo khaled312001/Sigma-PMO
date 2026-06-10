@@ -52,6 +52,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
+import { PersonaActiveBadge } from '../../components/PersonaActiveBadge';
+import { PolicyAddonInline } from '../../components/PolicyAddonInline';
 import { SimulationModal, SimulationProjectionView } from '../../components/SimulationModal';
 import { useToast } from '../../components/ToastProvider';
 import { CAPABILITIES } from '../../lib/capabilities';
@@ -216,13 +218,22 @@ function ClashesPage() {
         title={t('clashes.title') /* falls back to 'clashes.title' literal if dict misses */}
         description="Navisworks / Revit clash review. Upload one report at a time; the BIM clash analyst persona proposes three options per clash, then a PM / PD picks one and submits a decision."
         actions={
-          <Button variant="ghost" size="sm" onClick={refresh}>
-            <IconRefresh className="h-3.5 w-3.5" /> Refresh
-          </Button>
+          <span className="flex items-center gap-2">
+            <PersonaActiveBadge
+              personaSlug="revit-clash-analyst"
+              expertise="BIM clash analyst — 10-20 years Revit / Navisworks coordination. Cost numbers from the BoQ only; durations from the approved baseline only."
+              surface="engineering"
+            />
+            <Button variant="ghost" size="sm" onClick={refresh}>
+              <IconRefresh className="h-3.5 w-3.5" /> Refresh
+            </Button>
+          </span>
         }
       />
 
       <ErrorBanner message={loadError} />
+
+      <PolicyAddonInline projectKey={projectKey} surface="engineering" />
 
       <UploadCard
         projectKey={projectKey}

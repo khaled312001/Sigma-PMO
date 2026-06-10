@@ -29,6 +29,8 @@ import {
   CHART_PALETTE,
   SEVERITY_ACCENT,
 } from '../../../components/Charts';
+import { PersonaActiveBadge } from '../../../components/PersonaActiveBadge';
+import { PolicyAddonInline } from '../../../components/PolicyAddonInline';
 import { SkeletonRow } from '../../../components/Skeleton';
 import { SummaryView } from '../../../components/SummaryView';
 import { useToast } from '../../../components/ToastProvider';
@@ -224,17 +226,26 @@ function MonthlyReportsPage() {
         title={t('reportsMonthly.title')}
         description={t('reportsMonthly.description')}
         actions={
-          <button
-            onClick={() => void refresh()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:border-slate-500"
-          >
-            <IconRefresh className="h-3.5 w-3.5" />
-            <span>{t('common.refresh')}</span>
-          </button>
+          <span className="flex items-center gap-2">
+            <PersonaActiveBadge
+              personaSlug="report-narrator-arabic"
+              expertise="Senior PMO report narrator — connected prose, executive verdict first, every professional claim cited from the curated source registry."
+              surface="reports"
+            />
+            <button
+              onClick={() => void refresh()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:border-slate-500"
+            >
+              <IconRefresh className="h-3.5 w-3.5" />
+              <span>{t('common.refresh')}</span>
+            </button>
+          </span>
         }
       />
 
       <ErrorBanner message={loadError} />
+
+      <PolicyAddonInline projectKey={projectKey} surface="reports" />
 
       {canGenerate ? (
         <GenerateForm

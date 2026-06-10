@@ -181,7 +181,11 @@ export class ClashSolutionProposer {
     const result = await this.claude.callPersona(
       CLASH_ANALYST_PERSONA_SLUG,
       userQuery,
-      { context: personaContext },
+      {
+        context: personaContext,
+        projectKey: clash.projectBusinessKey,
+        surface: 'engineering',
+      },
     );
 
     const options = this.parsePersonaResponse(result.content, clash.clashRef);

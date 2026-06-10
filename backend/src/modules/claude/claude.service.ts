@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import type { AnthropicConfig, AppConfiguration } from '../../config/configuration';
 import type { Persona } from '../canonical/entities';
 import { PersonasService } from '../personas/personas.service';
+import { PolicyAddonsService } from '../policy-addons/policy-addons.service';
 import { SETTING_KEYS, SettingsService } from '../settings/settings.service';
 
 /**
@@ -97,6 +98,16 @@ export interface PersonaCallContext {
    * between real and simulated runs.
    */
   simulation?: boolean;
+  /**
+   * Project the call belongs to. When set together with `surface`, the
+   * prompt builder appends the project's active PolicyAddons (the inline
+   * instructions the Consultant authored — correction-plan §2.6) AFTER the
+   * cacheable persona block, inside the user message, so the persona body
+   * stays cacheable across projects.
+   */
+  projectKey?: string;
+  /** AI surface for addon matching: planning | engineering | governance | reports. */
+  surface?: string;
 }
 
 /**
@@ -163,6 +174,7 @@ export class ClaudeService implements OnModuleInit {
      */
     @Optional() injectedClient?: AnthropicClientLike,
     @Optional() private readonly settings?: SettingsService,
+    @Optional() private readonly policyAddons?: PolicyAddonsService,
   ) {
     this.config = this.configService.get('anthropic', { infer: true });
     if (injectedClient) {
@@ -240,9 +252,13 @@ export class ClaudeService implements OnModuleInit {
     const maxTokens = context.maxTokens ?? this.config.maxTokens;
     const temperature = context.temperature ?? persona.temperature;
 
-    const request = this.buildRequest(persona, userMessage, context, model, maxTokens, temperature);
+    const addonBlock = await this.resolveAddonBlock(context);
+    const request = this.buildRequest(
+      persona, userMessage, context, model, maxTokens, temperature, addonBlock,
+    );
     this.logger.debug(
-      `claude.callPersona slug=${personaSlug} v=${persona.version} model=${model} sim=${!!context.simulation}`,
+      `claude.callPersona slug=${personaSlug} v=${persona.version} model=${model} ` +
+        `sim=${!!context.simulation} addons=${addonBlock ? 'yes' : 'no'}`,
     );
 
     const response = await client.messages.create(request);
@@ -276,7 +292,10 @@ export class ClaudeService implements OnModuleInit {
     const model = this.resolveModel(persona, context);
     const maxTokens = context.maxTokens ?? this.config.maxTokens;
     const temperature = context.temperature ?? persona.temperature;
-    const request = this.buildRequest(persona, userMessage, context, model, maxTokens, temperature);
+    const addonBlock = await this.resolveAddonBlock(context);
+    const request = this.buildRequest(
+      persona, userMessage, context, model, maxTokens, temperature, addonBlock,
+    );
     const stream = client.messages.stream(request);
     for await (const event of stream) {
       yield event;
@@ -311,6 +330,24 @@ export class ClaudeService implements OnModuleInit {
     }
   }
 
+  /**
+   * Resolve the project-addon prompt block for this call (correction-plan
+   * §2.6). Returns '' when no project context / no addons / service not
+   * wired — callers concatenate unconditionally. Failures degrade to ''
+   * with a warning: a broken addon read must not block a persona call.
+   */
+  private async resolveAddonBlock(context: PersonaCallContext): Promise<string> {
+    if (!this.policyAddons || !context.projectKey || !context.surface) return '';
+    try {
+      return await this.policyAddons.buildPromptBlock(context.projectKey, context.surface);
+    } catch (err) {
+      this.logger.warn(
+        `Policy-addon lookup failed for ${context.projectKey}/${context.surface}: ${(err as Error).message}`,
+      );
+      return '';
+    }
+  }
+
   /** Build the `messages.create` request body, including the cacheable system block. */
   private buildRequest(
     persona: Persona,
@@ -319,10 +356,12 @@ export class ClaudeService implements OnModuleInit {
     model: string,
     maxTokens: number,
     temperature: number,
+    addonBlock = '',
   ): Record<string, unknown> {
-    const userContent = context.context
-      ? `${context.context}\n\n---\n\n${userMessage}`
-      : userMessage;
+    // The addon block rides in the USER message (after the persona system
+    // block) so the cacheable persona body stays cacheable across projects.
+    const userContent =
+      (context.context ? `${context.context}\n\n---\n\n${userMessage}` : userMessage) + addonBlock;
 
     // The system field accepts an array of typed blocks; cache_control on the
     // last block creates the ephemeral breakpoint. The TTL is wall-clock from
