@@ -52,4 +52,22 @@ export class SimulationController {
     await this.simulation.discard(id);
     return { status: 'discarded' };
   }
+
+  /**
+   * Promote-to-canonical (Wave 7 — the C5 gate, live). Requires
+   * `canEditPolicy` because promotion reaches canonical truth — the same
+   * capability that owns the clash apply gate. Clash-impact scenarios are
+   * refused with a pointer to /clashes (their promotion must issue the
+   * schedule revision + claim letter atomically).
+   */
+  @Post('scenarios/:id/promote')
+  @HttpCode(200)
+  @RequiresCapability('canEditPolicy')
+  promote(
+    @Param('id') id: string,
+    @Body() body: { promotedBy?: string },
+  ): Promise<{ status: 'committed'; outboxEventId: string | null }> {
+    if (!body?.promotedBy) throw new BadRequestException('promotedBy is required');
+    return this.simulation.commit(id, body.promotedBy);
+  }
 }

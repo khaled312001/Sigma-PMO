@@ -83,14 +83,13 @@ export const CLASH_OPTIONS_PROPOSED_EVENT_TYPE = 'engineering.clash.options.prop
  *  1. Resolve the clash row by id. 404 if missing.
  *  2. Build the persona context: the clash record itself + the relevant BoQ
  *     lines (the persona's only legal source of AED numbers per the rule
- *     "أرقام التكلفة من جدول الكميات حصراً") + a planned-schedule excerpt
+ *     "أرقام التكلفة من جدول الكميات حصراً") + the REAL baseline slice
  *     (the persona's only legal source of duration numbers per the rule
- *     "أرقام الزمن من الجدول الأساسي المعتمَد حصراً"). Wave 2 ships the
- *     BoQ slice today; the schedule slice is a stubbed `"not yet wired"`
- *     placeholder so the persona knows to mark every duration `0` until
- *     the Activity-link resolver lands — the persona rules require it to
- *     refuse rather than invent, which the deterministic fallback already
- *     handles.
+ *     "أرقام الزمن من الجدول الأساسي المعتمَد حصراً"). Since Wave 6 the
+ *     slice carries the current Activity rows with a pre-computed
+ *     `floatDays` per activity; when the project has no dated activities
+ *     the context honestly says so and the persona keeps durations at 0
+ *     — refusal over invention, as before.
  *  3. Call `claudeService.callPersona(CLASH_ANALYST_PERSONA_SLUG, ...)` and
  *     parse the returned JSON. We accept either the strict schema the
  *     persona's Output Schema declares (`{ clashId, options: [{...}] }`)

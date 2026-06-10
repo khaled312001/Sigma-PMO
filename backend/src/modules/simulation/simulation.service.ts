@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { Layer } from '../../common/enums';
 import { Activity, Alert, Project, Scenario } from '../canonical/entities';
+import { OutboxService } from '../outbox/outbox.service';
+
+/** Outbox event fired when a scenario is promoted (ADR-0012 namespace). */
+export const SCENARIO_PROMOTED_EVENT_TYPE = 'simulation.scenario.promoted';
 
 const DEFAULT_SCENARIO_TTL_DAYS = 30;
 
@@ -22,6 +27,7 @@ export class SimulationService {
     @InjectRepository(Project) private readonly projects: Repository<Project>,
     @InjectRepository(Activity) private readonly activities: Repository<Activity>,
     @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
+    @Optional() private readonly outbox?: OutboxService,
   ) {}
 
   /**
@@ -69,17 +75,63 @@ export class SimulationService {
   }
 
   /**
-   * Promote a scenario to canonical truth. The clash-resolution path goes
-   * through `ScheduleRevisionService.applyClashResolution` (ADR-0023);
-   * generic scenario promotion (arbitrary edits → canonical) remains
-   * gated on the admin + signature flow and is not exposed here.
+   * Promote a scenario (Wave 7 — the C5 gate, live).
+   *
+   * What promotion DOES depends on the scenario kind:
+   *  - `clash-impact` scenarios promote through the clash apply gate
+   *    (ScheduleRevisionService) — this method refuses them with a pointer
+   *    so the schedule revision + claim letter are never skipped.
+   *  - Generic / compression scenarios: status flips to `committed`, the
+   *    promoter is stamped on the summary (audit), and one
+   *    `simulation.scenario.promoted` event lands on the cross-layer
+   *    Outbox so downstream layers (Reports, Governance) react.
+   *
+   * Discarded / already-committed scenarios refuse re-promotion.
    */
-  async commit(scenarioId: string): Promise<{ status: 'committed' }> {
+  async commit(
+    scenarioId: string,
+    promotedBy: string,
+  ): Promise<{ status: 'committed'; outboxEventId: string | null }> {
     const scenario = await this.scenarios.findOne({ where: { id: scenarioId } });
     if (!scenario) throw new NotFoundException(`No scenario with id ${scenarioId}`);
+    if (scenario.status !== 'open') {
+      throw new BadRequestException(
+        `Scenario ${scenarioId} is "${scenario.status}" — only open scenarios can be promoted.`,
+      );
+    }
+    const kind = (scenario.baselineSnapshot as { kind?: string } | null)?.kind;
+    if (kind === 'clash-impact') {
+      throw new BadRequestException(
+        'Clash-impact scenarios promote through the clash approval gate ' +
+          '(POST /clashes/:id/options/:idx/apply) so the schedule revision and the ' +
+          'FIDIC claim letter are issued atomically — promote it from the /clashes page.',
+      );
+    }
+
     scenario.status = 'committed';
+    scenario.summary =
+      `${scenario.summary ? `${scenario.summary}\n` : ''}` +
+      `Promoted to canonical by ${promotedBy} at ${new Date().toISOString()}.`;
     await this.scenarios.save(scenario);
-    return { status: 'committed' };
+
+    let outboxEventId: string | null = null;
+    if (this.outbox) {
+      const event = await this.outbox.push(
+        Layer.SIMULATION,
+        SCENARIO_PROMOTED_EVENT_TYPE,
+        {
+          scenarioId: scenario.id,
+          projectBusinessKey: scenario.projectBusinessKey,
+          name: scenario.name,
+          kind: kind ?? 'generic',
+          promotedBy,
+        },
+        undefined,
+        { correlationId: scenario.id },
+      );
+      outboxEventId = event.id;
+    }
+    return { status: 'committed', outboxEventId };
   }
 
   // ───────────────────────── internals ─────────────────────────

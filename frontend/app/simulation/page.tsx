@@ -7,7 +7,9 @@ import { useConfirm } from '../../components/ConfirmDialog';
 import { JsonView } from '../../components/JsonView';
 import { useToast } from '../../components/ToastProvider';
 import { api, ScenarioRecord } from '../../lib/api';
+import { CAPABILITIES } from '../../lib/capabilities';
 import { useI18n } from '../../lib/i18n';
+import { useMe } from '../../lib/me-context';
 import { useProject } from '../../lib/project-context';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { IconClock, IconFolder, IconSparkles, IconX } from '../../components/Icons';
@@ -20,10 +22,13 @@ import { IconClock, IconFolder, IconSparkles, IconX } from '../../components/Ico
  * lets the user discard a scenario or expand a JSON diff of the
  * `baselineSnapshot` against the current ProjectSummary.
  *
- * Capability is `canSimulate` (Wave 1 grants this to every role except
- * contractor). The "Promote to canonical" button is intentionally stubbed —
- * the backend throws 501 until C5 and the UI surfaces a disabled-with-tooltip
- * affordance so the gate is visually obvious without being mis-clickable.
+ * Capability is `canSimulate` (Wave 7 grants this to EVERY role including
+ * contractor + subcontractor — sandbox writes never touch canonical truth).
+ * "Promote to canonical" is LIVE since Wave 7: gated on `canEditPolicy`,
+ * stamps the promoter on the audit trail, and pushes
+ * `simulation.scenario.promoted` onto the cross-layer Outbox. Clash-impact
+ * scenarios are refused server-side and promote through /clashes instead
+ * (atomic schedule revision + FIDIC claim letter).
  */
 export default function SimulationPageRoute() {
   return (
@@ -38,6 +43,8 @@ function SimulationPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const { current } = useProject();
+  const { me } = useMe();
+  const canPromote = !!me?.user && CAPABILITIES[me.user.role].canEditPolicy;
 
   const [scenarios, setScenarios] = useState<ScenarioRecord[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -83,6 +90,35 @@ function SimulationPage() {
       await refresh();
     } catch (e) {
       toast.error(t('simulation.discardFailed'), (e as Error).message);
+    } finally {
+      setActing(null);
+    }
+  };
+
+  /** Promote-to-canonical (Wave 7 — live). Confirm → POST → refresh. */
+  const onPromote = async (id: string) => {
+    const ok = await confirm({
+      title: 'Promote this scenario to canonical?',
+      description:
+        'The scenario is marked committed, the promotion is stamped on its audit trail, and a ' +
+        'simulation.scenario.promoted event notifies the downstream layers. Clash-impact scenarios ' +
+        'are refused here — apply those from /clashes so the schedule revision + claim letter issue atomically.',
+      confirmLabel: 'Promote',
+    });
+    if (!ok) return;
+    setActing(id);
+    try {
+      const r = await api<{ status: string; outboxEventId: string | null }>(
+        `/simulation/scenarios/${id}/promote`,
+        { method: 'POST', body: JSON.stringify({ promotedBy: me?.user?.displayName ?? 'unknown' }) },
+      );
+      toast.success(
+        'Scenario promoted',
+        r.outboxEventId ? `Outbox event ${r.outboxEventId.slice(0, 8)} dispatched.` : 'Committed.',
+      );
+      await refresh();
+    } catch (e) {
+      toast.error('Promote failed', (e as Error).message);
     } finally {
       setActing(null);
     }
@@ -134,6 +170,8 @@ function SimulationPage() {
               currentProject={current}
               nowMs={nowMs}
               acting={acting === s.id}
+              canPromote={canPromote}
+              onPromote={() => onPromote(s.id)}
               onDiscard={() => onDiscard(s.id)}
             />
           ))}
@@ -160,7 +198,7 @@ function SimulationPage() {
 // ---------------------------------------------------------------------------
 
 function ScenarioCard({
-  scenario, expanded, onToggleExpand, currentProject, nowMs, acting, onDiscard,
+  scenario, expanded, onToggleExpand, currentProject, nowMs, acting, canPromote, onPromote, onDiscard,
 }: {
   scenario: ScenarioRecord;
   expanded: boolean;
@@ -169,6 +207,8 @@ function ScenarioCard({
   /** Frozen "now" passed from the parent — keeps expiration checks pure. */
   nowMs: number;
   acting: boolean;
+  canPromote: boolean;
+  onPromote: () => void;
   onDiscard: () => void;
 }) {
   const { t } = useI18n();
@@ -205,12 +245,25 @@ function ScenarioCard({
             {expanded ? t('simulation.hideDiff') : t('simulation.viewDiff')}
           </Button>
           {/*
-            Promote-to-canonical lands in C5 — backend throws 501 today.
-            Keep the affordance visible so users see the path, but block it.
-            Wrapping span carries the tooltip since Button doesn't accept title.
+            Promote-to-canonical — LIVE since Wave 7 (the C5 gate). Requires
+            canEditPolicy; clash-impact scenarios are refused server-side with
+            a pointer to the /clashes apply gate (atomic revision + letter).
           */}
-          <span title={t('simulation.commitDisabledHint')}>
-            <Button variant="primary" size="sm" disabled>
+          <span
+            title={
+              !canPromote
+                ? 'Promoting requires canEditPolicy (PD / Client / Admin).'
+                : !isMutable
+                  ? 'Only open scenarios can be promoted.'
+                  : 'Mark committed + notify downstream layers via the Outbox.'
+            }
+          >
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!canPromote || !isMutable || acting}
+              onClick={onPromote}
+            >
               {t('simulation.commit')}
             </Button>
           </span>
