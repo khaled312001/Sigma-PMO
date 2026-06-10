@@ -48,6 +48,16 @@ const OPERATIONS: NavLink[] = [
 
 const PLANNING: NavLink[] = [
   { href: '/baselines', labelKey: 'nav.baselines', surface: 'planning', icon: IconActivity, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/simulation', labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canSimulate },
+];
+
+const ENGINEERING: NavLink[] = [
+  { href: '/clashes', labelKey: 'nav.clashes', surface: 'review', icon: IconReview, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+];
+
+const GOVERNANCE: NavLink[] = [
+  { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];
 
 const REPORTING: NavLink[] = [
@@ -149,6 +159,8 @@ function SidebarBody({
   const portfolio = PORTFOLIO.filter((n) => n.visible(me));
   const ops = OPERATIONS.filter((n) => n.visible(me));
   const planning = PLANNING.filter((n) => n.visible(me));
+  const engineering = ENGINEERING.filter((n) => n.visible(me));
+  const governance = GOVERNANCE.filter((n) => n.visible(me));
   const reporting = REPORTING.filter((n) => n.visible(me));
   const insights = INSIGHTS.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
@@ -185,6 +197,8 @@ function SidebarBody({
         <NavGroup title={t('projects.eyebrow')} links={portfolio} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.operations')} links={ops} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.planning')} links={planning} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.engineering')} links={engineering} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.governance')} links={governance} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.reporting')} links={reporting} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('decisions.eyebrow')} links={insights} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} onNavigate={onNavigate} />

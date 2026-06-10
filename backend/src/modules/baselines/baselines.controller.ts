@@ -21,6 +21,7 @@ import { RequiresCapability } from '../auth/require-capability.decorator';
 import { BaselineBuildJob, Project, SourceFile } from '../canonical/entities';
 import { BaselineBuildService, DEFAULT_PLANNER_PERSONA_SLUG } from './baseline-build.service';
 import { BaselinePdfRendererService } from './baseline-pdf-renderer.service';
+import { CompressionProposal, ScheduleCompressionService } from './schedule-compression.service';
 
 interface SubmitBaselineJobBody {
   projectKey: string;
@@ -54,11 +55,27 @@ export class BaselinesController {
   constructor(
     private readonly baselines: BaselineBuildService,
     private readonly pdfRenderer: BaselinePdfRendererService,
+    private readonly compression: ScheduleCompressionService,
     @InjectRepository(SourceFile)
     private readonly sourceFiles: Repository<SourceFile>,
     @InjectRepository(Project)
     private readonly projects: Repository<Project>,
   ) {}
+
+  /**
+   * Day-zero compression analysis (correction-plan §2.5; meeting
+   * 2026-06-08 @ 00:16:28). Deterministic-first — heuristic candidates
+   * always compute; the planner persona vets them when Claude is enabled.
+   */
+  @Post('compression/propose')
+  @HttpCode(200)
+  @RequiresCapability('canSimulate')
+  proposeCompression(
+    @Body() body: { projectKey: string; requestedBy?: string | null },
+  ): Promise<CompressionProposal> {
+    if (!body?.projectKey) throw new BadRequestException('projectKey is required');
+    return this.compression.proposeCompression(body.projectKey, body.requestedBy ?? null);
+  }
 
   @Post('jobs')
   @HttpCode(200)

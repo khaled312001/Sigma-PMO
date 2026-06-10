@@ -2,11 +2,13 @@ import { Module } from '@nestjs/common';
 
 import { CanonicalModule } from '../canonical/canonical.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
+import { ClaudeModule } from '../claude/claude.module';
 import { BaselineBuildService } from './baseline-build.service';
 import { BaselinePdfRendererService } from './baseline-pdf-renderer.service';
 import { BaselineTemplateService } from './baseline-template.service';
 import { BaselinesController } from './baselines.controller';
 import { ComputerUseOrchestratorService } from './computer-use-orchestrator.service';
+import { ScheduleCompressionService } from './schedule-compression.service';
 import { XerWriterService } from './xer-writer.service';
 
 /**
@@ -18,7 +20,7 @@ import { XerWriterService } from './xer-writer.service';
  * module until ADR-0011 is Accepted.
  */
 @Module({
-  imports: [CanonicalModule, IngestionModule],
+  imports: [CanonicalModule, IngestionModule, ClaudeModule],
   controllers: [BaselinesController],
   providers: [
     BaselineBuildService,
@@ -26,6 +28,7 @@ import { XerWriterService } from './xer-writer.service';
     ComputerUseOrchestratorService,
     BaselineTemplateService,
     BaselinePdfRendererService,
+    ScheduleCompressionService,
   ],
   exports: [
     BaselineBuildService,
@@ -33,6 +36,7 @@ import { XerWriterService } from './xer-writer.service';
     ComputerUseOrchestratorService,
     BaselineTemplateService,
     BaselinePdfRendererService,
+    ScheduleCompressionService,
   ],
 })
 export class BaselinesModule {}

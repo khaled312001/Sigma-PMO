@@ -16,6 +16,12 @@ export const en: Dictionary = {
     reports: 'Reports',
     reporting: 'Reporting',
     settings: 'Advanced settings',
+    engineering: 'Engineering',
+    governance: 'Governance',
+    clashes: 'Clashes',
+    letters: 'Letters',
+    sources: 'Source registry',
+    simulation: 'Simulation',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -457,6 +463,8 @@ export interface Dictionary {
     baselines: string; planning: string;
     reports: string; reporting: string;
     settings: string;
+    engineering: string; governance: string;
+    clashes: string; letters: string; sources: string; simulation: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

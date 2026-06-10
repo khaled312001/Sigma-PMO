@@ -85,6 +85,28 @@ interface ProjectInfo {
   dataDate: string | null;
 }
 
+/** Mirrors `CompressionProposal` from schedule-compression.service.ts. */
+interface CompressionProposalView {
+  projectKey: string;
+  scenarioId: string;
+  originalDurationDays: number;
+  compressedDurationDays: number;
+  compressionDays: number;
+  compressionPercent: number;
+  techniques: Array<{
+    type: 'crashing' | 'fast-tracking' | 'resequencing';
+    title: string;
+    affectedActivities: string[];
+    estimatedSavingDays: number;
+    assumptions: string[];
+    tradeoffs: string;
+  }>;
+  risks: string[];
+  source: 'deterministic' | 'llm';
+  personaSlug: string | null;
+  citations: string[];
+}
+
 // ────────────────────────── Route ──────────────────────────
 
 export default function BaselinesRoute() {
@@ -234,6 +256,8 @@ function BaselinesPage() {
 
       <ProjectHeroCard project={project} counts={counts} />
 
+      <CompressionCard projectKey={projectKey} canSimulate={canAuthor} requestedBy={authoredBy} />
+
       <HowItWorksPanel />
 
       {canAuthor ? (
@@ -360,6 +384,136 @@ function HeroMetric({
         {value}
       </p>
     </div>
+  );
+}
+
+// ────────────────────────── Compression card ──────────────────────────
+
+/**
+ * Day-zero schedule-compression proposal (correction-plan §2.5). The AI
+ * planner reviews the submitted programme and answers Al Ayham's 00:16:28
+ * question: "هاد الجدول الزمني قادر انه ينضغط؟" — with techniques, savings,
+ * assumptions, and risks. Read-only analysis; applying the techniques is
+ * the planner-review cycle that follows.
+ */
+function CompressionCard({
+  projectKey,
+  canSimulate,
+  requestedBy,
+}: {
+  projectKey: string;
+  canSimulate: boolean;
+  requestedBy: string;
+}) {
+  const toast = useToast();
+  const [proposal, setProposal] = useState<CompressionProposalView | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const onAnalyse = useCallback(async () => {
+    if (!projectKey) return;
+    setBusy(true);
+    try {
+      const p = await api<CompressionProposalView>('/baselines/compression/propose', {
+        method: 'POST',
+        body: JSON.stringify({ projectKey, requestedBy }),
+      });
+      setProposal(p);
+      setExpanded(true);
+      toast.success(
+        'Analysis ready',
+        `The schedule can compress by ${p.compressionDays} day(s) (${p.compressionPercent}%).`,
+      );
+    } catch (e) {
+      toast.error('Compression analysis failed', (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [projectKey, requestedBy, toast]);
+
+  return (
+    <Card
+      title="Schedule compression analysis"
+      hint="Day-zero review: can the submitted programme be compressed? Crashing + fast-tracking candidates with savings, assumptions, and risks."
+      actions={
+        <Button variant="primary" size="sm" onClick={() => void onAnalyse()} disabled={!canSimulate || busy || !projectKey}>
+          <IconSparkles className="h-3.5 w-3.5" />
+          {busy ? 'Analysing…' : proposal ? 'Re-analyse' : 'Analyse schedule'}
+        </Button>
+      }
+    >
+      {!proposal ? (
+        <p className="text-xs text-slate-300">
+          No analysis yet for this project. The engine detects compression candidates
+          deterministically (critical-band crashing + same-WBS fast-tracking), then the
+          25-year planner persona vets them when Claude is enabled. The claimed saving
+          is capped at 30% of the original duration — the over-compression guard.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Original</p>
+              <p className="text-lg font-semibold tabular-nums text-slate-50" dir="ltr">{proposal.originalDurationDays} d</p>
+            </div>
+            <span aria-hidden className="text-slate-500">→</span>
+            <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-4 py-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">Compressed</p>
+              <p className="text-lg font-semibold tabular-nums text-emerald-100" dir="ltr">{proposal.compressedDurationDays} d</p>
+            </div>
+            <Pill tone="emerald">−{proposal.compressionDays} d ({proposal.compressionPercent}%)</Pill>
+            <Pill tone={proposal.source === 'llm' ? 'violet' : 'slate'}>
+              {proposal.source === 'llm' ? `Vetted by ${proposal.personaSlug}` : 'Deterministic heuristics'}
+            </Pill>
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="ms-auto text-xs text-sky-300 underline-offset-2 hover:underline"
+            >
+              {expanded ? 'Hide details' : 'View details'}
+            </button>
+          </div>
+
+          {expanded && (
+            <div className="space-y-2 animate-[fade-in-up_200ms_ease-out]">
+              {proposal.techniques.map((t, i) => (
+                <div key={i} className="rounded-lg border border-slate-700/70 bg-slate-900/50 px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Pill tone={t.type === 'crashing' ? 'rose' : t.type === 'fast-tracking' ? 'amber' : 'sky'}>
+                      {t.type}
+                    </Pill>
+                    <span className="text-sm font-medium text-slate-100" dir="auto">{t.title}</span>
+                    <Pill tone="emerald">−{t.estimatedSavingDays} d</Pill>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-slate-300">
+                    <span className="font-semibold text-slate-200">Activities:</span>{' '}
+                    <span className="font-mono" dir="ltr">{t.affectedActivities.join(', ')}</span>
+                  </p>
+                  {t.assumptions.length > 0 && (
+                    <ul className="mt-1 list-inside list-disc text-[11px] text-slate-400">
+                      {t.assumptions.map((a, j) => <li key={j}>{a}</li>)}
+                    </ul>
+                  )}
+                  <p className="mt-1 text-[11px] text-amber-200">{t.tradeoffs}</p>
+                </div>
+              ))}
+              {proposal.risks.length > 0 && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100">Risks</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5 text-[11px] text-amber-100">
+                    {proposal.risks.map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                </div>
+              )}
+              <p className="text-[10px] text-slate-500">
+                Scenario {proposal.scenarioId.slice(0, 8)} persisted for audit. Applying the techniques
+                is a planner-review step — the analysis never mutates the canonical schedule by itself.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 
