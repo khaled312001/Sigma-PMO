@@ -52,6 +52,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
+import { SimulationModal, SimulationProjectionView } from '../../components/SimulationModal';
 import { useToast } from '../../components/ToastProvider';
 import { CAPABILITIES } from '../../lib/capabilities';
 import { useI18n } from '../../lib/i18n';
@@ -118,6 +119,18 @@ interface ProposeOutcome {
   outboxEventId: string;
 }
 
+/** Response shape of `POST /clashes/:id/options/:idx/apply` (mirrors `ApplyClashResolutionOutcome`). */
+interface ApplyOutcome {
+  clashId: string;
+  chosenOptionIndex: number;
+  revisedActivityKeys: string[];
+  revisionNumber: number;
+  scenarioId: string | null;
+  outboxEventId: string;
+  claimLetterId: string | null;
+  warnings: string[];
+}
+
 type Status = 'pending' | 'proposed' | 'decided';
 
 const ACCEPTED_EXT = /\.(xlsx|xlsm)$/i;
@@ -144,6 +157,9 @@ function ClashesPage() {
   const projectKey = useCurrentProjectKey();
   const { me } = useMe();
   const canAct = me?.user ? CAPABILITIES[me.user.role].canEvaluateRules : false;
+  const canSimulate = me?.user ? CAPABILITIES[me.user.role].canSimulate : false;
+  const canApprove = me?.user ? CAPABILITIES[me.user.role].canEditPolicy : false;
+  const approverName = me?.user?.displayName ?? 'unknown';
 
   const [clashes, setClashes] = useState<ClashItem[] | null>(null);
   const [filter, setFilter] = useState<'all' | Status | 'critical'>('all');
@@ -236,6 +252,9 @@ function ClashesPage() {
               key={c.id}
               clash={c}
               canAct={canAct}
+              canSimulate={canSimulate}
+              canApprove={canApprove}
+              approverName={approverName}
               onUpdated={onClashUpdated}
             />
           ))}
@@ -432,10 +451,16 @@ function FilterChips({
 function ClashCard({
   clash,
   canAct,
+  canSimulate,
+  canApprove,
+  approverName,
   onUpdated,
 }: {
   clash: ClashItem;
   canAct: boolean;
+  canSimulate: boolean;
+  canApprove: boolean;
+  approverName: string;
   onUpdated: (next: ClashItem) => void;
 }) {
   const toast = useToast();
@@ -443,12 +468,15 @@ function ClashCard({
   const hasOptions = !!clash.proposedOptions && clash.proposedOptions.length > 0;
   const decided = clash.chosenOptionIndex !== null && clash.chosenOptionIndex !== undefined;
 
-  // The radio selection is local until the user clicks "Submit decision".
+  // The radio selection is local until the user runs the simulation.
   // Pre-seed it with the currently-chosen option so an already-decided clash
   // shows its winner highlighted (the radios stay disabled in that branch).
   const [picked, setPicked] = useState<number | null>(clash.chosenOptionIndex);
   const [proposing, setProposing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [simulating, setSimulating] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [projection, setProjection] = useState<SimulationProjectionView | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Resync local pick when the parent swaps in a fresh row (e.g. after
   // propose). The append-only ingestion contract means `clash.id` stays
@@ -479,26 +507,49 @@ function ClashCard({
     }
   };
 
-  const onSubmitDecision = async () => {
-    if (!canAct || picked === null) return;
-    setSubmitting(true);
+  /** Step 1 — run the deterministic what-if; opens the before/after modal. */
+  const onSimulate = async () => {
+    if (!canSimulate || picked === null) return;
+    setSimulating(true);
     try {
-      // Endpoint matches the post-meeting plan §3.7 contract — the backend
-      // route will land alongside this surface. If it returns the updated
-      // row we use it directly; otherwise we refetch for safety.
-      const r = await api<ClashItem | { id: string }>(`/clashes/${clash.id}/decide`, {
-        method: 'POST',
-        body: JSON.stringify({ chosenOptionIndex: picked }),
-      });
-      const next: ClashItem = 'decidedAt' in r && (r as ClashItem).decidedAt !== undefined
-        ? (r as ClashItem)
-        : await api<ClashItem>(`/clashes/${clash.id}`);
-      onUpdated(next);
-      toast.success('Decision recorded', `Option ${labelForIndex(next.proposedOptions, picked)} chosen.`);
+      const p = await api<SimulationProjectionView>(
+        `/clashes/${clash.id}/options/${picked}/simulate`,
+        { method: 'POST', body: JSON.stringify({ requestedBy: approverName }) },
+      );
+      setProjection(p);
+      setModalOpen(true);
     } catch (e) {
-      toast.error('Decision failed', (e as Error).message);
+      toast.error('Simulation failed', (e as Error).message);
     } finally {
-      setSubmitting(false);
+      setSimulating(false);
+    }
+  };
+
+  /** Step 2 — approve: append-only schedule revision + FIDIC claim letter. */
+  const onApprove = async () => {
+    if (!canApprove || picked === null || !projection) return;
+    setApplying(true);
+    try {
+      const r = await api<ApplyOutcome>(
+        `/clashes/${clash.id}/options/${picked}/apply`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ approvedBy: approverName, scenarioId: projection.scenarioId }),
+        },
+      );
+      setModalOpen(false);
+      const refreshed = await api<ClashItem>(`/clashes/${clash.id}`);
+      onUpdated(refreshed);
+      toast.success(
+        'Resolution applied',
+        `${r.revisedActivityKeys.length} activity revision(s) at rev ${r.revisionNumber}` +
+          (r.claimLetterId ? ` · claim letter drafted (${r.claimLetterId.slice(0, 8)})` : ' · letter pending — see warnings'),
+      );
+      for (const w of r.warnings) toast.error('Note', w);
+    } catch (e) {
+      toast.error('Apply failed', (e as Error).message);
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -557,22 +608,34 @@ function ClashCard({
         {hasOptions && !decided && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/70 pt-3">
             <p className="text-[11px] text-slate-500">
-              Picking an option records `chosenOptionIndex` + `decidedBy` + `decidedAt`.
-              The clash row remains append-only.
+              Pick an option, then run the simulation to see the time/cost impact
+              before approving. Approval issues an append-only schedule revision
+              and drafts the FIDIC claim letter.
             </p>
             <Button
-              variant="success"
+              variant="primary"
               size="sm"
-              disabled={!canAct || picked === null || submitting}
-              onClick={onSubmitDecision}
+              disabled={!canSimulate || picked === null || simulating}
+              onClick={onSimulate}
             >
-              {submitting ? 'Submitting…' : 'Submit decision'}
+              {simulating ? 'Simulating…' : 'Simulate impact'}
             </Button>
           </div>
         )}
 
         {decided && <DecisionAuditRow clash={clash} />}
       </div>
+
+      <SimulationModal
+        open={modalOpen}
+        optionLabel={picked !== null ? clash.proposedOptions?.[picked]?.label ?? '' : ''}
+        projection={projection}
+        applying={applying}
+        onApprove={canApprove ? onApprove : () => {
+          toast.error('Not permitted', 'Approving requires the canEditPolicy capability (PD / Client / Admin).');
+        }}
+        onClose={() => setModalOpen(false)}
+      />
     </Card>
   );
 }

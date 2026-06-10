@@ -4,6 +4,7 @@ import { BoqModule } from '../boq/boq.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { ClaudeModule } from '../claude/claude.module';
 import { OutboxModule } from '../outbox/outbox.module';
+import { SimulationModule } from '../simulation/simulation.module';
 import { ClashIngestionService } from './clash-ingestion.service';
 import { ClashSolutionProposer } from './clash-solution-proposer.service';
 import { ClashSolutionProposerController } from './clash-solution-proposer.controller';
@@ -45,7 +46,7 @@ import { ClashExcelParser } from './parsers/clash-excel.parser';
  *    source of AED numbers per `revit-clash-analyst` rule 1).
  */
 @Module({
-  imports: [CanonicalModule, OutboxModule, ClaudeModule, BoqModule],
+  imports: [CanonicalModule, OutboxModule, ClaudeModule, BoqModule, SimulationModule],
   controllers: [ClashesController, ClashSolutionProposerController],
   providers: [ClashIngestionService, ClashExcelParser, ClashSolutionProposer],
   exports: [ClashIngestionService, ClashSolutionProposer],

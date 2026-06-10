@@ -198,10 +198,16 @@ describe('ClashSolutionProposer', () => {
     dataSource = makeDataSource({ clashes });
     outbox = makeOutbox();
     boqIngestion = makeBoqIngestion([]);
+    // Project/Activity repos: empty by default — the schedule-context
+    // gatherer degrades to the honest "no dated activities" note, which is
+    // exactly the Wave-2 behaviour these specs were written against.
+    const emptyRepo = { findOne: jest.fn(async () => null), find: jest.fn(async () => []) };
     return new ClashSolutionProposer(
       dataSource,
       clashes as unknown as Repository<ClashItem>,
       boqItems as unknown as Repository<BoqItem>,
+      emptyRepo as unknown as Repository<import('../canonical/entities').Project>,
+      emptyRepo as unknown as Repository<import('../canonical/entities').Activity>,
       opts.claude,
       makeClashIngestion(),
       boqIngestion,

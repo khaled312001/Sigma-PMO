@@ -8,7 +8,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import { Layer } from '../../common/enums';
-import { BoqItem, ClashItem } from '../canonical/entities';
+import { Activity, BoqItem, ClashItem, Project } from '../canonical/entities';
 import { BoqIngestionService } from '../boq/boq-ingestion.service';
 import { ClaudeService } from '../claude/claude.service';
 import { OutboxService } from '../outbox/outbox.service';
@@ -133,6 +133,8 @@ export class ClashSolutionProposer {
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(ClashItem) private readonly clashes: Repository<ClashItem>,
     @InjectRepository(BoqItem) private readonly boqItems: Repository<BoqItem>,
+    @InjectRepository(Project) private readonly projects: Repository<Project>,
+    @InjectRepository(Activity) private readonly activities: Repository<Activity>,
     private readonly claude: ClaudeService,
     private readonly ingestion: ClashIngestionService,
     private readonly boqIngestion: BoqIngestionService,
@@ -166,11 +168,12 @@ export class ClashSolutionProposer {
     }
 
     // Gather context BEFORE we hit Claude so a context-build failure does
-    // not bill us tokens. The schedule slice is a stub today (see class
-    // doc): the persona rules force a refusal-or-zero on any duration
-    // claim it cannot ground in the baseline, so a stub-string is safe.
+    // not bill us tokens. Wave 6 wires the REAL baseline slice (replacing
+    // the Wave-2 stub) so the persona can ground every duration claim in
+    // the approved schedule — the "أرقام الزمن من الجدول الأساسي المعتمَد
+    // حصراً" rule finally has data behind it.
     const boqContext = await this.gatherBoqContext(clash.projectBusinessKey);
-    const scheduleContext = this.gatherScheduleContextStub(clash.projectBusinessKey);
+    const scheduleContext = await this.gatherScheduleContext(clash.projectBusinessKey);
     const personaContext = this.buildPersonaContext(clash, boqContext, scheduleContext);
 
     const userQuery = this.buildUserQuery(clash);
@@ -345,19 +348,65 @@ export class ClashSolutionProposer {
   }
 
   /**
-   * Schedule context stub — see class doc. Returns a single-line note
-   * telling the persona the baseline is not yet wired through to this
-   * caller, so any duration claim must be 0 + flagged.
+   * The real baseline slice (Wave 6 — replaces the Wave-2 stub). Loads the
+   * current Activity rows for the project and serialises the planner-
+   * relevant fields. Critical-path posture is derivable by the persona from
+   * the per-activity float (days between the activity finish and the
+   * project finish), which we pre-compute so the persona never does date
+   * math itself.
    *
-   * The full Activity slice wires up in C5 alongside the BaselineBuildWorker
-   * enablement path (ADR-0011 status flip).
+   * When the project has no dated activities yet, returns an honest note
+   * telling the persona to keep every `timeImpactDays` at 0 + flagged —
+   * same refusal-over-invention contract as before.
    */
-  private gatherScheduleContextStub(_projectBusinessKey: string): string {
-    return (
-      'Baseline schedule slice for this project is not yet wired into the ' +
-      'ClashSolutionProposer. Treat every duration claim as ungrounded — ' +
-      'set `timeImpactDays: 0` and add a `note` flagging that the operator ' +
-      'must confirm against the approved baseline before accepting.'
+  private async gatherScheduleContext(projectBusinessKey: string): Promise<string> {
+    const project = await this.projects.findOne({
+      where: { businessKey: projectBusinessKey, isCurrent: true },
+    });
+    if (!project) {
+      return (
+        'No current project row found for this businessKey — treat every ' +
+        'duration claim as ungrounded: set `timeImpactDays: 0` and flag for the operator.'
+      );
+    }
+    const rows = await this.activities.find({
+      where: { projectId: project.id, isCurrent: true },
+    });
+    const dated = rows.filter((a) => a.plannedFinish);
+    if (dated.length === 0) {
+      return (
+        'The project schedule carries no dated activities yet — treat every ' +
+        'duration claim as ungrounded: set `timeImpactDays: 0` and flag for the operator.'
+      );
+    }
+    const projectFinish = dated
+      .map((a) => a.plannedFinish!)
+      .reduce((m, x) => (x > m ? x : m));
+    // Cap the slice so the context stays affordable; latest finishers first
+    // because they are the critical-path candidates the persona needs most.
+    const slice = [...dated]
+      .sort((a, b) => (b.plannedFinish! < a.plannedFinish! ? -1 : 1))
+      .slice(0, 80)
+      .map((a) => ({
+        businessKey: a.businessKey,
+        name: a.name,
+        wbsCode: a.wbsCode,
+        plannedStart: a.plannedStart,
+        plannedFinish: a.plannedFinish,
+        plannedDurationDays: a.plannedDurationDays,
+        floatDays: daysBetweenIso(a.plannedFinish!, projectFinish),
+      }));
+    return JSON.stringify(
+      {
+        projectFinish,
+        activityCount: rows.length,
+        note:
+          'floatDays = days between the activity finish and the project finish. ' +
+          'floatDays = 0 means critical path. Ground every timeImpactDays in these rows.',
+        activities: slice,
+      },
+      null,
+      2,
     );
   }
 
@@ -508,4 +557,11 @@ export class ClashSolutionProposer {
     }
     return null;
   }
+}
+
+/** Whole days from `aIso` to `bIso` (UTC midnights). */
+function daysBetweenIso(aIso: string, bIso: string): number {
+  const a = new Date(`${aIso}T00:00:00Z`);
+  const b = new Date(`${bIso}T00:00:00Z`);
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
 }
