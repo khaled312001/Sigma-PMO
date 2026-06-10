@@ -580,6 +580,10 @@ function ClashCard({
           <p className="mt-2 text-sm text-slate-200">{clash.description}</p>
           <p className="mt-1 text-[11px] text-slate-500" dir="ltr">
             Ingested {new Date(clash.createdAt).toLocaleString()}
+            {' · '}
+            <a href={`/clashes/${clash.id}`} className="text-sky-300 underline-offset-2 hover:underline">
+              Open detail page →
+            </a>
           </p>
         </div>
       </div>

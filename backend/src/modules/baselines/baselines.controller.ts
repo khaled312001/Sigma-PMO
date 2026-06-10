@@ -11,14 +11,16 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Response } from 'express';
 import { Repository } from 'typeorm';
 
+import { scopeActivities } from '../auth/activity-scope.util';
 import { RequiresCapability } from '../auth/require-capability.decorator';
-import { BaselineBuildJob, Project, SourceFile } from '../canonical/entities';
+import { BaselineBuildJob, Project, SourceFile, User } from '../canonical/entities';
 import { BaselineBuildService, DEFAULT_PLANNER_PERSONA_SLUG } from './baseline-build.service';
 import { BaselinePdfRendererService } from './baseline-pdf-renderer.service';
 import { CompressionProposal, ScheduleCompressionService } from './schedule-compression.service';
@@ -135,7 +137,10 @@ export class BaselinesController {
    */
   @Get('jobs/:id/schedule.summary')
   @RequiresCapability('canRead')
-  async getScheduleSummary(@Param('id') id: string): Promise<{
+  async getScheduleSummary(
+    @Param('id') id: string,
+    @Req() req: { user?: User },
+  ): Promise<{
     activityCount: number;
     milestoneCount: number;
     criticalCount: number;
@@ -181,8 +186,11 @@ export class BaselinesController {
               86_400_000,
           ) + 1
         : null;
+    // Subcontractor scope (Wave 7): the summary narrows to the activities
+    // on the user's activityScope; an unscoped subcontractor sees nothing.
+    const visible = scopeActivities(req.user ?? null, synth.activities);
     const wbsCounts = new Map<string, number>();
-    for (const a of synth.activities) {
+    for (const a of visible) {
       const root = a.wbsCode.split('.').slice(0, 2).join('.');
       wbsCounts.set(root, (wbsCounts.get(root) ?? 0) + 1);
     }
@@ -190,13 +198,13 @@ export class BaselinesController {
       .map(([code, count]) => ({ code, count }))
       .sort((a, b) => a.code.localeCompare(b.code));
     return {
-      activityCount: synth.activities.length,
-      milestoneCount: synth.activities.filter((a) => a.isMilestone).length,
-      criticalCount: synth.activities.filter((a) => a.isCritical && !a.isMilestone).length,
+      activityCount: visible.length,
+      milestoneCount: visible.filter((a) => a.isMilestone).length,
+      criticalCount: visible.filter((a) => a.isCritical && !a.isMilestone).length,
       dependencyCount: synth.dependencies.length,
       durationDays,
       wbsBreakdown,
-      sample: synth.activities.slice(0, 8).map((a) => ({
+      sample: visible.slice(0, 8).map((a) => ({
         businessKey: a.businessKey,
         name: a.name,
         wbsCode: a.wbsCode,

@@ -53,6 +53,7 @@ const PLANNING: NavLink[] = [
 
 const ENGINEERING: NavLink[] = [
   { href: '/clashes', labelKey: 'nav.clashes', surface: 'review', icon: IconReview, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/drawings', labelKey: 'nav.drawings', surface: 'input', icon: IconUpload, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];
 
 const GOVERNANCE: NavLink[] = [

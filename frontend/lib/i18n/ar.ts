@@ -21,6 +21,7 @@ export const ar: Dictionary = {
     engineering: 'الهندسة',
     governance: 'الحوكمة',
     clashes: 'التضاربات',
+    drawings: 'المخططات',
     letters: 'الخطابات',
     sources: 'سجل المصادر',
     simulation: 'المحاكاة',
