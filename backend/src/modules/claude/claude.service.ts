@@ -6,6 +6,7 @@ import type { AnthropicConfig, AppConfiguration } from '../../config/configurati
 import type { Persona } from '../canonical/entities';
 import { PersonasService } from '../personas/personas.service';
 import { PolicyAddonsService } from '../policy-addons/policy-addons.service';
+import { ProjectMemoryService } from '../project-memory/project-memory.service';
 import { SETTING_KEYS, SettingsService } from '../settings/settings.service';
 
 /**
@@ -175,6 +176,7 @@ export class ClaudeService implements OnModuleInit {
     @Optional() injectedClient?: AnthropicClientLike,
     @Optional() private readonly settings?: SettingsService,
     @Optional() private readonly policyAddons?: PolicyAddonsService,
+    @Optional() private readonly projectMemory?: ProjectMemoryService,
   ) {
     this.config = this.configService.get('anthropic', { infer: true });
     if (injectedClient) {
@@ -337,15 +339,29 @@ export class ClaudeService implements OnModuleInit {
    * with a warning: a broken addon read must not block a persona call.
    */
   private async resolveAddonBlock(context: PersonaCallContext): Promise<string> {
-    if (!this.policyAddons || !context.projectKey || !context.surface) return '';
-    try {
-      return await this.policyAddons.buildPromptBlock(context.projectKey, context.surface);
-    } catch (err) {
-      this.logger.warn(
-        `Policy-addon lookup failed for ${context.projectKey}/${context.surface}: ${(err as Error).message}`,
-      );
-      return '';
+    if (!context.projectKey) return '';
+    let block = '';
+    if (this.policyAddons && context.surface) {
+      try {
+        block += await this.policyAddons.buildPromptBlock(context.projectKey, context.surface);
+      } catch (err) {
+        this.logger.warn(
+          `Policy-addon lookup failed for ${context.projectKey}/${context.surface}: ${(err as Error).message}`,
+        );
+      }
     }
+    // Project "understudy" memory (correction-plan §2.11) — facts ≥ 0.6
+    // confidence ride alongside the addons; failures degrade silently.
+    if (this.projectMemory) {
+      try {
+        block += await this.projectMemory.buildPromptBlock(context.projectKey);
+      } catch (err) {
+        this.logger.warn(
+          `Project-memory lookup failed for ${context.projectKey}: ${(err as Error).message}`,
+        );
+      }
+    }
+    return block;
   }
 
   /** Build the `messages.create` request body, including the cacheable system block. */

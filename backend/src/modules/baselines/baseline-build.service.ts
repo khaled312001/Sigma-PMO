@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { SourceType } from '../../common/enums';
-import { Activity, BaselineBuildJob, Project, SourceFile } from '../canonical/entities';
+import { Activity, BaselineBuildJob, DrawingPackage, Project, SourceFile } from '../canonical/entities';
 import { StorageService } from '../ingestion/storage/storage.service';
 import { BaselineTemplateService, TemplateActivity, TemplateDependency } from './baseline-template.service';
 import { XerWriterService } from './xer-writer.service';
@@ -58,6 +58,7 @@ export class BaselineBuildService {
     @Optional() @Inject(XerWriterService) private readonly xerWriter?: XerWriterService,
     @Optional() @Inject(StorageService) private readonly storage?: StorageService,
     @Optional() @Inject(BaselineTemplateService) private readonly template?: BaselineTemplateService,
+    @Optional() @InjectRepository(DrawingPackage) private readonly drawingPackages?: Repository<DrawingPackage>,
   ) {}
 
   /**
@@ -93,10 +94,20 @@ export class BaselineBuildService {
       where: { businessKey: job.projectBusinessKey, isCurrent: true },
     });
     if (!project || !project.plannedStart || !project.plannedFinish) return null;
+    // Drawing-driven jobs re-derive the same floor count from the package
+    // they were generated against (determinism survives restarts).
+    let floorCount: number | undefined;
+    if (this.drawingPackages && job.drawingsSourceFileIds.length > 0) {
+      const pkg = await this.drawingPackages.findOne({
+        where: { sourceFileId: job.drawingsSourceFileIds[0] },
+      });
+      if (pkg) floorCount = deriveFloorCount(pkg.summary);
+    }
     const result = this.template.synthesise({
       projectStartIso: project.plannedStart,
       projectFinishIso: project.plannedFinish,
       projectName: project.name,
+      floorCount,
     });
     // Cache so subsequent calls in this process don't pay the cost again.
     this.lastSynth.set(job.id, { activities: result.activities, dependencies: result.dependencies });
@@ -168,6 +179,12 @@ export class BaselineBuildService {
     projectKey: string;
     authoredBy: string;
     baselineName?: string;
+    /**
+     * Drawing-driven path (correction-plan §2.1): when set, the template
+     * scales to the floor count detected in the drawing package — a G+5
+     * set genuinely produces a different schedule than a G+1 set.
+     */
+    drawingPackageId?: string;
   }): Promise<BaselineBuildJob> {
     if (!input.projectKey) throw new BadRequestException('projectKey is required');
     if (!this.xerWriter || !this.storage || !this.projects || !this.activities || !this.sourceFiles) {
@@ -224,6 +241,22 @@ export class BaselineBuildService {
           );
         }
 
+        // Drawing-driven floor count (correction-plan §2.1): read the
+        // detected floor hints from the package when one was named.
+        let floorCount: number | undefined;
+        if (input.drawingPackageId && this.drawingPackages) {
+          const pkg = await this.drawingPackages.findOne({ where: { id: input.drawingPackageId } });
+          if (!pkg) {
+            throw new NotFoundException(`No drawing package with id ${input.drawingPackageId}`);
+          }
+          floorCount = deriveFloorCount(pkg.summary);
+          job.drawingsSourceFileIds = [pkg.sourceFileId];
+          job.operatorNotes =
+            `Drawing-driven baseline from package ${pkg.id} (${pkg.filename}): ` +
+            `${floorCount} above-ground floor(s) detected.`;
+          await this.jobs.save(job);
+        }
+
         // Deliberate planning workload — gives the lifecycle observable
         // states the UI can render (5% → 30% → 70% → 100%). Total wall
         // clock ~6-10 seconds: this is real planning effort, not a no-op.
@@ -232,6 +265,7 @@ export class BaselineBuildService {
           projectStartIso: project.plannedStart,
           projectFinishIso: project.plannedFinish,
           projectName: project.name,
+          floorCount,
         });
         synth = { activities: result.activities, dependencies: result.dependencies };
 
@@ -361,4 +395,30 @@ export class BaselineBuildService {
     job.operatorNotes = `${job.operatorNotes ?? ''}\nApproved by ${approvedBy} at ${new Date().toISOString()}`.trim();
     return this.jobs.save(job);
   }
+}
+
+/**
+ * Above-ground floor count from a DrawingPackage summary (correction-plan
+ * §2.1). Counts the distinct named-floor hints (GROUND/FIRST/…/LEVEL n /
+ * G+n); BASEMENT and ROOF do not count as above-ground cycles. Falls back
+ * to 2 (the template default) when the drawing text carried no hints —
+ * the honest "we could not read the drawings" posture.
+ */
+export function deriveFloorCount(summary: Record<string, unknown>): number {
+  const hints = Array.isArray(summary?.floorHints) ? (summary.floorHints as string[]) : [];
+  if (hints.length === 0) return 2;
+  // Direct G+n marker wins (G+5 → 6 above-ground floors incl. ground).
+  for (const h of hints) {
+    const g = /^G\+(\d+)$/i.exec(h.trim());
+    if (g) return Math.min(40, parseInt(g[1], 10) + 1);
+  }
+  const NAMED = ['GROUND FLOOR', 'FIRST FLOOR', 'SECOND FLOOR', 'THIRD FLOOR'];
+  const named = new Set(hints.filter((h) => NAMED.includes(h.toUpperCase())));
+  const levels = new Set(
+    hints
+      .map((h) => /LEVEL\s*(\d+)/i.exec(h)?.[1])
+      .filter((n): n is string => n !== undefined),
+  );
+  const count = Math.max(named.size, levels.size);
+  return count > 0 ? Math.min(40, count) : 2;
 }

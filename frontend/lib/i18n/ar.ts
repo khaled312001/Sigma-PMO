@@ -43,6 +43,7 @@ export const ar: Dictionary = {
     client: 'العميل',
     consultant: 'الاستشاري',
     contractor: 'المقاول',
+    subcontractor: 'مقاول الباطن',
   },
   common: {
     loading: 'جاري التحميل…',

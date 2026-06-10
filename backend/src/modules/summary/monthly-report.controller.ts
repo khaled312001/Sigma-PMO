@@ -95,8 +95,13 @@ export class MonthlyReportController {
    */
   @Get(':id/pdf')
   @RequiresCapability('canRead')
-  async pdf(@Param('id') id: string, @Res() res: Response): Promise<void> {
-    const { row, absolutePath } = await this.service.renderPdf(id);
+  async pdf(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query('lang') lang?: string,
+  ): Promise<void> {
+    const language: 'ar' | 'en' = lang === 'en' ? 'en' : 'ar';
+    const { row, absolutePath } = await this.service.renderPdf(id, language);
     let size: number | null = null;
     try {
       const s = await stat(absolutePath);
@@ -109,7 +114,7 @@ export class MonthlyReportController {
     const periodTag = row.periodKey ?? row.month;
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${cadenceTag}-${row.projectBusinessKey}-${periodTag}-${row.audience}.pdf"`,
+      `attachment; filename="${cadenceTag}-${row.projectBusinessKey}-${periodTag}-${row.audience}-${language}.pdf"`,
     );
     if (size !== null) res.setHeader('Content-Length', String(size));
     createReadStream(absolutePath).pipe(res);

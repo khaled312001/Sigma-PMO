@@ -46,6 +46,16 @@ export class User extends UuidEntity {
   @Column({ type: 'varchar', length: 18, nullable: true })
   emiratesId!: string | null;
 
+  /**
+   * Activity-level scope for SUBCONTRACTOR users (Wave 7, correction-plan
+   * §2.9): array of Activity businessKeys this user may see / report on.
+   * NULL for every other role (their scope stays project-level via
+   * `projectScopes`). Per-surface query filters read this field as the
+   * single source of truth.
+   */
+  @Column({ type: 'json', nullable: true })
+  activityScope!: string[] | null;
+
   /** Comma-separated project business keys this user is scoped to ('*' = all). */
   @Column({ type: 'varchar', length: 1024, default: '*' })
   projectScopes!: string;

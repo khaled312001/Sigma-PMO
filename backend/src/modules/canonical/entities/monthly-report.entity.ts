@@ -90,9 +90,29 @@ export class MonthlyReport extends UuidEntity {
   @Column({ type: 'varchar', length: 128, nullable: true })
   llmModel!: string | null;
 
-  /** Authored prose (Markdown). Always reflects the human-facing report. */
+  /**
+   * Authored prose (Markdown). Always reflects the human-facing report.
+   * Historically Arabic-only; since Wave 7 this mirrors `narrativeAr` so
+   * existing readers keep working unchanged.
+   */
   @Column({ type: 'longtext' })
   narrative!: string;
+
+  /**
+   * Arabic edition (Wave 7, correction-plan §2.8). NULL on pre-Wave-7 rows
+   * (their Arabic prose lives in `narrative`).
+   */
+  @Column({ type: 'longtext', nullable: true })
+  narrativeAr!: string | null;
+
+  /**
+   * English edition — written INDEPENDENTLY by `report-narrator-english`
+   * from the same deterministic facts; not a translation pass. NULL on
+   * pre-Wave-7 rows and when the English call fails (the report is still
+   * valid Arabic-only; the UI shows which editions exist).
+   */
+  @Column({ type: 'longtext', nullable: true })
+  narrativeEn!: string | null;
 
   /**
    * Deterministic facts the persona was grounded on. Persisted so a future

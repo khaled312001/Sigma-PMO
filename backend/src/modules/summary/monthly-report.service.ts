@@ -51,6 +51,9 @@ export interface PeriodicReportRequest {
 /** Persona slug Wave 2 pins for monthly narratives (post-meeting plan §3.6). */
 const REPORT_PERSONA_SLUG = 'report-narrator-arabic';
 
+/** English-edition narrator (Wave 7, correction-plan §2.8) — same facts, independent prose. */
+const REPORT_PERSONA_SLUG_EN = 'report-narrator-english';
+
 /** Tier override — Owner/PD reports get Opus, Contractor stays on Sonnet. */
 const TIER_BY_AUDIENCE: Record<MonthlyReportAudience, string> = {
   owner: 'claude-opus',
@@ -164,19 +167,38 @@ export class MonthlyReportService {
     );
 
     let narrative = facts;
+    let narrativeAr: string | null = facts;
+    let narrativeEn: string | null = null;
     let narrativeSource: 'deterministic' | 'llm' = 'deterministic';
     let personaVersion = 1;
     let llmModel: string | null = null;
     let citations: string[] = [];
 
     if (this.claude.isEnabled()) {
-      const llm = await this.tryClaude(facts, req.audience, project.name, req.cadence, project.businessKey);
-      if (llm) {
-        narrative = llm.narrative;
+      // Bilingual generation (Wave 7, correction-plan §2.8): the Arabic and
+      // English narrators write INDEPENDENTLY from the same facts — the
+      // English edition is a first-class deliverable, not a translation.
+      const [ar, en] = await Promise.all([
+        this.tryClaude(facts, req.audience, project.name, req.cadence, project.businessKey, REPORT_PERSONA_SLUG),
+        this.tryClaude(facts, req.audience, project.name, req.cadence, project.businessKey, REPORT_PERSONA_SLUG_EN),
+      ]);
+      if (ar) {
+        narrative = ar.narrative;
+        narrativeAr = ar.narrative;
         narrativeSource = 'llm';
-        personaVersion = llm.personaVersion;
-        llmModel = llm.model;
-        citations = llm.citations;
+        personaVersion = ar.personaVersion;
+        llmModel = ar.model;
+        citations = ar.citations;
+      }
+      if (en) {
+        narrativeEn = en.narrative;
+        citations = [...new Set([...citations, ...en.citations])];
+        // English-only success still counts as llm output.
+        if (!ar) {
+          narrativeSource = 'llm';
+          personaVersion = en.personaVersion;
+          llmModel = en.model;
+        }
       }
     }
 
@@ -186,6 +208,8 @@ export class MonthlyReportService {
           `produced 0 citations — falling back to deterministic facts.`,
       );
       narrative = facts;
+      narrativeAr = facts;
+      narrativeEn = null;
       narrativeSource = 'deterministic';
       llmModel = null;
       citations = [];
@@ -204,6 +228,8 @@ export class MonthlyReportService {
       narrativeSource,
       llmModel,
       narrative,
+      narrativeAr,
+      narrativeEn,
       metrics,
       citations,
       pdfStoredPath: null,
@@ -250,7 +276,10 @@ export class MonthlyReportService {
    * `pdf-rendered` if needed. Returns the absolute disk path so the
    * controller can stream it.
    */
-  async renderPdf(id: string): Promise<{ row: MonthlyReport; absolutePath: string }> {
+  async renderPdf(
+    id: string,
+    language: 'ar' | 'en' = 'ar',
+  ): Promise<{ row: MonthlyReport; absolutePath: string }> {
     const row = await this.getById(id);
     const project = await this.projects.findOne({
       where: { businessKey: row.projectBusinessKey, isCurrent: true },
@@ -259,15 +288,25 @@ export class MonthlyReportService {
     const metricsSummary = buildMetricsSummary(row.metrics);
     // Daily/weekly rows print their `periodKey`; monthly stays as `month`.
     const periodLabel = row.periodKey ?? row.month;
-    const result = await this.pdf.render(row.id, {
+    // Edition selection (Wave 7): `ar` falls back to the legacy `narrative`
+    // column on pre-Wave-7 rows; `en` requires the English edition to exist.
+    const narrative =
+      language === 'en' ? row.narrativeEn : (row.narrativeAr ?? row.narrative);
+    if (!narrative) {
+      throw new NotFoundException(
+        `Report ${id} has no ${language === 'en' ? 'English' : 'Arabic'} edition — ` +
+          `regenerate the report with Claude enabled to produce both editions.`,
+      );
+    }
+    const result = await this.pdf.render(`${row.id}-${language}`, {
       projectName,
       projectBusinessKey: row.projectBusinessKey,
       month: periodLabel,
       audience: row.audience,
-      narrative: row.narrative,
+      narrative,
       metricsSummary,
       citations: row.citations,
-      personaSlug: row.personaSlug,
+      personaSlug: language === 'en' ? 'report-narrator-english' : row.personaSlug,
       personaVersion: row.personaVersion,
       narrativeSource: row.narrativeSource,
       fullMetrics: row.metrics,
@@ -286,14 +325,18 @@ export class MonthlyReportService {
     projectName: string,
     cadence: PeriodicCadence,
     projectKey?: string,
+    personaSlug: string = REPORT_PERSONA_SLUG,
   ): Promise<{ narrative: string; citations: string[]; personaVersion: number; model: string } | null> {
     try {
-      const userMessage = buildUserQuery(audience, projectName, cadence);
+      const userMessage =
+        personaSlug === REPORT_PERSONA_SLUG_EN
+          ? buildUserQueryEn(audience, projectName, cadence)
+          : buildUserQuery(audience, projectName, cadence);
       // Cadence importance: monthly (most) > weekly > daily — drop the daily
       // call to the lighter tier even for owner/PD to keep cost sane on the
       // daily heartbeat, while monthly + weekly keep their audience tier.
       const tier = cadence === 'day' ? 'claude-sonnet' : TIER_BY_AUDIENCE[audience];
-      const result = await this.claude.callPersona(REPORT_PERSONA_SLUG, userMessage, {
+      const result = await this.claude.callPersona(personaSlug, userMessage, {
         context: facts,
         modelTier: tier,
         projectKey,
@@ -306,7 +349,9 @@ export class MonthlyReportService {
         model: result.model,
       };
     } catch (err) {
-      this.logger.warn(`Claude call failed for ${cadence} report: ${(err as Error).message}`);
+      this.logger.warn(
+        `Claude call failed for ${cadence} report (${personaSlug}): ${(err as Error).message}`,
+      );
       return null;
     }
   }
@@ -610,6 +655,22 @@ function buildUserQuery(
     'افتح بـ"الحكم التنفيذي" في ثلاثة أسطر. اكتب فقرات سرديّة مترابطة، لا نقاط، باستثناء "أبرز الأرقام" و"أكبر ثلاث مخاطر". ' +
     'اختم بفقرة "نظرة استشرافية" 3–5 جُمل مرتبطة بالمسار الحرج وبالتنبيهات المفتوحة.';
   return `${intro}\n\n${rules}`;
+}
+
+/** English-edition user query (Wave 7 — same rules, English register). */
+function buildUserQueryEn(
+  audience: MonthlyReportAudience,
+  projectName: string,
+  cadence: PeriodicCadence,
+): string {
+  const cadenceLabel = cadence === 'day' ? 'daily' : cadence === 'week' ? 'weekly' : 'monthly';
+  return (
+    `Write the ${cadenceLabel} report for project "${projectName}", ${audience.toUpperCase()} view. ` +
+    `Ground every claim ONLY in the "Deterministic facts" above — no external knowledge. ` +
+    `Attach a [SOURCE: id] citation marker from the curated registry (FIDIC, PMBOK, ISO, AACE, BIM, Primavera) to every professional claim. ` +
+    `Open with the 3-line Executive Verdict. Write connected prose, not bullets — bullets only in "Key figures" and "Top-3 risks". ` +
+    `Close with a 3-5 sentence forward look anchored in the critical path and the open alerts.`
+  );
 }
 
 function audienceLabelAr(audience: MonthlyReportAudience): string {

@@ -39,7 +39,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ---- Shared types --------------------------------------------------------
 
-export type Role = 'sigma_admin' | 'sigma_reviewer' | 'client' | 'consultant' | 'contractor';
+export type Role = 'sigma_admin' | 'sigma_reviewer' | 'client' | 'consultant' | 'contractor' | 'subcontractor';
 
 export interface MeResponse {
   authenticated: boolean;

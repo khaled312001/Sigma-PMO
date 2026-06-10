@@ -16,7 +16,10 @@ export const CAPABILITIES: Record<Role, {
   sigma_reviewer: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
   client:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
   consultant:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
-  contractor:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: false, canEditPersonas: false },
+  // canSimulate flipped TRUE in Wave 7 — the 2026-06-08 meeting grants the
+  // contractor sandbox simulation (Scenario writes never touch canonical).
+  contractor:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false },
+  subcontractor:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false },
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -25,4 +28,5 @@ export const ROLE_LABEL: Record<Role, string> = {
   client:         'Client',
   consultant:     'Consultant',
   contractor:     'Contractor',
+  subcontractor:  'Subcontractor',
 };

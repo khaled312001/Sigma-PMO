@@ -9,15 +9,15 @@ import { Role, ROLE_CAPABILITIES } from './roles.enum';
  */
 describe('ROLE_CAPABILITIES — Wave 1 matrix', () => {
   describe('canSimulate', () => {
-    it('contractor is the only role that cannot simulate', () => {
-      expect(ROLE_CAPABILITIES[Role.CONTRACTOR].canSimulate).toBe(false);
-    });
-
+    // Wave 7: the 2026-06-08 meeting grants contractor + subcontractor
+    // sandbox simulation (Scenario writes never touch canonical truth).
     it.each([
       Role.SIGMA_ADMIN,
       Role.SIGMA_REVIEWER,
       Role.CLIENT,
       Role.CONSULTANT,
+      Role.CONTRACTOR,
+      Role.SUBCONTRACTOR,
     ])('%s can simulate', (role) => {
       expect(ROLE_CAPABILITIES[role].canSimulate).toBe(true);
     });

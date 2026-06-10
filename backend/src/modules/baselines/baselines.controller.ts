@@ -33,6 +33,8 @@ interface AuthorBaselineBody {
   projectKey: string;
   authoredBy: string;
   baselineName?: string;
+  /** Drawing-driven path (correction-plan §2.1): floor count from this package scales the WBS. */
+  drawingPackageId?: string;
 }
 
 interface ApproveBody {
@@ -122,6 +124,7 @@ export class BaselinesController {
       projectKey: body.projectKey,
       authoredBy: body.authoredBy,
       baselineName: body.baselineName,
+      drawingPackageId: body.drawingPackageId,
     });
   }
 

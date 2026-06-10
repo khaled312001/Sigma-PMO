@@ -75,6 +75,10 @@ interface MonthlyReportRow {
   narrativeSource: 'deterministic' | 'llm' | string;
   llmModel: string | null;
   narrative: string;
+  /** Arabic edition (Wave 7). NULL on legacy rows — `narrative` carries it. */
+  narrativeAr: string | null;
+  /** English edition — NULL when Claude was off or the EN call failed. */
+  narrativeEn: string | null;
   metrics: Record<string, unknown>;
   citations: string[];
   pdfStoredPath: string | null;
@@ -566,7 +570,7 @@ function ReportDetail({ row }: { row: MonthlyReportRow }) {
       actions={
         <span className="flex items-center gap-2">
           <PrintButton />
-          <PdfLink rowId={row.id} variant="button" />
+          <PdfLink rowId={row.id} variant="button" hasEnglish={!!row.narrativeEn} />
         </span>
       }
       className="print:!border-0 print:!bg-white print:!shadow-none print:!p-0"
@@ -726,19 +730,22 @@ function CitationsBlock({ citations }: { citations: string[] }) {
 function PdfLink({
   rowId,
   variant = 'icon',
+  hasEnglish = false,
 }: {
   rowId: string;
   variant?: 'icon' | 'button';
+  /** When true, the button-variant shows the AR/EN edition picker. */
+  hasEnglish?: boolean;
 }) {
   const { t } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
-  const doDownload = useCallback(async () => {
+  const doDownload = useCallback(async (lang: 'ar' | 'en' = 'ar') => {
     setBusy(true);
     try {
       const key = getApiKey();
-      const res = await fetch(`${API_BASE}/reports/monthly/${rowId}/pdf`, {
+      const res = await fetch(`${API_BASE}/reports/monthly/${rowId}/pdf?lang=${lang}`, {
         headers: key ? { 'x-api-key': key } : undefined,
         cache: 'no-store',
       });
@@ -750,7 +757,7 @@ function PdfLink({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `monthly-${rowId}.pdf`;
+      a.download = `monthly-${rowId}-${lang}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -768,16 +775,26 @@ function PdfLink({
 
   if (variant === 'button') {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => void doDownload()}
-        disabled={busy}
-      >
-        {busy
-          ? t('reportsMonthly.pdf.downloading')
-          : t('reportsMonthly.pdf.download')}
-      </Button>
+      <span className="flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void doDownload('ar')}
+          disabled={busy}
+        >
+          {busy ? t('reportsMonthly.pdf.downloading') : '📄 العربية (PDF)'}
+        </Button>
+        {hasEnglish && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void doDownload('en')}
+            disabled={busy}
+          >
+            {busy ? t('reportsMonthly.pdf.downloading') : '📄 English (PDF)'}
+          </Button>
+        )}
+      </span>
     );
   }
   return (
@@ -788,13 +805,13 @@ function PdfLink({
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
-        void doDownload();
+        void doDownload('ar');
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           e.stopPropagation();
-          void doDownload();
+          void doDownload('ar');
         }
       }}
       className={`ms-2 inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 text-[11px] font-medium text-slate-200 transition hover:border-sky-500/50 hover:text-sky-200 ${

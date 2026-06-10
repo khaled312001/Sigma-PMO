@@ -639,8 +639,10 @@ describe('MonthlyReportService', () => {
       const out = await service.renderPdf(generated.id);
       expect(out.row.pdfStoredPath).toMatch(/monthly-reports\/2026-05\//);
       expect(out.row.status).toBe('pdf-rendered');
+      // Wave 7: the renderer key carries the edition suffix so the AR and
+      // EN PDFs live side by side on disk.
       expect(pdf.render).toHaveBeenCalledWith(
-        generated.id,
+        generated.id + '-ar',
         expect.objectContaining({
           audience: 'owner',
           month: '2026-05',

@@ -6,6 +6,7 @@ import { BoqItem } from './boq-item.entity';
 import { ClashItem } from './clash-item.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { DecisionReview } from './decision-review.entity';
+import { DrawingPackage } from './drawing-package.entity';
 import { ExecutiveSummary } from './executive-summary.entity';
 import { GovernanceDecision } from './governance-decision.entity';
 import { GovernancePolicy } from './governance-policy.entity';
@@ -13,6 +14,7 @@ import { IngestionRun } from './ingestion-run.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
 import { Project } from './project.entity';
+import { ProjectMemory } from './project-memory.entity';
 import { ProjectPolicyAddon } from './project-policy-addon.entity';
 import { Report } from './report.entity';
 import { Resource } from './resource.entity';
@@ -53,6 +55,7 @@ export {
   ClashItem,
   ConfidenceScore,
   DecisionReview,
+  DrawingPackage,
   ExecutiveSummary,
   GovernanceDecision,
   GovernancePolicy,
@@ -63,6 +66,7 @@ export {
   OutboxEvent,
   Persona,
   Project,
+  ProjectMemory,
   ProjectPolicyAddon,
   Report,
   Resource,
@@ -107,4 +111,8 @@ export const CANONICAL_ENTITIES = [
   SystemSetting,
   // Wave 6 — project-scoped AI instructions authored inline (correction-plan §2.6).
   ProjectPolicyAddon,
+  // Wave 7 — the project "understudy" memory (correction-plan §2.11).
+  ProjectMemory,
+  // Wave 7 — phase-1 drawings ingestion (correction-plan §2.1/§2.7).
+  DrawingPackage,
 ];

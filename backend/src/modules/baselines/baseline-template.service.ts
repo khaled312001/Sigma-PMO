@@ -39,6 +39,13 @@ export class BaselineTemplateService {
     projectStartIso: string;
     projectFinishIso: string;
     projectName: string;
+    /**
+     * Above-ground floor count (drawing-driven path, correction-plan §2.1).
+     * Default 2 (Ground + First) preserves the original template. The
+     * superstructure block generates a columns+slab cycle PER floor, so a
+     * G+5 drawing set genuinely produces a different, larger schedule.
+     */
+    floorCount?: number;
   }): SynthesisResult {
     const start = parseDate(input.projectStartIso);
     const finish = parseDate(input.projectFinishIso);
@@ -253,15 +260,8 @@ export class BaselineTemplateService {
       { wbs: 'WBS.6.1', name: 'Steel Reinforcement & Formwork for Slab-on-Grade', days: 10, phase: 'substructure' },
       { wbs: 'WBS.6.1', name: 'Slab-on-Grade Concreting',                       days: 2, phase: 'substructure' },
 
-      // ── Superstructure ──
-      { wbs: 'WBS.6.2', name: 'Ground Floor Columns — Shutter & Reinforcement', days: 14, phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'Ground Floor Columns — Concreting',              days: 3,  phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'Ground Floor Slab — Shutter & Reinforcement',    days: 18, phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'Ground Floor Slab — Concreting',                 days: 2,  phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'First Floor Columns — Shutter & Reinforcement',  days: 14, phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'First Floor Columns — Concreting',               days: 3,  phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'First Floor Slab — Shutter & Reinforcement',     days: 18, phase: 'superstructure' },
-      { wbs: 'WBS.6.2', name: 'First Floor Slab — Concreting',                  days: 2,  phase: 'superstructure' },
+      // ── Superstructure (drawing-driven floor cycles, see below) ──
+      ...this.superstructureFloors(input.floorCount ?? 2),
       { wbs: 'WBS.6.2', name: 'Roof Slab — Shutter & Reinforcement',            days: 18, phase: 'superstructure' },
       { wbs: 'WBS.6.2', name: 'Roof Slab — Concreting',                         days: 2,  phase: 'superstructure' },
       { wbs: 'WBS.6.2', name: 'Roof Waterproofing',                             days: 8,  phase: 'superstructure' },
@@ -488,6 +488,30 @@ export class BaselineTemplateService {
     );
 
     return { activities: out, dependencies: dependencyOut, wbs };
+  }
+
+  /**
+   * One columns+slab cycle per above-ground floor. Floor names follow the
+   * construction convention (Ground, First, Second, …). A G+5 drawing set
+   * yields 6 cycles = 24 activities here instead of the template's 8 —
+   * the drawing-driven requirement of correction-plan §2.1 made concrete.
+   */
+  private superstructureFloors(floorCount: number): ActivityDef[] {
+    const floors = Math.max(1, Math.min(40, Math.round(floorCount)));
+    const name = (i: number): string => {
+      const names = ['Ground', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
+      return i < names.length ? `${names[i]} Floor` : `Floor ${i}`;
+    };
+    const out: ActivityDef[] = [];
+    for (let i = 0; i < floors; i += 1) {
+      out.push(
+        { wbs: 'WBS.6.2', name: `${name(i)} Columns — Shutter & Reinforcement`, days: 14, phase: 'superstructure' },
+        { wbs: 'WBS.6.2', name: `${name(i)} Columns — Concreting`,              days: 3,  phase: 'superstructure' },
+        { wbs: 'WBS.6.2', name: `${name(i)} Slab — Shutter & Reinforcement`,    days: 18, phase: 'superstructure' },
+        { wbs: 'WBS.6.2', name: `${name(i)} Slab — Concreting`,                 days: 2,  phase: 'superstructure' },
+      );
+    }
+    return out;
   }
 }
 

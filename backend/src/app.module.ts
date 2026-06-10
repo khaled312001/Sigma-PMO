@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
+import { DrawingsModule } from './modules/drawings/drawings.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClashesModule } from './modules/clashes/clashes.module';
@@ -22,6 +23,7 @@ import { OrgChartsModule } from './modules/org-charts/org-charts.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { PolicyAddonsModule } from './modules/policy-addons/policy-addons.module';
+import { ProjectMemoryModule } from './modules/project-memory/project-memory.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
@@ -93,6 +95,13 @@ import { SummaryModule } from './modules/summary/summary.module';
     // AI surface (correction-plan §2.6). ClaudeModule consumes the addon
     // block in its prompt builder.
     PolicyAddonsModule,
+    // Wave 7 — the project "understudy" memory (correction-plan §2.11):
+    // learned facts per project, harvested from the alert/decision history
+    // and injected into matching persona calls at confidence ≥ 0.6.
+    ProjectMemoryModule,
+    // Wave 7 — phase-1 drawings ingestion (PDF sets; correction-plan §2.7).
+    // The detected floor count feeds the drawing-driven baseline generator.
+    DrawingsModule,
   ],
   controllers: [HealthController],
 })

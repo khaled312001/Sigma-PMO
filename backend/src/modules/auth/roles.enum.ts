@@ -10,6 +10,14 @@ export enum Role {
   CLIENT = 'client',
   CONSULTANT = 'consultant',
   CONTRACTOR = 'contractor',
+  /**
+   * Subcontractor (مقاول الباطن) — Wave 7, correction-plan §2.9, meeting
+   * 2026-06-08 @ 00:15:13. Same surface shape as CONTRACTOR but the data
+   * slice narrows further: only the activities listed on the user's
+   * `activityScope` are visible. Uploads progress reports for its own
+   * activities; never sees the project-wide financial position.
+   */
+  SUBCONTRACTOR = 'subcontractor',
 }
 
 /**
@@ -45,5 +53,10 @@ export const ROLE_CAPABILITIES: Record<Role, {
   [Role.SIGMA_REVIEWER]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
   [Role.CLIENT]:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
   [Role.CONSULTANT]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false },
-  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: false, canEditPersonas: false },
+  // canSimulate flipped TRUE in Wave 7 — the 2026-06-08 meeting explicitly
+  // grants the contractor sandbox simulation («يعطي فرضية ويشاهد نتائجها…
+  // دون الدخول على إعدادات المشروع أو تغيير بياناته» @ 00:14:14–00:15:25).
+  // Scenario writes never touch canonical truth, so the wider gate is safe.
+  [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false },
+  [Role.SUBCONTRACTOR]:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false },
 };

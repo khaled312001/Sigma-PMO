@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { PersonasModule } from '../personas/personas.module';
 import { PolicyAddonsModule } from '../policy-addons/policy-addons.module';
+import { ProjectMemoryModule } from '../project-memory/project-memory.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ClaudeController } from './claude.controller';
 import { ClaudeService } from './claude.service';
@@ -21,7 +22,7 @@ import { ClaudeService } from './claude.service';
  * grepping for `ClaudeModule` imports.
  */
 @Module({
-  imports: [PersonasModule, SettingsModule, PolicyAddonsModule],
+  imports: [PersonasModule, SettingsModule, PolicyAddonsModule, ProjectMemoryModule],
   controllers: [ClaudeController],
   providers: [ClaudeService],
   exports: [ClaudeService],

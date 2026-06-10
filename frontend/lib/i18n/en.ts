@@ -41,6 +41,7 @@ export const en: Dictionary = {
     client: 'Client',
     consultant: 'Consultant',
     contractor: 'Contractor',
+    subcontractor: 'Subcontractor',
   },
   common: {
     loading: 'Loading…',
@@ -471,7 +472,7 @@ export interface Dictionary {
     accountMenu: string; openMenu: string; closeMenu: string;
     project: string; bootstrapMode: string;
   };
-  roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string };
+  roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string; subcontractor: string };
   common: {
     loading: string; loadingWorkspace: string;
     save: string; cancel: string; confirm: string; refresh: string;
