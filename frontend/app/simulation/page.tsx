@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
 import { useConfirm } from '../../components/ConfirmDialog';
-import { JsonView } from '../../components/JsonView';
 import { useToast } from '../../components/ToastProvider';
 import { api, ScenarioRecord } from '../../lib/api';
 import { CAPABILITIES } from '../../lib/capabilities';
@@ -310,29 +309,190 @@ function ScenarioCard({
             </h4>
           </div>
 
-          {baselineIsEmpty && (
+          {baselineIsEmpty ? (
             <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
               {t('simulation.diffEmpty')}
             </p>
+          ) : (
+            <SnapshotStructuredView
+              snapshot={baselineSnapshot as FrozenSnapshot}
+              currentProject={currentProject}
+            />
           )}
-
-          <div className="grid gap-3 lg:grid-cols-2">
-            <JsonView
-              data={baselineSnapshot}
-              title={t('simulation.snapshotLabel')}
-              defaultDepth={3}
-              maxHeight="20rem"
-            />
-            <JsonView
-              data={currentProject ?? {}}
-              title={t('simulation.currentLabel')}
-              defaultDepth={3}
-              maxHeight="20rem"
-            />
-          </div>
         </div>
       )}
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Structured snapshot view — replaces the old raw-JSON diff blocks.
+// Renders the frozen state as human-readable cards + an activities table;
+// the current-project column sits beside the frozen values so deviations
+// read at a glance without anyone parsing JSON.
+// ---------------------------------------------------------------------------
+
+interface FrozenSnapshot {
+  frozenAt?: string;
+  project?: {
+    businessKey?: string;
+    name?: string;
+    status?: string | null;
+    dataDate?: string | null;
+    plannedStart?: string | null;
+    plannedFinish?: string | null;
+  };
+  schedule?: { activityCount?: number; completed?: number; inProgress?: number; notStarted?: number };
+  alerts?: { total?: number; critical?: number; warning?: number };
+  activities?: Array<{
+    businessKey: string;
+    name: string;
+    wbsCode: string | null;
+    plannedStart: string | null;
+    plannedFinish: string | null;
+    plannedDurationDays: number | null;
+    actualPctComplete: number | null;
+    status: string | null;
+  }>;
+  /** Compression / clash-impact scenarios carry their own shapes. */
+  kind?: string;
+  note?: string;
+}
+
+function SnapshotStructuredView({
+  snapshot,
+  currentProject,
+}: {
+  snapshot: FrozenSnapshot;
+  currentProject: { businessKey: string; name: string; status: string | null; clientName: string | null; dataDate: string | null } | null;
+}) {
+  // Engine-generated scenarios (clash-impact / compression) carry a `kind` —
+  // their summary line already narrates the what-if, so show the note only.
+  if (snapshot.kind) {
+    return (
+      <p className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2.5 text-xs text-violet-100">
+        {snapshot.kind === 'clash-impact'
+          ? 'لقطة تأثير تضارب — الأرقام الكاملة (قبل/بعد) ظهرت في نافذة المحاكاة وقت إنشائها، وملخّصها مدوَّن أعلى البطاقة.'
+          : 'لقطة اقتراح ضغط الجدول — تفاصيل الأساليب والوفورات معروضة في صفحة خطط بريمافيرا.'}
+      </p>
+    );
+  }
+
+  if (snapshot.note && !snapshot.project) {
+    return (
+      <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-100">
+        {snapshot.note}
+      </p>
+    );
+  }
+
+  const p = snapshot.project ?? {};
+  const sched = snapshot.schedule ?? {};
+  const al = snapshot.alerts ?? {};
+  const acts = snapshot.activities ?? [];
+
+  return (
+    <div className="space-y-4">
+      {/* Project header — frozen vs current side by side */}
+      <div className="overflow-x-auto rounded-lg border border-slate-700/70">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
+            <tr>
+              <th className="px-3 py-2 text-start">البند</th>
+              <th className="px-3 py-2 text-start">لقطة المرجع (المجمَّدة)</th>
+              <th className="px-3 py-2 text-start">المشروع الحالي</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/80">
+            {([
+              ['الاسم', p.name ?? '—', currentProject?.name ?? '—'],
+              ['الحالة', p.status ?? '—', currentProject?.status ?? '—'],
+              ['تاريخ البيانات', p.dataDate ?? '—', currentProject?.dataDate ?? '—'],
+              ['بداية الجدول', p.plannedStart ?? '—', '—'],
+              ['نهاية الجدول', p.plannedFinish ?? '—', '—'],
+            ] as Array<[string, string, string]>).map(([label, frozen, cur]) => (
+              <tr key={label} className={frozen !== cur && cur !== '—' ? 'bg-amber-500/10' : ''}>
+                <td className="px-3 py-1.5 font-semibold text-slate-200">{label}</td>
+                <td className="px-3 py-1.5 font-mono tabular-nums text-slate-100" dir="ltr">{frozen}</td>
+                <td className="px-3 py-1.5 font-mono tabular-nums text-slate-300" dir="ltr">{cur}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Schedule + alert counters */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        <CounterTile label="الأنشطة" value={sched.activityCount ?? 0} tone="sky" />
+        <CounterTile label="مكتملة" value={sched.completed ?? 0} tone="emerald" />
+        <CounterTile label="جارية" value={sched.inProgress ?? 0} tone="amber" />
+        <CounterTile label="لم تبدأ" value={sched.notStarted ?? 0} tone="slate" />
+        <CounterTile label="التنبيهات" value={al.total ?? 0} tone="sky" />
+        <CounterTile label="حرجة" value={al.critical ?? 0} tone="rose" />
+        <CounterTile label="تحذير" value={al.warning ?? 0} tone="amber" />
+      </div>
+
+      {/* Frozen activities table */}
+      {acts.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+            الأنشطة المجمَّدة وقت النسخ ({acts.length})
+          </p>
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-700/70">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-slate-900 text-[10px] uppercase tracking-wider text-slate-400">
+                <tr>
+                  <th className="px-3 py-2 text-start">المعرّف</th>
+                  <th className="px-3 py-2 text-start">النشاط</th>
+                  <th className="px-3 py-2 text-end">البداية</th>
+                  <th className="px-3 py-2 text-end">النهاية</th>
+                  <th className="px-3 py-2 text-end">المدة</th>
+                  <th className="px-3 py-2 text-end">الإنجاز</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {acts.map((a) => (
+                  <tr key={a.businessKey}>
+                    <td className="px-3 py-1.5 font-mono text-[10px] text-slate-400" dir="ltr">{a.businessKey}</td>
+                    <td className="px-3 py-1.5 text-slate-100" dir="auto">{a.name}</td>
+                    <td className="px-3 py-1.5 text-end font-mono tabular-nums text-slate-300" dir="ltr">{a.plannedStart ?? '—'}</td>
+                    <td className="px-3 py-1.5 text-end font-mono tabular-nums text-slate-300" dir="ltr">{a.plannedFinish ?? '—'}</td>
+                    <td className="px-3 py-1.5 text-end tabular-nums text-slate-300">{a.plannedDurationDays ?? '—'}</td>
+                    <td className="px-3 py-1.5 text-end tabular-nums text-slate-200">
+                      {a.actualPctComplete !== null && a.actualPctComplete !== undefined
+                        ? `${Math.round(a.actualPctComplete * 100)}%`
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {snapshot.frozenAt && (
+        <p className="text-[10px] text-slate-500" dir="ltr">
+          Frozen at {new Date(snapshot.frozenAt).toLocaleString()}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CounterTile({ label, value, tone }: { label: string; value: number; tone: 'sky' | 'emerald' | 'amber' | 'rose' | 'slate' }) {
+  const tones: Record<string, string> = {
+    sky: 'text-sky-200 border-sky-500/40',
+    emerald: 'text-emerald-200 border-emerald-500/40',
+    amber: 'text-amber-200 border-amber-500/40',
+    rose: 'text-rose-200 border-rose-500/40',
+    slate: 'text-slate-200 border-slate-600',
+  };
+  return (
+    <div className={`rounded-lg border bg-slate-900/50 px-3 py-2 ${tones[tone]}`}>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums" dir="ltr">{value}</p>
+    </div>
   );
 }
 

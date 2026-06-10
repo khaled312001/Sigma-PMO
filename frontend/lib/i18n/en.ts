@@ -343,7 +343,7 @@ export const en: Dictionary = {
     summaryLabel: 'Brief what-if description',
     forkCreated: 'Scenario forked',
     forkFailed: 'Could not fork scenario',
-    sandboxBadge: 'Simulated — not actual',
+    sandboxBadge: 'Safe sandbox — live data untouched',
     forkedAt: 'Forked',
     expiresAt: 'Expires',
     expired: 'Expired',

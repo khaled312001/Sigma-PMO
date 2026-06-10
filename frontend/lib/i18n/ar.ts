@@ -345,7 +345,7 @@ export const ar: Dictionary = {
     summaryLabel: 'وصف مختصر للفرضية',
     forkCreated: 'تم إنشاء السيناريو',
     forkFailed: 'تعذّر إنشاء السيناريو',
-    sandboxBadge: 'محاكاة — ليس فعلياً',
+    sandboxBadge: 'بيئة تجريبية آمنة — لا تمسّ البيانات الفعلية',
     forkedAt: 'تاريخ الإنشاء',
     expiresAt: 'تاريخ الانتهاء',
     expired: 'منتهي',
