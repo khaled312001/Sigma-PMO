@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -10,6 +11,7 @@ import {
   HttpCode,
   NotFoundException,
   Param,
+  Patch,
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -59,6 +61,23 @@ interface LoginResponse {
   };
 }
 
+interface CreateUserBody {
+  email: string;
+  displayName: string;
+  role: string;
+  password: string;
+  projectScopes?: string;
+  emiratesId?: string | null;
+}
+
+interface UpdateUserBody {
+  displayName?: string;
+  role?: string;
+  active?: boolean;
+  projectScopes?: string;
+  emiratesId?: string | null;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -100,7 +119,7 @@ export class AuthController {
    */
   @Post('users/:id/set-password')
   @HttpCode(200)
-  @RequiresCapability('canReadAll')
+  @RequiresCapability('canManageRoles')
   async setPassword(@Param('id') id: string, @Body() body: SetPasswordDto): Promise<{ ok: true }> {
     const user = await this.users.findOne({ where: { id } });
     if (!user) throw new NotFoundException(`User ${id} not found`);
@@ -133,6 +152,83 @@ export class AuthController {
     };
   }
 
+  /**
+   * Create a user from the admin UI (canManageRoles — admin tier). Hashes the
+   * password (scrypt) and issues an API key. Email must be unique.
+   */
+  @Post('users')
+  @HttpCode(200)
+  @RequiresCapability('canManageRoles')
+  async createUser(@Body() body: CreateUserBody): Promise<{ id: string; apiKey: string }> {
+    const email = body?.email?.trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      throw new BadRequestException('A valid email is required');
+    }
+    if (!body?.displayName?.trim()) throw new BadRequestException('displayName is required');
+    if (!Object.values(Role).includes(body?.role as Role)) {
+      throw new BadRequestException(`role must be one of: ${Object.values(Role).join(', ')}`);
+    }
+    if (!body?.password || body.password.length < 8) {
+      throw new BadRequestException('password must be at least 8 characters');
+    }
+    const existing = await this.users.findOne({ where: { email } });
+    if (existing) throw new ConflictException(`A user with email "${email}" already exists`);
+
+    const rawKey = `sk_${randomBytes(24).toString('hex')}`;
+    const { hash, salt } = this.auth.hashPassword(body.password);
+    const user = this.users.create({
+      email,
+      displayName: body.displayName.trim(),
+      role: body.role as Role,
+      apiKeyHash: this.auth.hashApiKey(rawKey),
+      passwordHash: hash,
+      passwordSalt: salt,
+      projectScopes: body.projectScopes?.trim() || '*',
+      emiratesId: body.emiratesId ?? null,
+      active: true,
+      activityScope: null,
+    });
+    const saved = await this.users.save(user);
+    return { id: saved.id, apiKey: rawKey };
+  }
+
+  /**
+   * Update a user's profile/role/active flag (canManageRoles). Re-applies the
+   * sole-admin guard: you cannot demote or deactivate the last active admin.
+   */
+  @Patch('users/:id')
+  @HttpCode(200)
+  @RequiresCapability('canManageRoles')
+  async updateUser(@Param('id') id: string, @Body() body: UpdateUserBody): Promise<{ ok: true }> {
+    const user = await this.users.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+
+    const demoting = body.role !== undefined && body.role !== Role.SIGMA_ADMIN && user.role === Role.SIGMA_ADMIN;
+    const deactivating = body.active === false && user.active && user.role === Role.SIGMA_ADMIN;
+    if (demoting || deactivating) {
+      const remainingAdmins = await this.auth.countActiveAdmins(id);
+      if (remainingAdmins === 0) {
+        throw new ConflictException('Cannot demote or deactivate the sole active sigma_admin. Create another admin first.');
+      }
+    }
+
+    if (body.displayName !== undefined) {
+      if (!body.displayName.trim()) throw new BadRequestException('displayName cannot be empty');
+      user.displayName = body.displayName.trim();
+    }
+    if (body.role !== undefined) {
+      if (!Object.values(Role).includes(body.role as Role)) {
+        throw new BadRequestException(`role must be one of: ${Object.values(Role).join(', ')}`);
+      }
+      user.role = body.role as Role;
+    }
+    if (body.active !== undefined) user.active = body.active;
+    if (body.projectScopes !== undefined) user.projectScopes = body.projectScopes.trim() || '*';
+    if (body.emiratesId !== undefined) user.emiratesId = body.emiratesId;
+    await this.users.save(user);
+    return { ok: true };
+  }
+
   @Get('users')
   @RequiresCapability('canReadAll')
   async listUsers(): Promise<UserListItem[]> {
@@ -156,7 +252,7 @@ export class AuthController {
    */
   @Post('users/:id/rotate-key')
   @HttpCode(200)
-  @RequiresCapability('canReadAll')
+  @RequiresCapability('canManageRoles')
   async rotateKey(@Param('id') id: string): Promise<{ apiKey: string }> {
     const user = await this.users.findOne({ where: { id } });
     if (!user) throw new NotFoundException(`User ${id} not found`);
@@ -173,7 +269,7 @@ export class AuthController {
    */
   @Delete('users/:id')
   @HttpCode(200)
-  @RequiresCapability('canReadAll')
+  @RequiresCapability('canManageRoles')
   async deleteUser(@Param('id') id: string): Promise<{ deleted: true }> {
     const user = await this.users.findOne({ where: { id } });
     if (!user) throw new NotFoundException(`User ${id} not found`);
