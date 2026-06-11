@@ -47,6 +47,8 @@ export const en: Dictionary = {
     accountMenu: 'Account menu',
     openMenu: 'Open navigation menu',
     closeMenu: 'Close menu',
+    collapseMenu: 'Collapse sidebar',
+    expandMenu: 'Expand sidebar',
     project: 'Project',
     bootstrapMode: 'Bootstrap mode',
   },
@@ -503,7 +505,7 @@ export interface Dictionary {
     policy: string; users: string; roles: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;
-    accountMenu: string; openMenu: string; closeMenu: string;
+    accountMenu: string; openMenu: string; closeMenu: string; collapseMenu: string; expandMenu: string;
     project: string; bootstrapMode: string;
   };
   roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string; subcontractor: string };

@@ -49,6 +49,8 @@ export const ar: Dictionary = {
     accountMenu: 'قائمة الحساب',
     openMenu: 'فتح قائمة التنقّل',
     closeMenu: 'إغلاق القائمة',
+    collapseMenu: 'طيّ الشريط الجانبي',
+    expandMenu: 'فتح الشريط الجانبي',
     project: 'المشروع',
     bootstrapMode: 'وضع التهيئة الأولى',
   },
