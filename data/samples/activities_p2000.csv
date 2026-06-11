@@ -1,0 +1,11 @@
+businessKey,projectKey,wbsCode,name,activityType,status,plannedStart,plannedFinish,actualStart,actualFinish,plannedDurationDays,remainingDurationDays,plannedPctComplete,actualPctComplete,budgetedCost,actualCost
+A2000,P-2000,1.1,Site Mobilisation & Hoarding,Task Dependent,Completed,2026-02-02,2026-02-13,2026-02-09,2026-02-18,10,0,1,1,95000,99000
+A2010,P-2000,1.2,Demolition & Site Clearance,Task Dependent,Completed,2026-02-16,2026-03-06,2026-02-19,2026-03-12,15,0,1,1,180000,195500
+A2020,P-2000,1.3,Shoring & Dewatering,Task Dependent,Completed,2026-03-09,2026-04-03,2026-03-13,2026-04-10,20,0,1,1,420000,448000
+A2030,P-2000,2.1,Raft Foundation,Task Dependent,In Progress,2026-04-06,2026-05-29,2026-04-13,,40,10,1,0.78,760000,610000
+A2040,P-2000,2.2,Podium Structure L1-L3,Task Dependent,In Progress,2026-06-01,2026-08-07,2026-06-08,,50,46,0.1,0.05,1250000,95000
+A2050,P-2000,3.1,Tower A Superstructure,Task Dependent,Not Started,2026-08-10,2026-11-13,,,70,70,0,0,1650000,0
+A2060,P-2000,3.2,Tower B Superstructure,Task Dependent,Not Started,2026-08-24,2026-11-27,,,70,70,0,0,1480000,0
+A2070,P-2000,4.1,Facade & Envelope,Task Dependent,Not Started,2026-11-16,2027-01-22,,,48,48,0,0,540000,0
+A2080,P-2000,4.2,MEP Fit-Out,Task Dependent,Not Started,2026-11-30,2027-02-19,,,58,58,0,0,310000,0
+A2090,P-2000,5.1,Finishes & Handover,Task Dependent,Not Started,2027-02-01,2027-03-26,,,39,39,0,0,115000,0
