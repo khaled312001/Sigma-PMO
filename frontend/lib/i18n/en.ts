@@ -31,6 +31,10 @@ export const en: Dictionary = {
     claims: 'Claims & Disputes',
     command: 'Command Center',
     executive: 'Executive',
+    agents: 'Agent registry',
+    commandGroup: 'Governance Command',
+    agentLayers: 'Agent Layers · L0–L8',
+    tools: 'Tools & Evidence',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -483,6 +487,10 @@ export interface Dictionary {
     claims: string;
     command: string;
     executive: string;
+    agents: string;
+    commandGroup: string;
+    agentLayers: string;
+    tools: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

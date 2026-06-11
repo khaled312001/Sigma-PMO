@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AuthGate } from '../../components/AuthGate';
 import { GovernanceStatusBadge } from '../../components/GovernanceStatusBadge';
 import { GovernanceTree, HierarchyTree } from '../../components/HierarchyTree';
+import { LifecyclePhaseBar } from '../../components/LifecyclePhaseBar';
 import { IconFolder, IconRefresh } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
 import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../components/ui';
@@ -71,6 +72,26 @@ function HierarchyPage() {
       toast.error('Recompute failed', (e as Error).message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  /** Current lifecycle phase of the selected project (scanned from the tree). */
+  const projectPhase = (() => {
+    if (!tree || selected?.type !== 'project') return null;
+    const all: Array<{ businessKey: string; lifecyclePhase: string | null }> = [
+      ...tree.unattachedProjects,
+      ...tree.enterprises.flatMap((e) => e.portfolios.flatMap((pf) => pf.programs.flatMap((pr) => pr.projects))),
+    ];
+    return all.find((p) => p.businessKey === selected.key)?.lifecyclePhase ?? null;
+  })();
+
+  const setPhase = async (projectKey: string, phase: string) => {
+    try {
+      await api('/hierarchy/phase', { method: 'POST', body: JSON.stringify({ projectKey, phase }) });
+      toast.success('Lifecycle phase set', `${projectKey} → ${phase.replace(/_/g, ' ')}`);
+      await refresh();
+    } catch (e) {
+      toast.error('Set phase failed', (e as Error).message);
     }
   };
 
@@ -160,6 +181,15 @@ function HierarchyPage() {
                 <p className="text-xs text-slate-500">
                   Recompute requires the governance-management capability.
                 </p>
+              )}
+              {selected.type === 'project' && (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Governance lifecycle</p>
+                  <LifecyclePhaseBar
+                    current={projectPhase}
+                    onSelect={canManage ? (phase) => setPhase(selected.key, phase) : undefined}
+                  />
+                </div>
               )}
               {selected.type === 'program' && canManage && (
                 <AttachProjectForm

@@ -33,49 +33,47 @@ interface NavLink {
   visible: (me: MeResponse | null) => boolean;
   /** Renders a small accent badge next to the label (e.g. "NEW"). */
   badge?: 'new' | 'beta';
+  /** Agent-layer tag chip (e.g. "L4") — Governance OS L0–L8 taxonomy. */
+  tag?: string;
 }
 
+const read = (me: MeResponse | null) => !me?.user || CAPABILITIES[me.user.role].canRead;
+
+// ── Governance command (the destinations) ──
 const PORTFOLIO: NavLink[] = [
   { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
-  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, badge: 'new', visible: read },
+  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: read },
+  { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: read },
+  { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: read },
+  { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
 ];
 
-const OPERATIONS: NavLink[] = [
-  { href: '/input',    labelKey: 'nav.input',    surface: 'input',    icon: IconUpload,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canIngest },
-  { href: '/review',   labelKey: 'nav.review',   surface: 'review',   icon: IconReview,    visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
-  { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+// ── The L0–L8 agent taxonomy: each layer's primary screen, in order. ──
+const AGENT_LAYERS: NavLink[] = [
+  { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin',    icon: IconBook,     tag: 'L0', visible: read },
+  { href: '/input',     labelKey: 'nav.input',     surface: 'input',    icon: IconUpload,   tag: 'L1', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canIngest },
+  { href: '/review',    labelKey: 'nav.review',    surface: 'review',   icon: IconReview,   tag: 'L2', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
+  { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList,   tag: 'L3', visible: read },
+  { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, tag: 'L4', visible: read },
+  { href: '/risk',      labelKey: 'nav.risk',      surface: 'approval', icon: IconShield,   tag: 'L5', visible: read },
+  { href: '/claims',    labelKey: 'nav.claims',    surface: 'admin',    icon: IconEvidence, tag: 'L6', visible: read },
+  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, tag: 'L7', visible: read },
+  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, tag: 'L8', visible: read },
+];
+
+// ── Tools & evidence surfaces (operational depth behind the layers) ──
+const TOOLS: NavLink[] = [
+  { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: read },
   { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
-];
-
-const PLANNING: NavLink[] = [
-  { href: '/baselines', labelKey: 'nav.baselines', surface: 'planning', icon: IconActivity, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/baselines', labelKey: 'nav.baselines', surface: 'planning', icon: IconActivity, visible: read },
   { href: '/simulation', labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canSimulate },
-];
-
-const ENGINEERING: NavLink[] = [
-  { href: '/clashes', labelKey: 'nav.clashes', surface: 'review', icon: IconReview, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/drawings', labelKey: 'nav.drawings', surface: 'input', icon: IconUpload, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-];
-
-const GOVERNANCE: NavLink[] = [
-  { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin', icon: IconBook, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/risk', labelKey: 'nav.risk', surface: 'approval', icon: IconShield, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/claims', labelKey: 'nav.claims', surface: 'admin', icon: IconEvidence, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-];
-
-const REPORTING: NavLink[] = [
-  { href: '/reports/monthly', labelKey: 'nav.reports', surface: 'evidence', icon: IconEvidence, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-];
-
-const INSIGHTS: NavLink[] = [
-  { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/clashes', labelKey: 'nav.clashes', surface: 'review', icon: IconReview, visible: read },
+  { href: '/drawings', labelKey: 'nav.drawings', surface: 'input', icon: IconUpload, visible: read },
+  { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: read },
+  { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: read },
+  { href: '/reports/monthly', labelKey: 'nav.reports', surface: 'evidence', icon: IconEvidence, visible: read },
+  { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, visible: read },
 ];
 
 const ADMIN: NavLink[] = [
@@ -125,6 +123,11 @@ function NavItem({ link, active, onNavigate }: { link: NavLink; active: boolean;
         ${active ? `bg-slate-900/80 ring-slate-600 ${accent.iconActive}` : 'bg-slate-900/40 ring-slate-700 text-slate-300 group-hover:bg-slate-900/70 group-hover:ring-slate-500'}`}>
         <Icon className="h-3.5 w-3.5" />
       </span>
+      {link.tag && (
+        <span className="relative inline-flex shrink-0 items-center rounded bg-slate-800 px-1 py-0.5 font-mono text-[9px] font-bold text-sky-300 ring-1 ring-slate-700" dir="ltr">
+          {link.tag}
+        </span>
+      )}
       <span className="relative flex-1 truncate">{t(link.labelKey)}</span>
       {link.badge === 'new' && (
         <span
@@ -167,12 +170,8 @@ function SidebarBody({
   const pathname = usePathname();
   const { t } = useI18n();
   const portfolio = PORTFOLIO.filter((n) => n.visible(me));
-  const ops = OPERATIONS.filter((n) => n.visible(me));
-  const planning = PLANNING.filter((n) => n.visible(me));
-  const engineering = ENGINEERING.filter((n) => n.visible(me));
-  const governance = GOVERNANCE.filter((n) => n.visible(me));
-  const reporting = REPORTING.filter((n) => n.visible(me));
-  const insights = INSIGHTS.filter((n) => n.visible(me));
+  const layers = AGENT_LAYERS.filter((n) => n.visible(me));
+  const tools = TOOLS.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
 
   return (
@@ -204,13 +203,9 @@ function SidebarBody({
       </div>
 
       <nav className="relative flex-1 overflow-y-auto px-2 py-3 scrollbar-thin">
-        <NavGroup title={t('projects.eyebrow')} links={portfolio} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title={t('nav.operations')} links={ops} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title={t('nav.planning')} links={planning} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title={t('nav.engineering')} links={engineering} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title={t('nav.governance')} links={governance} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title={t('nav.reporting')} links={reporting} pathname={pathname} onNavigate={onNavigate} />
-        <NavGroup title={t('decisions.eyebrow')} links={insights} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.commandGroup')} links={portfolio} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.agentLayers')} links={layers} pathname={pathname} onNavigate={onNavigate} />
+        <NavGroup title={t('nav.tools')} links={tools} pathname={pathname} onNavigate={onNavigate} />
         <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} onNavigate={onNavigate} />
       </nav>
 
