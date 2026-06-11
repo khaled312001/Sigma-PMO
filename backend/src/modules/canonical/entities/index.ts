@@ -1,6 +1,7 @@
 import { Activity } from './activity.entity';
 import { AgentExecution } from './agent-execution.entity';
 import { Alert } from './alert.entity';
+import { AnalyticsSnapshot } from './analytics-snapshot.entity';
 import { BaselineBuildJob } from './baseline-build-job.entity';
 import { BoQ } from './boq.entity';
 import { BoqItem } from './boq-item.entity';
@@ -57,6 +58,7 @@ export {
   Activity,
   AgentExecution,
   Alert,
+  AnalyticsSnapshot,
   BaselineBuildJob,
   BoQ,
   BoqItem,
@@ -141,4 +143,6 @@ export const CANONICAL_ENTITIES = [
   GovernanceStatusSnapshot,
   // Governance OS Phase 2 — L0 Knowledge & Rules Engine: Lessons Learned.
   LessonsLearned,
+  // Governance OS Phase 3 — L4 Analytics: append-only EVM/KPI snapshots.
+  AnalyticsSnapshot,
 ];

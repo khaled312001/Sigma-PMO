@@ -69,6 +69,7 @@ const REPORTING: NavLink[] = [
 ];
 
 const INSIGHTS: NavLink[] = [
+  { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];

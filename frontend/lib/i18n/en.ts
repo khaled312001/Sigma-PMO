@@ -26,6 +26,7 @@ export const en: Dictionary = {
     comparison: 'AI vs Human',
     hierarchy: 'Governance hierarchy',
     knowledge: 'Knowledge & Rules',
+    analytics: 'Analytics & EVM',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -473,6 +474,7 @@ export interface Dictionary {
     comparison: string;
     hierarchy: string;
     knowledge: string;
+    analytics: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

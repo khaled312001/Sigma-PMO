@@ -8,6 +8,7 @@ import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
 import { AgentsModule } from './modules/agents/agents.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
@@ -121,6 +122,8 @@ import { SummaryModule } from './modules/summary/summary.module';
     // deterministic engines retrofitted as conformant agents.
     KnowledgeModule,
     LayerAgentsModule,
+    // Governance OS Phase 3 — L4 Analytics Agent (EVM/forecasting/portfolio).
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })

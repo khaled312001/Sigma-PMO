@@ -28,6 +28,7 @@ export const ar: Dictionary = {
     comparison: 'AI مقابل الإنسان',
     hierarchy: 'هيكل الحوكمة',
     knowledge: 'المعرفة والقواعد',
+    analytics: 'التحليلات والقيمة المكتسبة',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',
