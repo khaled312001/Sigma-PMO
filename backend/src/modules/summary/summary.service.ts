@@ -97,8 +97,20 @@ export class SummaryService {
     return this.summaries.save(summary);
   }
 
-  list(projectId?: string, limit = 20): Promise<ExecutiveSummary[]> {
+  list(projectId?: string, limit = 20, projectKey?: string): Promise<ExecutiveSummary[]> {
     const take = Math.min(Math.max(limit, 1), 100);
+    if (projectKey) {
+      // Summaries pin to a VERSIONED project id; scope by the stable
+      // businessKey across all versions (never group by project.id — versioned
+      // rows would undercount after each re-ingestion rolls the project).
+      return this.summaries
+        .createQueryBuilder('s')
+        .innerJoin(Project, 'p', 'p.id = s.projectId')
+        .where('p.businessKey = :projectKey', { projectKey })
+        .orderBy('s.createdAt', 'DESC')
+        .take(take)
+        .getMany();
+    }
     return this.summaries.find({
       where: projectId ? { projectId } : {},
       order: { createdAt: 'DESC' },

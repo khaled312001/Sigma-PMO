@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/ToastProvider';
 import { AlertRecord, api, DecisionReview, GovernanceDecision } from '../../lib/api';
+import { useCurrentProjectKey } from '../../lib/project-context';
 import { AuthGate } from '../../components/AuthGate';
 import { DecisionCard } from '../../components/DecisionCard';
 import { useI18n } from '../../lib/i18n';
@@ -23,15 +24,18 @@ export default function ApprovalPageRoute() {
 
 function ApprovalPage() {
   const { t } = useI18n();
+  const projectKey = useCurrentProjectKey();
   const toast = useToast();
   const confirm = useConfirm();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [acting, setActing] = useState<string | null>(null);
 
+  // Scoped to the selected project via the alerts side of the join; the
+  // decisions list narrows to alerts in scope automatically (inFlight pairs).
   const refresh = useCallback(async () => {
     try {
       const [alerts, decisions] = await Promise.all([
-        api<AlertRecord[]>('/rules/alerts?limit=200'),
+        api<AlertRecord[]>(`/rules/alerts?limit=200&projectKey=${encodeURIComponent(projectKey)}`),
         api<GovernanceDecision[]>('/governance/decisions?limit=500'),
       ]);
       const decByAlert = new Map<string, GovernanceDecision>();
@@ -54,7 +58,7 @@ function ApprovalPage() {
       }));
       setRows(pairs);
     } catch (e) { toast.error('Failed to load decisions', (e as Error).message); }
-  }, [toast]);
+  }, [toast, projectKey]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { AlertRecord, api, DecisionReview, GovernanceDecision } from '../../lib/api';
+import { useCurrentProjectKey } from '../../lib/project-context';
 import { AuthGate } from '../../components/AuthGate';
 import { DataTable } from '../../components/DataTable';
 import { SkeletonRow } from '../../components/Skeleton';
@@ -30,26 +31,34 @@ interface DecisionRow {
 
 function DecisionsPage() {
   const { t } = useI18n();
+  const projectKey = useCurrentProjectKey();
   const [decisions, setDecisions] = useState<GovernanceDecision[] | null>(null);
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [reviewsByDecision, setReviewsByDecision] = useState<Record<string, DecisionReview[]>>({});
   const [filter, setFilter] = useState<'all' | StatusKey | 'critical'>('all');
 
+  // Alerts are fetched project-scoped; decisions are then narrowed to the
+  // ones whose alert belongs to the selected project (the decisions API has
+  // no project filter — the alert is the project anchor).
   useEffect(() => {
     Promise.all([
       api<GovernanceDecision[]>('/governance/decisions?limit=500'),
-      api<AlertRecord[]>('/rules/alerts?limit=500'),
+      api<AlertRecord[]>(`/rules/alerts?limit=500&projectKey=${encodeURIComponent(projectKey)}`),
     ]).then(async ([d, a]) => {
-      setDecisions(d); setAlerts(a);
-      const ids = d.map((x) => x.id);
+      const inScope = new Set(a.map((x) => x.id));
+      const scoped = d.filter((x) => inScope.has(x.alertId));
+      setDecisions(scoped); setAlerts(a);
+      const ids = scoped.map((x) => x.id);
       if (ids.length > 0) {
         try {
           const map = await api<Record<string, DecisionReview[]>>(`/governance/reviews?decisionIds=${ids.join(',')}`);
           setReviewsByDecision(map);
         } catch { setReviewsByDecision({}); }
+      } else {
+        setReviewsByDecision({});
       }
     }).catch(() => { setDecisions([]); setAlerts([]); });
-  }, []);
+  }, [projectKey]);
 
   const alertById = useMemo(() => {
     const m = new Map<string, AlertRecord>();

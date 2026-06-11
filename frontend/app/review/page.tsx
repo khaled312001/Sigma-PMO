@@ -35,12 +35,13 @@ function ReviewPage() {
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
 
+  // Scoped to the selected project; re-fetches on every switcher change.
   const refresh = useCallback(async () => {
     try {
       const [a, decs, s] = await Promise.all([
-        api<AlertRecord[]>('/rules/alerts?limit=80'),
+        api<AlertRecord[]>(`/rules/alerts?limit=80&projectKey=${encodeURIComponent(projectKey)}`),
         api<GovernanceDecision[]>('/governance/decisions?limit=500'),
-        api<ExecutiveSummary[]>('/summary?limit=1'),
+        api<ExecutiveSummary[]>(`/summary?limit=1&projectKey=${encodeURIComponent(projectKey)}`),
       ]);
       setAlerts(a);
       const map: Record<string, GovernanceDecision[]> = {};
@@ -48,7 +49,7 @@ function ReviewPage() {
       setDecisionsByAlert(map);
       setSummary(s[0] ?? null);
     } catch (e) { toast.error('Failed to load alerts', (e as Error).message); }
-  }, [toast]);
+  }, [toast, projectKey]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 

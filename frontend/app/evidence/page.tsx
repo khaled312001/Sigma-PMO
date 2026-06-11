@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, EvidencePackage } from '../../lib/api';
+import { useCurrentProjectKey } from '../../lib/project-context';
 import { AuthGate } from '../../components/AuthGate';
 import { useI18n } from '../../lib/i18n';
 import { StructuredDataView } from '../../components/StructuredDataView';
@@ -15,17 +16,20 @@ export default function EvidencePageRoute() {
 
 function EvidencePage() {
   const { t } = useI18n();
+  const projectKey = useCurrentProjectKey();
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<EvidencePackage | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Project-scoped; switching projects reloads the list and auto-opens the
+  // first alert of the newly selected project.
   useEffect(() => {
-    api<AlertRecord[]>('/rules/alerts?limit=200')
-      .then((a) => { setAlerts(a); if (a[0]) void open(a[0].id); })
+    api<AlertRecord[]>(`/rules/alerts?limit=200&projectKey=${encodeURIComponent(projectKey)}`)
+      .then((a) => { setAlerts(a); setSelected(null); setEvidence(null); if (a[0]) void open(a[0].id); })
       .catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [projectKey]);
 
   const open = async (id: string) => {
     setSelected(id); setEvidence(null);

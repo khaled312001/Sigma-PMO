@@ -25,8 +25,12 @@ export class SummaryController {
 
   @Get()
   @RequiresCapability('canRead')
-  list(@Query('projectId') projectId?: string, @Query('limit') limit?: string): Promise<ExecutiveSummary[]> {
+  list(
+    @Query('projectId') projectId?: string,
+    @Query('limit') limit?: string,
+    @Query('projectKey') projectKey?: string,
+  ): Promise<ExecutiveSummary[]> {
     const lim = limit ? Math.max(1, Math.min(100, Number.parseInt(limit, 10) || 20)) : 20;
-    return this.summaries.list(projectId, lim);
+    return this.summaries.list(projectId, lim, projectKey);
   }
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AlertRecord, api, ExecutiveSummary, IngestionRun } from '../lib/api';
+import { useCurrentProjectKey } from '../lib/project-context';
 import { AuthGate } from '../components/AuthGate';
 import {
   BarChart,
@@ -38,6 +39,7 @@ export default function OverviewPage() {
 
 function Overview() {
   const { t } = useI18n();
+  const projectKey = useCurrentProjectKey();
   const [counts, setCounts] = useState<Counts | null>(null);
   const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
@@ -45,13 +47,16 @@ function Overview() {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // Re-fetches whenever the project switcher changes projectKey. Ingestion
+  // runs stay platform-wide (a run can span projects); alerts + summary are
+  // scoped to the selected project.
   useEffect(() => {
     (async () => {
       try {
         const [runsList, alertsList, summaries] = await Promise.all([
           api<IngestionRun[]>('/ingestion/runs?limit=50'),
-          api<AlertRecord[]>('/rules/alerts?limit=300'),
-          api<ExecutiveSummary[]>('/summary?limit=1'),
+          api<AlertRecord[]>(`/rules/alerts?limit=300&projectKey=${encodeURIComponent(projectKey)}`),
+          api<ExecutiveSummary[]>(`/summary?limit=1&projectKey=${encodeURIComponent(projectKey)}`),
         ]);
         setCounts({
           runs: runsList.length,
@@ -67,7 +72,7 @@ function Overview() {
         setError((e as Error).message);
       }
     })();
-  }, []);
+  }, [projectKey]);
 
   const latestConfidence = (latestRun?.summary?.confidence as { overall?: number } | undefined)?.overall;
 

@@ -22,7 +22,7 @@ const STAGE_TONE: Record<string, 'slate' | 'sky' | 'emerald' | 'amber' | 'rose' 
   idea: 'slate', assessed: 'sky', study: 'violet', approved: 'emerald', rejected: 'rose', hold: 'amber',
 };
 
-export const REC_LABEL: Record<string, string> = {
+const REC_LABEL: Record<string, string> = {
   proceed: 'Proceed',
   proceed_with_conditions: 'Proceed with conditions',
   hold: 'Hold',
