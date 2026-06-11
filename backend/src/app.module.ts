@@ -12,6 +12,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
+import { ExecutiveModule } from './modules/executive/executive.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -33,6 +34,7 @@ import { PolicyAddonsModule } from './modules/policy-addons/policy-addons.module
 import { ProjectMemoryModule } from './modules/project-memory/project-memory.module';
 import { RiskModule } from './modules/risk/risk.module';
 import { RulesModule } from './modules/rules/rules.module';
+import { SigmaGovernanceModule } from './modules/sigma-governance/sigma-governance.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
 import { SourcesModule } from './modules/sources/sources.module';
@@ -129,6 +131,11 @@ import { SummaryModule } from './modules/summary/summary.module';
     // Governance OS Phase 4 — L5 Risk Agent + L6 Claims & Disputes Agent.
     RiskModule,
     ClaimsModule,
+    // Governance OS Phase 5 — L8 Sigma Governance AI (consolidator + command
+    // center) and L7 Executive Intelligence. SigmaGovernance before Executive
+    // so the consolidation service is available to L7.
+    SigmaGovernanceModule,
+    ExecutiveModule,
   ],
   controllers: [HealthController],
 })

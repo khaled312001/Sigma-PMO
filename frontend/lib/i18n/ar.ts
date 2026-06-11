@@ -31,6 +31,8 @@ export const ar: Dictionary = {
     analytics: 'التحليلات والقيمة المكتسبة',
     risk: 'سجل المخاطر',
     claims: 'المطالبات والنزاعات',
+    command: 'مركز القيادة',
+    executive: 'لوحة الإدارة التنفيذية',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',

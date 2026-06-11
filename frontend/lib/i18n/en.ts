@@ -29,6 +29,8 @@ export const en: Dictionary = {
     analytics: 'Analytics & EVM',
     risk: 'Risk register',
     claims: 'Claims & Disputes',
+    command: 'Command Center',
+    executive: 'Executive',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -479,6 +481,8 @@ export interface Dictionary {
     analytics: string;
     risk: string;
     claims: string;
+    command: string;
+    executive: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

@@ -8,6 +8,7 @@ import { BoqItem } from './boq-item.entity';
 import { Claim } from './claim.entity';
 import { ClashItem } from './clash-item.entity';
 import { ConfidenceScore } from './confidence-score.entity';
+import { CorrectiveAction } from './corrective-action.entity';
 import { DecisionReview } from './decision-review.entity';
 import { DrawingPackage } from './drawing-package.entity';
 import { Enterprise } from './enterprise.entity';
@@ -67,6 +68,7 @@ export {
   Claim,
   ClashItem,
   ConfidenceScore,
+  CorrectiveAction,
   DecisionReview,
   DrawingPackage,
   Enterprise,
@@ -152,4 +154,6 @@ export const CANONICAL_ENTITIES = [
   // Governance OS Phase 4 — L5 Risk register + L6 Claims & Disputes.
   Risk,
   Claim,
+  // Governance OS Phase 5 — L8 Sigma Governance corrective actions.
+  CorrectiveAction,
 ];

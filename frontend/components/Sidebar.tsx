@@ -37,6 +37,8 @@ interface NavLink {
 
 const PORTFOLIO: NavLink[] = [
   { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
+  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];
