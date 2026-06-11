@@ -95,18 +95,24 @@ export const en: Dictionary = {
     forgotPassword: 'Forgot password?',
     forgotPasswordHint: 'Ask your Sigma admin to reset it from the host CLI.',
     rememberMe: 'Keep me signed in',
+    osName: 'AI Governance Operating System',
+    signInAs: 'Sign in as',
+    heroTitle: 'Govern every project with one intelligent system',
+    heroLead: 'Nine specialized AI agents — from data collection to the final governance verdict — working as one auditable, decision-support platform across projects, programs and portfolios.',
     valueProp: {
-      governance: 'Deterministic governance over portfolio data',
-      evidence: 'Every alert traceable to its source row',
-      fidic: 'FIDIC 2017 + PMI/PMBOK mapped decisions',
+      governance: 'Nine AI agents, L0 → L8, one authoritative verdict',
+      evidence: 'Every decision traceable to its evidence',
+      fidic: 'Deterministic-first — FIDIC + PMI mapped',
     },
     standards: {
       heading: 'Built on',
       fidic: 'FIDIC 2017',
       pmi: 'PMI / PMBOK',
-      append: 'Append-only canonical model',
-      sha: 'SHA-256 evidence',
+      append: 'Append-only audit',
+      sha: 'Confidence-scored',
     },
+    /** Footer tagline — generic, not tied to any project. */
+    footerNote: 'Secured · append-only audit trail · confidence-scored decisions',
     keyHint: 'Your key is stored only in this browser. Sign out to clear it.',
     needHelp: 'No key yet? Ask your Sigma admin to issue one with the host CLI.',
     bootstrap: {
@@ -519,9 +525,11 @@ export interface Dictionary {
     capsLock: string;
     forgotPassword: string; forgotPasswordHint: string;
     rememberMe: string;
+    osName: string; signInAs: string; heroTitle: string; heroLead: string;
     valueProp: { governance: string; evidence: string; fidic: string };
     bootstrap: { title: string; body: string; hint: string };
     standards: { heading: string; fidic: string; pmi: string; append: string; sha: string };
+    footerNote: string;
     keyHint: string;
     needHelp: string;
   };
