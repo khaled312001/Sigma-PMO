@@ -1,4 +1,5 @@
 import { Activity } from './activity.entity';
+import { AgentExecution } from './agent-execution.entity';
 import { Alert } from './alert.entity';
 import { BaselineBuildJob } from './baseline-build-job.entity';
 import { BoQ } from './boq.entity';
@@ -7,12 +8,16 @@ import { ClashItem } from './clash-item.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { DecisionReview } from './decision-review.entity';
 import { DrawingPackage } from './drawing-package.entity';
+import { Enterprise } from './enterprise.entity';
 import { ExecutiveSummary } from './executive-summary.entity';
 import { GovernanceDecision } from './governance-decision.entity';
 import { GovernancePolicy } from './governance-policy.entity';
+import { GovernanceStatusSnapshot } from './governance-status-snapshot.entity';
 import { IngestionRun } from './ingestion-run.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
+import { Portfolio } from './portfolio.entity';
+import { Program } from './program.entity';
 import { Project } from './project.entity';
 import { ProjectMemory } from './project-memory.entity';
 import { ProjectPolicyAddon } from './project-policy-addon.entity';
@@ -49,6 +54,7 @@ import { User } from './user.entity';
 
 export {
   Activity,
+  AgentExecution,
   Alert,
   BaselineBuildJob,
   BoQ,
@@ -57,9 +63,11 @@ export {
   ConfidenceScore,
   DecisionReview,
   DrawingPackage,
+  Enterprise,
   ExecutiveSummary,
   GovernanceDecision,
   GovernancePolicy,
+  GovernanceStatusSnapshot,
   IngestionRun,
   Letter,
   MonthlyReport,
@@ -67,6 +75,8 @@ export {
   OutboxEvent,
   OutputComparison,
   Persona,
+  Portfolio,
+  Program,
   Project,
   ProjectMemory,
   ProjectPolicyAddon,
@@ -119,4 +129,12 @@ export const CANONICAL_ENTITIES = [
   DrawingPackage,
   // Wave 8 — AI-vs-Human output comparison (correction-plan §2.10).
   OutputComparison,
+  // Governance OS (2026-06-11 vision) — multi-level hierarchy
+  // (Enterprise → Portfolio → Program → Project), the central agent-execution
+  // audit, and append-only 4-tier governance-status snapshots.
+  Enterprise,
+  Portfolio,
+  Program,
+  AgentExecution,
+  GovernanceStatusSnapshot,
 ];

@@ -37,6 +37,7 @@ interface NavLink {
 const PORTFOLIO: NavLink[] = [
   { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];
 
 const OPERATIONS: NavLink[] = [

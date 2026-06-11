@@ -1,0 +1,40 @@
+## Deterministic facts — OWNER view — MONTH 2026-06
+
+Project: Nile Tower — Main Construction (businessKey P-1000).
+Schedule data date: 2026-05-15.
+Planned duration: 2026-01-05 → 2026-12-18.
+
+### Schedule
+- Activities tracked: 110.
+- Completed: 2; in progress: 2; not started: 106.
+- Average planned progress 0.0% vs actual 2.7% (delta 2.7 pp).
+
+### Alerts opened or active in window
+- Total 68; critical 12; warning 36.
+  - [DURATION_OVERRUN] Activity "Bulk Excavation" took 30 day(s) vs 20 planned (150%).
+  - [SCHEDULE_FINISH_SLIPPED] Activity "Bulk Excavation" finished 7 day(s) late.
+  - [SCHEDULE_FINISH_SLIPPED] Activity "Site Mobilisation" finished 3 day(s) late.
+  - [DURATION_OVERRUN] Activity "Bulk Excavation" took 30 day(s) vs 20 planned (150%).
+  - [SCHEDULE_FINISH_SLIPPED] Activity "Bulk Excavation" finished 7 day(s) late.
+  - [SCHEDULE_FINISH_SLIPPED] Activity "Site Mobilisation" finished 3 day(s) late.
+  - [DURATION_OVERRUN] Activity "Bulk Excavation" took 30 day(s) vs 20 planned (150%).
+  - [SCHEDULE_FINISH_SLIPPED] Activity "Bulk Excavation" finished 7 day(s) late.
+
+### Governance decisions in window
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity info; party: shared. Escalation: L1 (alert age 0d, threshold 7d).
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity info; party: shared. Escalation: L1 (alert age 0d, threshold 7d).
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity warning; party: shared. Escalation: L1 (alert age 0d, threshold 3d).
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity info; party: shared. Escalation: L1 (alert age 0d, threshold 7d).
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity info; party: shared. Escalation: L1 (alert age 0d, threshold 7d).
+- L1 — contractor (FIDIC Sub-Clause 8.4 / 8.5) — Rule DURATION_OVERRUN of severity warning; party: contractor. FIDIC mapping: Sub-Clause 8.4 / 8.5 — Extension of Time / Delay damages — assess actual vs planned duration; trigger 8.5 if attributable t
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity warning; party: shared. Escalation: L1 (alert age 0d, threshold 3d).
+- L1 — shared — Rule BASELINE_DURATION_OUTLIER of severity warning; party: shared. Escalation: L1 (alert age 0d, threshold 3d).
+
+### Bill of Quantities
+- No current BoQ on file for this project.
+
+### Data confidence
+- Average across this project's ingestion runs: 97.0%.
+
+### Audience constraint — OWNER one-pager
+- Three-line executive verdict + one paragraph context + top-3 risks + 3–5 sentence forward look.

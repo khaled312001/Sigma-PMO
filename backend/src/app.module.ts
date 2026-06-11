@@ -7,6 +7,7 @@ import { AppThrottlerModule } from './common/throttler.module';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { HealthController } from './health/health.controller';
+import { AgentsModule } from './modules/agents/agents.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
@@ -22,6 +23,7 @@ import { LettersModule } from './modules/letters/letters.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrgChartsModule } from './modules/org-charts/org-charts.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
+import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { PolicyAddonsModule } from './modules/policy-addons/policy-addons.module';
 import { ProjectMemoryModule } from './modules/project-memory/project-memory.module';
@@ -106,6 +108,13 @@ import { SummaryModule } from './modules/summary/summary.module';
     // Wave 8 — AI-vs-Human output comparison (correction-plan §2.10,
     // transcript 00:46:14). Human verdicts feed persona refinement.
     ComparisonModule,
+    // Governance OS (2026-06-11 vision) — Phase 1 foundation:
+    //  - AgentsModule: the standardized Agent Contract spine (registry +
+    //    orchestrator + /agents surface) every L0–L8 layer attaches to.
+    //  - HierarchyModule: Enterprise → Portfolio → Program → Project tree +
+    //    the 4-tier Green/Yellow/Orange/Red GovernanceStatusService.
+    AgentsModule,
+    HierarchyModule,
   ],
   controllers: [HealthController],
 })

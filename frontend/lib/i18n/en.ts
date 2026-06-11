@@ -24,6 +24,7 @@ export const en: Dictionary = {
     sources: 'Source registry',
     simulation: 'Simulation',
     comparison: 'AI vs Human',
+    hierarchy: 'Governance hierarchy',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -469,6 +470,7 @@ export interface Dictionary {
     engineering: string; governance: string;
     clashes: string; drawings: string; letters: string; sources: string; simulation: string;
     comparison: string;
+    hierarchy: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

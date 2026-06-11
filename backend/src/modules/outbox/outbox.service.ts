@@ -219,6 +219,11 @@ export class OutboxService {
     'governance.',
     'reports.',
     'simulation.',
+    // Governance OS (2026-06-11): the standardized Agent Contract emits
+    // `agent.*` events for every layer run, and the hierarchy/status engine
+    // emits `hierarchy.*` on roll-up recompute.
+    'agent.',
+    'hierarchy.',
   ];
 
   private assertEventTypeIsReserved(eventType: string): void {

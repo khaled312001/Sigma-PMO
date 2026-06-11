@@ -26,6 +26,7 @@ export const ar: Dictionary = {
     sources: 'سجل المصادر',
     simulation: 'المحاكاة',
     comparison: 'AI مقابل الإنسان',
+    hierarchy: 'هيكل الحوكمة',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',

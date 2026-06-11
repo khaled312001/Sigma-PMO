@@ -25,19 +25,24 @@ export const CAPABILITIES: Record<Role, {
   canApproveLetter: boolean;
   canApproveBaseline: boolean;
   canTriggerComputerUse: boolean;
+  /** Governance OS (2026-06-11) — hierarchy management + level visibility. */
+  canManageHierarchy: boolean;
+  canViewEnterprise: boolean;
+  canViewPortfolio: boolean;
+  canViewProgram: boolean;
 }> = {
-  sigma_admin:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: true,  canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: true  },
+  sigma_admin:    { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: true,  canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: true,  canManageHierarchy: true,  canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true  },
   // Reviewer canSimulate=false — the plan's Khaled-default (read-only
   // charter, open question 13). Flip on Al Ayham's confirmation.
-  sigma_reviewer: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
-  client:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: false },
+  sigma_reviewer: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true  },
+  client:         { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: false, canManageHierarchy: true,  canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true  },
   // Consultant canIngest=false — plan §7 + Layer-1 role access ("قراءة +
   // اقتراح + محاكاة"); inferred, flagged for Sizing-meeting confirmation.
-  consultant:     { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
+  consultant:     { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true  },
   // Contractor: canEvaluateRules + canGenerateSummary flipped TRUE per
   // plan §7 (his slice); canSimulate from the meeting transcript grant.
-  contractor:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
-  subcontractor:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false },
+  contractor:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: false, canViewPortfolio: false, canViewProgram: true  },
+  subcontractor:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: false, canViewPortfolio: false, canViewProgram: false },
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
