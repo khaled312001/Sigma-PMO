@@ -7,16 +7,20 @@ import { BoQ } from './boq.entity';
 import { BoqItem } from './boq-item.entity';
 import { Claim } from './claim.entity';
 import { ClashItem } from './clash-item.entity';
+import { ConceptDocument } from './concept-document.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { CorrectiveAction } from './corrective-action.entity';
 import { DecisionReview } from './decision-review.entity';
 import { DrawingPackage } from './drawing-package.entity';
 import { Enterprise } from './enterprise.entity';
 import { ExecutiveSummary } from './executive-summary.entity';
+import { FeasibilityAssessment } from './feasibility-assessment.entity';
+import { FeasibilityStudySection } from './feasibility-study-section.entity';
 import { GovernanceDecision } from './governance-decision.entity';
 import { GovernancePolicy } from './governance-policy.entity';
 import { GovernanceStatusSnapshot } from './governance-status-snapshot.entity';
 import { IngestionRun } from './ingestion-run.entity';
+import { InvestmentOpportunity } from './investment-opportunity.entity';
 import { LessonsLearned } from './lessons-learned.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
@@ -69,16 +73,20 @@ export {
   BoqItem,
   Claim,
   ClashItem,
+  ConceptDocument,
   ConfidenceScore,
   CorrectiveAction,
   DecisionReview,
   DrawingPackage,
   Enterprise,
   ExecutiveSummary,
+  FeasibilityAssessment,
+  FeasibilityStudySection,
   GovernanceDecision,
   GovernancePolicy,
   GovernanceStatusSnapshot,
   IngestionRun,
+  InvestmentOpportunity,
   LessonsLearned,
   Letter,
   MonthlyReport,
@@ -165,4 +173,11 @@ export const CANONICAL_ENTITIES = [
   // Governance OS Phase 7 — L1 Data Collection: polymorphic project records
   // (RFI/Submittal/NCR/Change Request/Procurement/Resource/Cost/Site Photo).
   ProjectRecord,
+  // Investment & Feasibility Intelligence (2026-06-11 follow-up): idea-stage
+  // opportunities, append-only model runs, versioned study sections, and
+  // concept-sketch documents with human-gated AI extraction.
+  InvestmentOpportunity,
+  FeasibilityAssessment,
+  FeasibilityStudySection,
+  ConceptDocument,
 ];

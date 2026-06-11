@@ -95,6 +95,13 @@ export enum AgentLayer {
   EXT_PROCUREMENT = 'ext_procurement',
   EXT_RESOURCE_OPTIMIZATION = 'ext_resource_optimization',
   EXT_AI_ETHICS = 'ext_ai_ethics',
+  /**
+   * Investment & Feasibility Intelligence (Mr. Ayham, 2026-06-11 follow-up):
+   * idea-stage rapid investment assessment (Level 1) + the professional
+   * feasibility & bankability engine (Level 2), including concept-sketch
+   * intake. Plugs in through the extension path like every EXT_* agent.
+   */
+  EXT_INVESTMENT = 'ext_investment',
 }
 
 /** The four governance levels (Enterprise → Portfolio → Program → Project). */

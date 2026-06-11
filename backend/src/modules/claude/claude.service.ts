@@ -305,6 +305,54 @@ export class ClaudeService implements OnModuleInit {
   }
 
   /**
+   * Persona-less multimodal call — images and/or PDF documents + a prompt.
+   * Added for the Investment & Feasibility concept-sketch intake (OCR /
+   * computer-vision interpretation of hand sketches, concept layouts and
+   * handwritten notes). Deliberately raw: callers own the system prompt, and
+   * every output sits behind a human-approval gate before it touches the
+   * platform's structured data (the `confirm` step in ConceptIntakeService).
+   */
+  async callVision(params: {
+    system: string;
+    prompt: string;
+    attachments: Array<{ mediaType: string; dataBase64: string }>;
+    maxTokens?: number;
+    temperature?: number;
+    modelId?: string;
+  }): Promise<{ content: string; tokensIn: number; tokensOut: number; model: string; stopReason: string | null }> {
+    this.assertEnabled();
+    const client = this.getClient();
+    const model = params.modelId ?? TIER_TO_MODEL['claude-sonnet'] ?? this.config.defaultModel;
+
+    const content: Array<Record<string, unknown>> = params.attachments.map((a) =>
+      a.mediaType === 'application/pdf'
+        ? { type: 'document', source: { type: 'base64', media_type: a.mediaType, data: a.dataBase64 } }
+        : { type: 'image', source: { type: 'base64', media_type: a.mediaType, data: a.dataBase64 } },
+    );
+    content.push({ type: 'text', text: params.prompt });
+
+    const response = await client.messages.create({
+      model,
+      max_tokens: params.maxTokens ?? this.config.maxTokens,
+      temperature: params.temperature ?? 0,
+      system: [{ type: 'text', text: params.system }],
+      messages: [{ role: 'user', content }],
+      metadata: { user_id: 'vision:concept-intake' },
+    });
+    const text = (response.content ?? [])
+      .filter((b) => b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text ?? '')
+      .join('');
+    return {
+      content: text,
+      tokensIn: response.usage?.input_tokens ?? 0,
+      tokensOut: response.usage?.output_tokens ?? 0,
+      model,
+      stopReason: response.stop_reason ?? null,
+    };
+  }
+
+  /**
    * Public helper used by callers that assemble streamed text and need to
    * harvest citations from the final string. Exposed (not private) so e.g.
    * the FIDIC LetterDrafter can run the same regex after combining a

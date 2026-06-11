@@ -37,4 +37,16 @@ export class StorageService {
     }
     return target;
   }
+
+  /**
+   * Read back an archived file by the path `archive()` returned. Refuses any
+   * path outside the archive root (defence against a tampered storedPath).
+   */
+  async read(storedPath: string): Promise<Buffer> {
+    const resolved = resolve(storedPath);
+    if (!resolved.startsWith(this.storageDir)) {
+      throw new Error('StorageService.read: path is outside the archive root');
+    }
+    return fs.readFile(resolved);
+  }
 }

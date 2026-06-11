@@ -14,6 +14,7 @@ import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
 import { EsgModule } from './modules/esg/esg.module';
 import { ExecutiveModule } from './modules/executive/executive.module';
+import { FeasibilityModule } from './modules/feasibility/feasibility.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -146,6 +147,11 @@ import { SummaryModule } from './modules/summary/summary.module';
     // the entire cost of adding a new agent: it self-registers and runs with
     // zero change to any L0–L8 module or the Agent Contract core.
     EsgModule,
+    // Investment & Feasibility Intelligence (2026-06-11 follow-up): Level-1
+    // rapid investment assessment + Level-2 bankability engine + concept-
+    // sketch intake. Registers as the `ext.investment` extension agent —
+    // the second production proof of the zero-structural-change guarantee.
+    FeasibilityModule,
   ],
   controllers: [HealthController],
 })

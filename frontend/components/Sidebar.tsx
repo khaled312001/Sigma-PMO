@@ -59,6 +59,7 @@ const PORTFOLIO: NavLink[] = [
   { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: govern },
   { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: govern },
   { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: govern },
+  { href: '/feasibility', labelKey: 'nav.feasibility', surface: 'approval', icon: IconActivity, badge: 'new', tag: 'INV', visible: cap('canRunFeasibility') },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
 ];
 

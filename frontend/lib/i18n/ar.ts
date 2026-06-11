@@ -34,6 +34,7 @@ export const ar: Dictionary = {
     command: 'مركز القيادة',
     executive: 'لوحة الإدارة التنفيذية',
     agents: 'سجل الوكلاء',
+    feasibility: 'الاستثمار ودراسات الجدوى',
     commandGroup: 'قيادة الحوكمة',
     agentLayers: 'طبقات الوكلاء · L0–L8',
     tools: 'الأدوات والأدلة',

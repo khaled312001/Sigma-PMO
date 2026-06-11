@@ -208,6 +208,107 @@ export type PersonaPatch = Partial<
   >
 >;
 
+// ---- Investment & Feasibility Intelligence (2026-06-11 follow-up) --------
+
+export type FeasibilityRecommendation = 'proceed' | 'proceed_with_conditions' | 'hold' | 'reject';
+
+export interface OpportunityRecord {
+  id: string;
+  createdAt: string;
+  code: string;
+  title: string;
+  projectType: string;
+  country: string | null;
+  city: string | null;
+  estimatedInvestment: string | null;
+  currency: string;
+  fundingStructure: { equityPct?: number; debtPct?: number; interestRatePct?: number; tenorYears?: number };
+  businessObjective: string | null;
+  stage: 'idea' | 'assessed' | 'study' | 'approved' | 'rejected' | 'hold' | string;
+  inputs: Record<string, unknown>;
+  createdBy: string | null;
+  /** Stitched by GET /feasibility/opportunities. */
+  latestAssessment?: Partial<AssessmentRecord> | null;
+}
+
+export interface AssessmentRecord {
+  id: string;
+  createdAt: string;
+  opportunityId: string;
+  level: number;
+  inputs: Record<string, unknown>;
+  assumptions: Record<string, unknown>;
+  results: {
+    npv: number;
+    projectIrr: number | null;
+    equityIrr: number | null;
+    paybackYears: number | null;
+    dscr: { min: number | null; avg: number | null };
+    capexBreakdown: Record<string, number>;
+    stabilizedRevenue: number;
+    stabilizedEbitda: number;
+    terminalValue: number;
+    debtAmount: number;
+    equityAmount: number;
+    annualDebtService: number;
+    attractivenessScore: number;
+    riskScore: number;
+    riskFactors: string[];
+    conditions: string[];
+    hurdleIrrPct: number;
+    years: Array<{
+      year: number; phase: 'construction' | 'operation';
+      revenue: number; opex: number; ebitda: number; capexOutflow: number;
+      debtService: number; dscr: number | null;
+      projectCashflow: number; equityCashflow: number; cumulativeProjectCashflow: number;
+    }>;
+  } & Record<string, unknown>;
+  riskRating: 'low' | 'moderate' | 'elevated' | 'high' | string;
+  recommendation: FeasibilityRecommendation | string;
+  governanceStatus: 'green' | 'yellow' | 'orange' | 'red' | string;
+  confidence: number;
+  narrative: string | null;
+  createdBy: string | null;
+}
+
+export interface StudySectionRecord {
+  id: string;
+  createdAt: string;
+  opportunityId: string;
+  sectionKey: string;
+  title: string;
+  content: string;
+  data: Record<string, unknown> | null;
+  version: number;
+  isCurrent: boolean;
+  status: 'generated' | 'approved' | string;
+  source: 'deterministic' | 'llm' | string;
+  approvedBy: string | null;
+}
+
+export interface ConceptDocumentRecord {
+  id: string;
+  createdAt: string;
+  opportunityId: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  extractionStatus: 'pending' | 'extracted' | 'confirmed' | 'failed' | 'manual' | string;
+  extraction: { fields?: Record<string, unknown>; confidence?: number; model?: string } | null;
+  confirmedFields: Record<string, unknown> | null;
+  extractionError: string | null;
+  uploadedBy: string | null;
+  confirmedBy: string | null;
+}
+
+export interface FeasibilityPackage {
+  audience: string;
+  opportunity: { code: string; title: string; projectType: string; city: string | null; country: string | null; currency: string };
+  generatedSections: number;
+  approvedSections: number;
+  sections: StudySectionRecord[];
+}
+
 /**
  * Sandbox Scenario record (ADR-0010 §5). `status` is `'open' | 'committed' |
  * 'discarded'`. The `baselineSnapshot` is empty in Wave 1 — copy-on-write

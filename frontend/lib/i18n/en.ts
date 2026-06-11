@@ -32,6 +32,7 @@ export const en: Dictionary = {
     command: 'Command Center',
     executive: 'Executive',
     agents: 'Agent registry',
+    feasibility: 'Investment & Feasibility',
     commandGroup: 'Governance Command',
     agentLayers: 'Agent Layers · L0–L8',
     tools: 'Tools & Evidence',
@@ -498,6 +499,7 @@ export interface Dictionary {
     command: string;
     executive: string;
     agents: string;
+    feasibility: string;
     commandGroup: string;
     agentLayers: string;
     tools: string;
