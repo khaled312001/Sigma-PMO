@@ -129,14 +129,14 @@ function NavItem({ link, active, onNavigate, collapsed }: { link: NavLink; activ
         before:absolute before:start-0 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-e-full before:transition-all before:duration-300 ${accent.rail}
         ${
           active
-            ? `bg-sky-500/10 text-white before:opacity-100 before:scale-y-100 ${accent.glow}`
-            : 'text-slate-300 before:opacity-0 before:scale-y-50 hover:bg-white/[0.06] hover:text-white'
+            ? `bg-sky-500/10 text-slate-50 before:opacity-100 before:scale-y-100 ${accent.glow}`
+            : 'text-slate-300 before:opacity-0 before:scale-y-50 hover:bg-slate-500/15 hover:text-slate-50'
         }`}
     >
-      {/* Animated gradient backdrop on hover (subtle) */}
+      {/* Animated gradient backdrop on hover (subtle, theme-adaptive) */}
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/[0.05] to-transparent transition-transform duration-700 group-hover:translate-x-full`}
+        className={`pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-slate-400/10 to-transparent transition-transform duration-700 group-hover:translate-x-full`}
       />
       <span className={`relative grid h-7 w-7 shrink-0 place-items-center rounded-md ring-1 transition-all duration-200
         ${active ? `bg-slate-900/80 ring-slate-600 ${accent.iconActive}` : 'bg-slate-900/40 ring-slate-700/80 text-slate-300 group-hover:bg-slate-900/70 group-hover:ring-slate-500'}`}>
