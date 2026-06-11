@@ -34,15 +34,16 @@ const LAYERS = [
   { tag: 'L8', label: 'Sigma Governance AI', accent: 'from-fuchsia-400/70 to-rose-500/50' },
 ];
 
-/** The seeded role accounts — selecting one fills its email (no secrets in
- *  source; the password is still entered manually). */
-const ROLE_ACCOUNTS: { role: Role; email: string }[] = [
-  { role: 'sigma_admin', email: 'admin@sigma.local' },
-  { role: 'sigma_reviewer', email: 'reviewer@sigma.local' },
-  { role: 'client', email: 'client@sigma.ae' },
-  { role: 'consultant', email: 'consultant@sigma.ae' },
-  { role: 'contractor', email: 'contractor@sigma.ae' },
-  { role: 'subcontractor', email: 'subcontractor@sigma.ae' },
+/** The seeded role accounts — selecting one fills its email + the matching
+ *  password so switching user types always lands valid credentials. These are
+ *  the local demo seeds; rotate them for any real deployment. */
+const ROLE_ACCOUNTS: { role: Role; email: string; password: string }[] = [
+  { role: 'sigma_admin', email: 'admin@sigma.local', password: 'AdminSigma#2026' },
+  { role: 'sigma_reviewer', email: 'reviewer@sigma.local', password: 'ReviewerSigma#2026' },
+  { role: 'client', email: 'client@sigma.ae', password: 'ClientSigma#2026' },
+  { role: 'consultant', email: 'consultant@sigma.ae', password: 'ConsultantSigma#2026' },
+  { role: 'contractor', email: 'contractor@sigma.ae', password: 'ContractorSigma#2026' },
+  { role: 'subcontractor', email: 'subcontractor@sigma.ae', password: 'SubcontractorSigma#2026' },
 ];
 
 export default function AuthPage() {
@@ -61,9 +62,10 @@ export default function AuthPage() {
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
-  const pickRole = (role: Role, accountEmail: string) => {
-    setSelectedRole(role);
-    setEmail(accountEmail);
+  const pickRole = (account: typeof ROLE_ACCOUNTS[number]) => {
+    setSelectedRole(account.role);
+    setEmail(account.email);
+    setPassword(account.password);
     setError(null);
     passwordRef.current?.focus();
   };
@@ -223,19 +225,19 @@ export default function AuthPage() {
               <div className="mt-5">
                 <p className="text-[11px] font-medium text-slate-400">{t('auth.signInAs')}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {ROLE_ACCOUNTS.map(({ role, email: accEmail }) => (
+                  {ROLE_ACCOUNTS.map((account) => (
                     <button
-                      key={role}
+                      key={account.role}
                       type="button"
-                      onClick={() => pickRole(role, accEmail)}
-                      aria-pressed={selectedRole === role}
+                      onClick={() => pickRole(account)}
+                      aria-pressed={selectedRole === account.role}
                       className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-                        selectedRole === role
+                        selectedRole === account.role
                           ? 'border-sky-400/60 bg-sky-500/15 text-sky-100 shadow-sm shadow-sky-500/20'
                           : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-slate-500 hover:text-white'
                       }`}
                     >
-                      {ROLE_LABEL[role]}
+                      {ROLE_LABEL[account.role]}
                     </button>
                   ))}
                 </div>
