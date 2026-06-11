@@ -85,6 +85,16 @@ export enum AgentLayer {
   L6_CLAIMS = 'l6_claims',
   L7_EXECUTIVE = 'l7_executive',
   L8_SIGMA_GOVERNANCE = 'l8_sigma_governance',
+  // ── Extension agents (Mr. Ayham's future agents) ──
+  // These plug in via the registry with ZERO change to the L0–L8 agent
+  // implementations, the Agent Contract base, the registry or the orchestrator.
+  // Adding one is: a new enum value here + a new module that extends
+  // BaseAgentService + registering the module in AppModule. Nothing else.
+  EXT_ESG = 'ext_esg',
+  EXT_CARBON = 'ext_carbon',
+  EXT_PROCUREMENT = 'ext_procurement',
+  EXT_RESOURCE_OPTIMIZATION = 'ext_resource_optimization',
+  EXT_AI_ETHICS = 'ext_ai_ethics',
 }
 
 /** The four governance levels (Enterprise → Portfolio → Program → Project). */

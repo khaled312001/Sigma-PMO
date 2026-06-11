@@ -12,6 +12,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
+import { EsgModule } from './modules/esg/esg.module';
 import { ExecutiveModule } from './modules/executive/executive.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
@@ -141,6 +142,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     // families (RFI/Submittal/NCR/Change-Request/Procurement/Resource/Cost/
     // Site-Photo). Completes the L1→L8 pipeline.
     DataCollectionModule,
+    // Governance OS Phase 8 — reference future agent (ESG). Its mere import is
+    // the entire cost of adding a new agent: it self-registers and runs with
+    // zero change to any L0–L8 module or the Agent Contract core.
+    EsgModule,
   ],
   controllers: [HealthController],
 })
