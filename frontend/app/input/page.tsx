@@ -21,7 +21,10 @@ const ACCEPTED_EXT = /\.(xer|xml|xlsx|csv|pdf)$/i;
 const MAX_BYTES = 24 * 1024 * 1024;
 
 export default function InputPageRoute() {
-  return <AuthGate capability="canIngest" surface="Input"><InputPage /></AuthGate>;
+  // Gate on the SAME capability the upload route enforces (canIngestSchedule),
+  // so the page + Ingest button match the backend. Subcontractors (who have
+  // canIngest but not canIngestSchedule) ingest progress via /repository.
+  return <AuthGate capability="canIngestSchedule" surface="Input"><InputPage /></AuthGate>;
 }
 
 function InputPage() {

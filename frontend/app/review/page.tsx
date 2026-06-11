@@ -97,10 +97,10 @@ function ReviewPage() {
         actions={
           <>
             <Button variant="success" size="sm" disabled={busy} onClick={evaluate}>
-              {busy ? 'Working…' : `Evaluate + Decide ${projectKey}`}
+              {busy ? t('common.loading') : `${t('review.evaluate')} · ${projectKey}`}
             </Button>
             <Button variant="primary" size="sm" disabled={generatingSummary} onClick={generateSummary}>
-              <IconSparkles className="h-3.5 w-3.5" /> {generatingSummary ? 'Generating…' : 'Weekly summary'}
+              <IconSparkles className="h-3.5 w-3.5" /> {generatingSummary ? t('common.loading') : t('review.weeklySummary')}
             </Button>
           </>
         }
@@ -108,19 +108,19 @@ function ReviewPage() {
 
       {alerts.length > 0 && (
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter alerts by severity">
-          <FilterChip label="All"      value="all"      active={filter === 'all'}      count={counts.all}      onClick={setFilter} />
-          <FilterChip label="Critical" value="critical" active={filter === 'critical'} count={counts.critical} onClick={setFilter} tone="rose" />
-          <FilterChip label="Warning"  value="warning"  active={filter === 'warning'}  count={counts.warning}  onClick={setFilter} tone="amber" />
-          <FilterChip label="Info"     value="info"     active={filter === 'info'}     count={counts.info}     onClick={setFilter} tone="sky" />
+          <FilterChip label={t('review.filter.all')}      value="all"      active={filter === 'all'}      count={counts.all}      onClick={setFilter} />
+          <FilterChip label={t('review.filter.critical')} value="critical" active={filter === 'critical'} count={counts.critical} onClick={setFilter} tone="rose" />
+          <FilterChip label={t('review.filter.warning')}  value="warning"  active={filter === 'warning'}  count={counts.warning}  onClick={setFilter} tone="amber" />
+          <FilterChip label={t('review.filter.info')}     value="info"     active={filter === 'info'}     count={counts.info}     onClick={setFilter} tone="sky" />
         </div>
       )}
 
       {filtered.length === 0 ? (
         alerts.length === 0 ? (
           <EmptyState
-            title="No alerts on this project"
-            description="Click Evaluate + Decide to run the rule engine on the current snapshot."
-            action={<Button variant="success" disabled={busy} onClick={evaluate}>{busy ? 'Working…' : 'Evaluate + Decide'}</Button>}
+            title={t('approval.noDecisions')}
+            description={t('review.description')}
+            action={<Button variant="success" disabled={busy} onClick={evaluate}>{busy ? t('common.loading') : t('review.evaluate')}</Button>}
           />
         ) : (
           <EmptyState title={`No ${filter} alerts`} description="Try a different filter." />

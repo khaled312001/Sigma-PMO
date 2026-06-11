@@ -65,7 +65,7 @@ const PORTFOLIO: NavLink[] = [
 // ── The L0–L8 agent taxonomy: each layer's primary screen, in order. ──
 const AGENT_LAYERS: NavLink[] = [
   { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin',    icon: IconBook,     tag: 'L0', visible: read },
-  { href: '/input',     labelKey: 'nav.input',     surface: 'input',    icon: IconUpload,   tag: 'L1', visible: cap('canIngest') },
+  { href: '/input',     labelKey: 'nav.input',     surface: 'input',    icon: IconUpload,   tag: 'L1', visible: cap('canIngestSchedule') },
   { href: '/review',    labelKey: 'nav.review',    surface: 'review',   icon: IconReview,   tag: 'L2', visible: cap('canEvaluateRules') },
   { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList,   tag: 'L3', visible: govern },
   { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, tag: 'L4', visible: govern },
@@ -215,11 +215,12 @@ function SidebarBody({
 
       {/* Brand */}
       <div className={`relative flex items-center border-b border-slate-700/60 py-4 ${collapsed ? 'justify-center px-2' : 'gap-2.5 px-5'}`}>
-        <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br from-sky-500/40 via-sky-500/20 to-emerald-500/25 ring-1 ring-sky-400/40 shadow-md">
-          <IconActivity className="relative h-4 w-4 text-sky-100 drop-shadow" />
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-sky-400/40 shadow-md">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt={t('brand.name')} className="h-full w-full object-cover" />
           <span
             aria-hidden
-            className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_4s_ease-in-out_infinite]"
+            className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-[shimmer_5s_ease-in-out_infinite]"
           />
         </div>
         {!collapsed && (

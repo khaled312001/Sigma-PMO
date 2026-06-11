@@ -12,7 +12,6 @@ import { LangSwitch } from '../../components/LangSwitch';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { Button, ErrorBanner } from '../../components/ui';
 import {
-  IconActivity,
   IconCheck,
   IconEvidence,
   IconLogIn,
@@ -134,8 +133,9 @@ export default function AuthPage() {
         {/* ===== Brand panel — animated governance OS identity ===== */}
         <section className="relative hidden flex-col justify-between overflow-hidden border-e border-white/5 p-12 lg:flex xl:p-16">
           <header className="relative z-10 flex items-center gap-3 [animation:fade-in-up_0.5s_ease-out_both]">
-            <div className="animate-float-y grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-sky-500/40 via-sky-500/20 to-emerald-500/30 ring-1 ring-sky-400/40 shadow-lg shadow-sky-500/20">
-              <IconActivity className="h-5 w-5 text-sky-100" />
+            <div className="animate-float-y h-12 w-12 overflow-hidden rounded-xl ring-1 ring-sky-400/40 shadow-lg shadow-sky-500/20">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt={t('brand.name')} className="h-full w-full object-cover" />
             </div>
             <div>
               <p className="text-base font-semibold tracking-tight">{t('brand.name')}</p>
@@ -207,8 +207,9 @@ export default function AuthPage() {
           <div className="mx-auto w-full max-w-md [animation:fade-in-up_0.6s_ease-out_both]" style={{ animationDelay: '120ms' }}>
             {/* Mobile brand header */}
             <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-sky-500/40 to-emerald-500/30 ring-1 ring-sky-400/40">
-                <IconActivity className="h-4 w-4 text-sky-100" />
+              <div className="h-11 w-11 overflow-hidden rounded-xl ring-1 ring-sky-400/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt={t('brand.name')} className="h-full w-full object-cover" />
               </div>
               <div>
                 <p className="text-sm font-semibold">{t('brand.name')}</p>
