@@ -29,6 +29,8 @@ export const ar: Dictionary = {
     hierarchy: 'هيكل الحوكمة',
     knowledge: 'المعرفة والقواعد',
     analytics: 'التحليلات والقيمة المكتسبة',
+    risk: 'سجل المخاطر',
+    claims: 'المطالبات والنزاعات',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',

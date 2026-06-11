@@ -60,6 +60,8 @@ const ENGINEERING: NavLink[] = [
 
 const GOVERNANCE: NavLink[] = [
   { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin', icon: IconBook, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/risk', labelKey: 'nav.risk', surface: 'approval', icon: IconShield, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
+  { href: '/claims', labelKey: 'nav.claims', surface: 'admin', icon: IconEvidence, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];

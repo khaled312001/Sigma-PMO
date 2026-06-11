@@ -27,6 +27,8 @@ export const en: Dictionary = {
     hierarchy: 'Governance hierarchy',
     knowledge: 'Knowledge & Rules',
     analytics: 'Analytics & EVM',
+    risk: 'Risk register',
+    claims: 'Claims & Disputes',
     policy: 'Policy',
     users: 'Users',
     signIn: 'Sign in',
@@ -475,6 +477,8 @@ export interface Dictionary {
     hierarchy: string;
     knowledge: string;
     analytics: string;
+    risk: string;
+    claims: string;
     policy: string; users: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;

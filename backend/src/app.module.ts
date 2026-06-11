@@ -14,6 +14,7 @@ import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
+import { ClaimsModule } from './modules/claims/claims.module';
 import { ClashesModule } from './modules/clashes/clashes.module';
 import { ClaudeModule } from './modules/claude/claude.module';
 import { ComparisonModule } from './modules/comparison/comparison.module';
@@ -30,6 +31,7 @@ import { LayerAgentsModule } from './modules/layer-agents/layer-agents.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { PolicyAddonsModule } from './modules/policy-addons/policy-addons.module';
 import { ProjectMemoryModule } from './modules/project-memory/project-memory.module';
+import { RiskModule } from './modules/risk/risk.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
@@ -124,6 +126,9 @@ import { SummaryModule } from './modules/summary/summary.module';
     LayerAgentsModule,
     // Governance OS Phase 3 — L4 Analytics Agent (EVM/forecasting/portfolio).
     AnalyticsModule,
+    // Governance OS Phase 4 — L5 Risk Agent + L6 Claims & Disputes Agent.
+    RiskModule,
+    ClaimsModule,
   ],
   controllers: [HealthController],
 })

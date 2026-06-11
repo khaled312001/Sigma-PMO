@@ -5,6 +5,7 @@ import { AnalyticsSnapshot } from './analytics-snapshot.entity';
 import { BaselineBuildJob } from './baseline-build-job.entity';
 import { BoQ } from './boq.entity';
 import { BoqItem } from './boq-item.entity';
+import { Claim } from './claim.entity';
 import { ClashItem } from './clash-item.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { DecisionReview } from './decision-review.entity';
@@ -26,6 +27,7 @@ import { ProjectPolicyAddon } from './project-policy-addon.entity';
 import { Report } from './report.entity';
 import { Resource } from './resource.entity';
 import { ResourceAssignment } from './resource-assignment.entity';
+import { Risk } from './risk.entity';
 import { RuleEvaluation } from './rule-evaluation.entity';
 import { Scenario } from './scenario.entity';
 // `Source` is the Wave 2 curated reference catalogue (FIDIC, PMI, ISO, …). It
@@ -62,6 +64,7 @@ export {
   BaselineBuildJob,
   BoQ,
   BoqItem,
+  Claim,
   ClashItem,
   ConfidenceScore,
   DecisionReview,
@@ -87,6 +90,7 @@ export {
   Report,
   Resource,
   ResourceAssignment,
+  Risk,
   RuleEvaluation,
   Scenario,
   Source,
@@ -145,4 +149,7 @@ export const CANONICAL_ENTITIES = [
   LessonsLearned,
   // Governance OS Phase 3 — L4 Analytics: append-only EVM/KPI snapshots.
   AnalyticsSnapshot,
+  // Governance OS Phase 4 — L5 Risk register + L6 Claims & Disputes.
+  Risk,
+  Claim,
 ];
