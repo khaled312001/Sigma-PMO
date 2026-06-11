@@ -24,6 +24,7 @@ import { Portfolio } from './portfolio.entity';
 import { Program } from './program.entity';
 import { Project } from './project.entity';
 import { ProjectMemory } from './project-memory.entity';
+import { ProjectRecord } from './project-record.entity';
 import { ProjectPolicyAddon } from './project-policy-addon.entity';
 import { Report } from './report.entity';
 import { Resource } from './resource.entity';
@@ -89,6 +90,7 @@ export {
   Project,
   ProjectMemory,
   ProjectPolicyAddon,
+  ProjectRecord,
   Report,
   Resource,
   ResourceAssignment,
@@ -156,4 +158,7 @@ export const CANONICAL_ENTITIES = [
   Claim,
   // Governance OS Phase 5 — L8 Sigma Governance corrective actions.
   CorrectiveAction,
+  // Governance OS Phase 7 — L1 Data Collection: polymorphic project records
+  // (RFI/Submittal/NCR/Change Request/Procurement/Resource/Cost/Site Photo).
+  ProjectRecord,
 ];

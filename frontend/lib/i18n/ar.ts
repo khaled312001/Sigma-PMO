@@ -37,6 +37,7 @@ export const ar: Dictionary = {
     commandGroup: 'قيادة الحوكمة',
     agentLayers: 'طبقات الوكلاء · L0–L8',
     tools: 'الأدوات والأدلة',
+    repository: 'مستودع الوثائق',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',

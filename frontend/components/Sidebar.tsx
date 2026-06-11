@@ -11,6 +11,7 @@ import {
   IconApproval,
   IconBook,
   IconDashboard,
+  IconDatabase,
   IconEvidence,
   IconFolder,
   IconHistory,
@@ -64,6 +65,7 @@ const AGENT_LAYERS: NavLink[] = [
 
 // ── Tools & evidence surfaces (operational depth behind the layers) ──
 const TOOLS: NavLink[] = [
+  { href: '/repository', labelKey: 'nav.repository', surface: 'input', icon: IconDatabase, badge: 'new', visible: read },
   { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: read },
   { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
   { href: '/baselines', labelKey: 'nav.baselines', surface: 'planning', icon: IconActivity, visible: read },

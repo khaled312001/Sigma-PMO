@@ -19,6 +19,7 @@ import { ClaimsModule } from './modules/claims/claims.module';
 import { ClashesModule } from './modules/clashes/clashes.module';
 import { ClaudeModule } from './modules/claude/claude.module';
 import { ComparisonModule } from './modules/comparison/comparison.module';
+import { DataCollectionModule } from './modules/data-collection/data-collection.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
@@ -136,6 +137,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     // so the consolidation service is available to L7.
     SigmaGovernanceModule,
     ExecutiveModule,
+    // Governance OS Phase 7 — L1 Data Collection Agent + the new project-record
+    // families (RFI/Submittal/NCR/Change-Request/Procurement/Resource/Cost/
+    // Site-Photo). Completes the L1→L8 pipeline.
+    DataCollectionModule,
   ],
   controllers: [HealthController],
 })
