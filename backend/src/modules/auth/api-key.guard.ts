@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, ServiceUnavailableException,
 import { Reflector } from '@nestjs/core';
 
 import { AuthService } from './auth.service';
+import { CapabilitiesService } from './capabilities.service';
 import { ROLE_CAPABILITIES, Role } from './roles.enum';
 
 export const REQUIRED_CAPABILITY = 'requiredCapability';
@@ -24,6 +25,7 @@ export class ApiKeyGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly auth: AuthService,
+    private readonly capabilities: CapabilitiesService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -54,8 +56,9 @@ export class ApiKeyGuard implements CanActivate {
     const user = await this.auth.findActiveByApiKey(rawKey);
     if (!user) throw new UnauthorizedException('Invalid API key');
 
-    const caps = ROLE_CAPABILITIES[user.role as Role] ?? null;
-    if (!caps || !caps[capability]) {
+    // Effective check — merges admin-set overrides with the hardcoded defaults
+    // (CapabilitiesService keeps the merged matrix in memory).
+    if (!this.capabilities.can(user.role, capability)) {
       throw new UnauthorizedException(`Role ${user.role} lacks capability ${capability}`);
     }
 

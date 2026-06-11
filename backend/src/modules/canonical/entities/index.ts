@@ -30,6 +30,7 @@ import { Report } from './report.entity';
 import { Resource } from './resource.entity';
 import { ResourceAssignment } from './resource-assignment.entity';
 import { Risk } from './risk.entity';
+import { RoleCapabilityOverride } from './role-capability-override.entity';
 import { RuleEvaluation } from './rule-evaluation.entity';
 import { Scenario } from './scenario.entity';
 // `Source` is the Wave 2 curated reference catalogue (FIDIC, PMI, ISO, …). It
@@ -95,6 +96,7 @@ export {
   Resource,
   ResourceAssignment,
   Risk,
+  RoleCapabilityOverride,
   RuleEvaluation,
   Scenario,
   Source,
@@ -158,6 +160,8 @@ export const CANONICAL_ENTITIES = [
   Claim,
   // Governance OS Phase 5 — L8 Sigma Governance corrective actions.
   CorrectiveAction,
+  // Admin role-capability overrides (runtime permission control).
+  RoleCapabilityOverride,
   // Governance OS Phase 7 — L1 Data Collection: polymorphic project records
   // (RFI/Submittal/NCR/Change Request/Procurement/Resource/Cost/Site Photo).
   ProjectRecord,

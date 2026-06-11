@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 
 import { ApiKeyGuard, REQUIRED_CAPABILITY } from './api-key.guard';
 import { AuthService } from './auth.service';
+import { CapabilitiesService } from './capabilities.service';
 import { Role, ROLE_CAPABILITIES } from './roles.enum';
 
 interface FakeUser {
@@ -44,9 +45,18 @@ function fakeAuthService(opts: {
   } as unknown as AuthService;
 }
 
+
+/** A CapabilitiesService whose effective matrix mirrors the hardcoded defaults. */
+function fakeCapabilities(): CapabilitiesService {
+  return {
+    can: (role: string, capability: string) =>
+      !!(ROLE_CAPABILITIES[role as Role] as Record<string, boolean> | undefined)?.[capability],
+  } as unknown as CapabilitiesService;
+}
+
 describe('ApiKeyGuard', () => {
   it('passes through routes with no required capability', async () => {
-    const guard = new ApiKeyGuard(fakeReflector(undefined), fakeAuthService({}));
+    const guard = new ApiKeyGuard(fakeReflector(undefined), fakeAuthService({}), fakeCapabilities());
     const { ctx } = makeContext({}, undefined);
     expect(await guard.canActivate(ctx)).toBe(true);
   });
@@ -55,7 +65,7 @@ describe('ApiKeyGuard', () => {
     const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({
       userCount: 0,
       bootstrapPermitted: true,
-    }));
+    }), fakeCapabilities());
     const { ctx } = makeContext({}, 'canIngest');
     expect(await guard.canActivate(ctx)).toBe(true);
   });
@@ -64,19 +74,19 @@ describe('ApiKeyGuard', () => {
     const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({
       userCount: 0,
       bootstrapPermitted: false,
-    }));
+    }), fakeCapabilities());
     const { ctx } = makeContext({}, 'canIngest');
     await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it('rejects requests without x-api-key once users exist', async () => {
-    const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({ userCount: 1 }));
+    const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({ userCount: 1 }), fakeCapabilities());
     const { ctx } = makeContext({}, 'canIngest');
     await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('rejects unknown keys', async () => {
-    const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({ userCount: 1, user: null }));
+    const guard = new ApiKeyGuard(fakeReflector('canIngest'), fakeAuthService({ userCount: 1, user: null }), fakeCapabilities());
     const { ctx } = makeContext({ 'x-api-key': 'sk_bogus' }, 'canIngest');
     await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -85,7 +95,7 @@ describe('ApiKeyGuard', () => {
     const guard = new ApiKeyGuard(fakeReflector('canEditPolicy'), fakeAuthService({
       userCount: 1,
       user: { id: 'u1', role: Role.CONTRACTOR, active: true },
-    }));
+    }), fakeCapabilities());
     const { ctx } = makeContext({ 'x-api-key': 'sk_ok' }, 'canEditPolicy');
     await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -97,7 +107,7 @@ describe('ApiKeyGuard', () => {
     const guard = new ApiKeyGuard(fakeReflector('canEvaluateRules'), fakeAuthService({
       userCount: 1,
       user: { id: 'u1', role: Role.CONSULTANT, active: true },
-    }));
+    }), fakeCapabilities());
     const { ctx, req } = makeContext({ 'x-api-key': 'sk_ok' }, 'canEvaluateRules');
     expect(await guard.canActivate(ctx)).toBe(true);
     expect(req.user).toBeDefined();

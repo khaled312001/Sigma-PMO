@@ -40,6 +40,7 @@ export const ar: Dictionary = {
     repository: 'مستودع الوثائق',
     policy: 'السياسة',
     users: 'المستخدمون',
+    roles: 'صلاحيات الأدوار',
     signIn: 'تسجيل الدخول',
     signInWithKey: 'تسجيل الدخول بمفتاح API',
     signOut: 'تسجيل الخروج',

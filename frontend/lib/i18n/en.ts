@@ -38,6 +38,7 @@ export const en: Dictionary = {
     repository: 'Document Repository',
     policy: 'Policy',
     users: 'Users',
+    roles: 'Role permissions',
     signIn: 'Sign in',
     signInWithKey: 'Sign in with API key',
     signOut: 'Sign out',
@@ -499,7 +500,7 @@ export interface Dictionary {
     agentLayers: string;
     tools: string;
     repository: string;
-    policy: string; users: string;
+    policy: string; users: string; roles: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;
     accountMenu: string; openMenu: string; closeMenu: string;

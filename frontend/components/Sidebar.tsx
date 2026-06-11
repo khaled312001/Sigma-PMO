@@ -89,6 +89,7 @@ const TOOLS: NavLink[] = [
 
 // ── Admin — privileged operations only. ──
 const ADMIN: NavLink[] = [
+  { href: '/admin/roles',    labelKey: 'nav.roles',            surface: 'admin', icon: IconUsers, badge: 'new', visible: cap('canManageRoles') },
   { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
   { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: cap('canEditPersonas') },
   { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: cap('canReadAll') },

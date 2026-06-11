@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 import { api, MeResponse } from './api';
+import { applyCapabilityMatrix, CAPABILITIES } from './capabilities';
+import type { Role } from './api';
 
 interface MeState {
   me: MeResponse | null;
@@ -19,7 +21,17 @@ export function MeProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      setMe(await api<MeResponse>('/auth/me'));
+      const next = await api<MeResponse>('/auth/me');
+      // Sync the EFFECTIVE capability matrix (admin overrides merged with
+      // defaults) so the UI gates exactly as the backend enforces. Best-effort:
+      // any failure leaves the hardcoded defaults in place.
+      if (next.authenticated) {
+        try {
+          const snap = await api<{ matrix: Record<Role, (typeof CAPABILITIES)[Role]> }>('/admin/capabilities');
+          if (snap?.matrix) applyCapabilityMatrix(snap.matrix);
+        } catch { /* keep defaults */ }
+      }
+      setMe(next);
     } catch {
       setMe({ authenticated: false, bootstrapMode: false, user: null });
     } finally {
