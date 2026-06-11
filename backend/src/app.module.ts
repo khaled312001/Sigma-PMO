@@ -24,6 +24,8 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrgChartsModule } from './modules/org-charts/org-charts.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { HierarchyModule } from './modules/hierarchy/hierarchy.module';
+import { KnowledgeModule } from './modules/knowledge/knowledge.module';
+import { LayerAgentsModule } from './modules/layer-agents/layer-agents.module';
 import { PersonasModule } from './modules/personas/personas.module';
 import { PolicyAddonsModule } from './modules/policy-addons/policy-addons.module';
 import { ProjectMemoryModule } from './modules/project-memory/project-memory.module';
@@ -115,6 +117,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     //    the 4-tier Green/Yellow/Orange/Red GovernanceStatusService.
     AgentsModule,
     HierarchyModule,
+    // Governance OS Phase 2 — L0 Knowledge & Rules Engine + the L2/L3
+    // deterministic engines retrofitted as conformant agents.
+    KnowledgeModule,
+    LayerAgentsModule,
   ],
   controllers: [HealthController],
 })

@@ -27,6 +27,7 @@ export const ar: Dictionary = {
     simulation: 'المحاكاة',
     comparison: 'AI مقابل الإنسان',
     hierarchy: 'هيكل الحوكمة',
+    knowledge: 'المعرفة والقواعد',
     policy: 'السياسة',
     users: 'المستخدمون',
     signIn: 'تسجيل الدخول',

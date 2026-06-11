@@ -14,6 +14,7 @@ import { GovernanceDecision } from './governance-decision.entity';
 import { GovernancePolicy } from './governance-policy.entity';
 import { GovernanceStatusSnapshot } from './governance-status-snapshot.entity';
 import { IngestionRun } from './ingestion-run.entity';
+import { LessonsLearned } from './lessons-learned.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
 import { Portfolio } from './portfolio.entity';
@@ -69,6 +70,7 @@ export {
   GovernancePolicy,
   GovernanceStatusSnapshot,
   IngestionRun,
+  LessonsLearned,
   Letter,
   MonthlyReport,
   OrgChartReview,
@@ -137,4 +139,6 @@ export const CANONICAL_ENTITIES = [
   Program,
   AgentExecution,
   GovernanceStatusSnapshot,
+  // Governance OS Phase 2 — L0 Knowledge & Rules Engine: Lessons Learned.
+  LessonsLearned,
 ];

@@ -9,6 +9,7 @@ import { useI18n } from '../lib/i18n';
 import {
   IconActivity,
   IconApproval,
+  IconBook,
   IconDashboard,
   IconEvidence,
   IconFolder,
@@ -58,6 +59,7 @@ const ENGINEERING: NavLink[] = [
 ];
 
 const GOVERNANCE: NavLink[] = [
+  { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin', icon: IconBook, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
   { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
 ];

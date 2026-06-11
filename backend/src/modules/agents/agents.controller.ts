@@ -66,6 +66,20 @@ export class AgentsController {
     return this.registry.byLayer(layer).map((a) => a.descriptor());
   }
 
+  /**
+   * Run the full L1→L8 pipeline for a node. Declared BEFORE `:agentKey/run`
+   * so the literal `pipeline` segment is not captured as an agent key.
+   */
+  @Post('pipeline/run')
+  @HttpCode(200)
+  @RequiresCapability('canEvaluateRules')
+  runPipeline(@Body() body: AgentRunContext): Promise<AgentExecution[]> {
+    if (!body?.nodeBusinessKey && !body?.projectKey) {
+      throw new BadRequestException('nodeBusinessKey or projectKey is required');
+    }
+    return this.orchestrator.runPipeline(body);
+  }
+
   /** Run one agent against a node. */
   @Post(':agentKey/run')
   @HttpCode(200)
@@ -80,16 +94,5 @@ export class AgentsController {
       );
     }
     return this.orchestrator.runAgent(agentKey, body ?? {});
-  }
-
-  /** Run the full L1→L8 pipeline for a node. */
-  @Post('pipeline/run')
-  @HttpCode(200)
-  @RequiresCapability('canEvaluateRules')
-  runPipeline(@Body() body: AgentRunContext): Promise<AgentExecution[]> {
-    if (!body?.nodeBusinessKey && !body?.projectKey) {
-      throw new BadRequestException('nodeBusinessKey or projectKey is required');
-    }
-    return this.orchestrator.runPipeline(body);
   }
 }
