@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Sigma PMO — دليل الاستخدام الكامل</title>
+<style>
+  :root {
+    --ink: #1c2333; --muted: #5b667d; --line: #dfe4ee;
+    --brand: #b91c3c; --brand-soft: #fdf1f4;
+    --sky: #0369a1; --sky-soft: #eff8ff;
+    --emerald: #047857; --emerald-soft: #ecfdf5;
+    --amber: #92600a; --amber-soft: #fffbeb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    color: var(--ink); font-size: 13.5px; line-height: 1.85;
+    direction: rtl;
+  }
+  .ltr { direction: ltr; unicode-bidi: embed; font-family: "Consolas", "Segoe UI", monospace; }
+  code, .route { direction: ltr; unicode-bidi: embed; font-family: Consolas, monospace; background: #f1f4f9; border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px; font-size: 12px; color: #0f3a5e; white-space: nowrap; }
+  /* ── Cover ── */
+  .cover { page-break-after: always; min-height: 96vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(180deg, #ffffff 0%, #fdf3f5 70%, #f8e8ec 100%); border-bottom: 6px solid var(--brand); }
+  .cover img.logo { width: 130px; height: 130px; border-radius: 26px; box-shadow: 0 18px 40px rgba(185,28,60,.25); }
+  .cover h1 { font-size: 40px; margin: 28px 0 6px; letter-spacing: -0.5px; }
+  .cover .en { font-size: 17px; color: var(--brand); font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+  .cover p.sub { font-size: 17px; color: var(--muted); max-width: 620px; margin: 18px auto 0; }
+  .cover .meta { margin-top: 50px; color: var(--muted); font-size: 12.5px; }
+  .cover .meta b { color: var(--ink); }
+  /* ── Structure ── */
+  main { padding: 0 46px; }
+  h2 { page-break-before: always; font-size: 25px; color: var(--brand); border-bottom: 3px solid var(--brand); padding: 18px 0 10px; margin: 0 0 18px; }
+  h2 .no { display: inline-block; background: var(--brand); color: #fff; border-radius: 9px; padding: 2px 14px; font-size: 18px; margin-left: 12px; }
+  h3 { font-size: 18px; margin: 30px 0 8px; color: #16314e; page-break-after: avoid; }
+  h3 .route { font-size: 12px; vertical-align: middle; margin-right: 8px; }
+  h4 { font-size: 14.5px; margin: 18px 0 6px; color: #244062; }
+  p { margin: 7px 0; }
+  ul, ol { margin: 6px 0; padding-right: 24px; }
+  li { margin: 3px 0; }
+  /* ── Figures ── */
+  /* Tall screenshots are auto-sliced into A4-fitting parts by render-pdf.mjs —
+     nothing is ever cropped; long content continues on the next page. */
+  figure { margin: 14px 0 20px; page-break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px rgba(28,35,51,.10); }
+  figcaption { font-size: 11.5px; color: var(--muted); margin-top: 6px; text-align: center; }
+  /* ── Callouts ── */
+  .blk { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 10px 0; page-break-inside: avoid; }
+  .blk b.tag { display: inline-block; font-size: 11.5px; border-radius: 6px; padding: 0 9px; margin-left: 8px; }
+  .goal { background: var(--sky-soft); } .goal b.tag { background: var(--sky); color: #fff; }
+  .how { background: var(--emerald-soft); } .how b.tag { background: var(--emerald); color: #fff; }
+  .sys { background: var(--brand-soft); } .sys b.tag { background: var(--brand); color: #fff; }
+  .who { background: var(--amber-soft); } .who b.tag { background: var(--amber); color: #fff; }
+  .note { background: #f5f7fb; border-right: 4px solid var(--sky); }
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; page-break-inside: avoid; }
+  th { background: #21304a; color: #fff; padding: 7px 9px; text-align: right; }
+  td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .ok { color: var(--emerald); font-weight: 700; } .no2 { color: #b3263c; font-weight: 700; }
+  /* TOC */
+  .toc { columns: 2; column-gap: 40px; font-size: 13px; }
+  .toc li { margin: 4px 0; }
+  .footer-note { color: var(--muted); font-size: 11px; margin: 26px 0 40px; border-top: 1px solid var(--line); padding-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ COVER ════════════════ -->
+<div class="cover">
+  <img class="logo" src="../../frontend/public/logo.png" alt="Sigma PMO">
+  <div class="en">Sigma PMO · AI Governance Operating System</div>
+  <h1>دليل الاستخدام الكامل</h1>
+  <p class="sub">شرح عملي بالصور لكل صفحة وكل دور في منصة Sigma PMO — من تسجيل الدخول حتى مركز قيادة الحوكمة ودراسات الجدوى الاستثمارية، طبقةً بطبقة (L0 → L8).</p>
+  <div class="meta">
+    الإصدار 1.0 · يونيو 2026 · جميع اللقطات مأخوذة من النظام الفعلي<br>
+    إعداد: <b>فريق تطوير Sigma PMO</b>
+  </div>
+</div>
+
+<main>
+
+<!-- ════════════════ TOC ════════════════ -->
+<h2 style="page-break-before:auto"><span class="no">·</span>المحتويات</h2>
+<ol class="toc">
+  <li>نظرة عامة على المنصة</li>
+  <li>تسجيل الدخول والحسابات</li>
+  <li>عناصر الواجهة المشتركة (القائمة الجانبية، تبديل المشروع، الوضع الداكن، العربية)</li>
+  <li>قيادة الحوكمة: Overview · Command Center · Executive · Hierarchy · Agents · Projects</li>
+  <li>الاستثمار ودراسات الجدوى (Investment &amp; Feasibility Intelligence)</li>
+  <li>طبقات الوكلاء L0 → L8 صفحةً صفحة</li>
+  <li>الأدوات والأدلة (Tools &amp; Evidence)</li>
+  <li>صفحات الإدارة (Admin)</li>
+  <li>الأدوار الستة — ماذا يرى كل مستخدم</li>
+  <li>ملاحق: الحسابات التجريبية وجدول الصلاحيات</li>
+</ol>
+
+<!-- ════════════════ 1. OVERVIEW ════════════════ -->
+<h2><span class="no">1</span>نظرة عامة على المنصة</h2>
+<p><b>Sigma PMO</b> هو <b>نظام تشغيل للحوكمة مدعوم بالذكاء الاصطناعي (AI Governance Operating System)</b> — ليس أداة تقارير، بل <b>نظام دعم قرار حوكمي (Governance Decision Support System)</b>. كل وظيفة في المنصة عبارة عن <b>وكيل (Agent)</b> مستقل يتبع نموذج تشغيل موحّد من سبعة حقول: الهدف (Objective) · المدخلات (Inputs) · منطق المعالجة (Processing Logic) · المخرجات (Outputs) · درجة الثقة (Confidence Score) · منطق التصعيد (Escalation Logic) · سجل التدقيق (Audit Trail).</p>
+<p>الوكلاء مرتّبون في <b>تسع طبقات</b>:</p>
+<table>
+  <tr><th>الطبقة</th><th>الاسم</th><th>الصفحة الرئيسية</th><th>الوظيفة</th></tr>
+  <tr><td class="ltr">L0</td><td>Knowledge &amp; Rules</td><td><span class="route">/knowledge</span></td><td>مكتبة القواعد والمصادر والأطر والدروس المستفادة التي يستند إليها كل وكيل</td></tr>
+  <tr><td class="ltr">L1</td><td>Data Collection</td><td><span class="route">/input</span></td><td>جمع البيانات: جداول زمنية، تقارير، RFIs، Submittals، NCRs…</td></tr>
+  <tr><td class="ltr">L2</td><td>Validation</td><td><span class="route">/review</span></td><td>محرك القواعد الحتمي — يفحص البيانات ويولّد التنبيهات (Alerts)</td></tr>
+  <tr><td class="ltr">L3</td><td>Compliance</td><td><span class="route">/decisions</span></td><td>قرارات الحوكمة: المسؤولية، بنود FIDIC، مستويات التصعيد L1–L3</td></tr>
+  <tr><td class="ltr">L4</td><td>Analytics</td><td><span class="route">/analytics</span></td><td>القيمة المكتسبة EVM: SPI · CPI · EAC وتوقعات الانحراف</td></tr>
+  <tr><td class="ltr">L5</td><td>Risk</td><td><span class="route">/risk</span></td><td>سجل المخاطر: الاحتمال × الأثر وأولويات المعالجة</td></tr>
+  <tr><td class="ltr">L6</td><td>Claims &amp; Disputes</td><td><span class="route">/claims</span></td><td>تحليل التأخير والمطالبات وربط الأدلة</td></tr>
+  <tr><td class="ltr">L7</td><td>Executive Intelligence</td><td><span class="route">/executive</span></td><td>لوحة الإدارة التنفيذية ومؤشرات الأداء الاستراتيجية</td></tr>
+  <tr><td class="ltr">L8</td><td>Sigma Governance AI</td><td><span class="route">/governance-command</span></td><td>السلطة النهائية: يوحّد مخرجات كل الوكلاء في حالة واحدة + إجراءات تصحيحية</td></tr>
+</table>
+<p>تضاف فوقها <b>وكلاء امتداد (Extension Agents)</b> دون أي تعديل هيكلي — وأبرزها وكيل <b>الاستثمار ودراسات الجدوى</b> <span class="ltr">ext.investment</span> (القسم 5) ووكيل الاستدامة <span class="ltr">ext.esg</span>.</p>
+<div class="blk note"><b>مبدأ أساسي:</b> «الحتمية أولاً» (Deterministic-first) — كل الأرقام (EVM، NPV، IRR، درجات المخاطر) تُحسب بمعادلات حتمية قابلة للتدقيق، والذكاء الاصطناعي يقتصر دوره على <b>الصياغة والسرد</b> وخلف <b>بوابة اعتماد بشري</b> دائماً.</div>
+<p>كما تدعم المنصة <b>هرمية حوكمة</b> كاملة (Enterprise → Portfolio → Program → Project)، و<b>دورة حياة</b> (Initiation → Closure)، و<b>حالة حوكمة رباعية</b>: <span style="color:#047857;font-weight:700">أخضر</span> · <span style="color:#b45309;font-weight:700">أصفر</span> · <span style="color:#c2410c;font-weight:700">برتقالي</span> · <span style="color:#b91c1c;font-weight:700">أحمر</span>.</p>
+
+<!-- ════════════════ 2. SIGN IN ════════════════ -->
+<h2><span class="no">2</span>تسجيل الدخول والحسابات</h2>
+<h3>صفحة تسجيل الدخول <span class="route">/auth</span></h3>
+<figure><img src="shots/auth.png" alt="Sign in"><figcaption>صفحة تسجيل الدخول — اختيار نوع المستخدم يملأ بيانات الحساب تلقائياً</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>بوابة الدخول الموحّدة. صُممت بشكل عصري متحرك (Aurora animation + طبقات L0→L8) وغير مرتبطة بمشروع بعينه.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>
+<ol>
+  <li>اختر <b>نوع المستخدم</b> (الدور) من شريط الأدوار — سيُملأ البريد وكلمة المرور تلقائياً للحسابات التجريبية.</li>
+  <li>أو اكتب البريد وكلمة المرور يدوياً ثم اضغط <b>Sign in</b>.</li>
+  <li>عند النجاح يصدر النظام <b>مفتاح API جديداً</b> ويبطل القديم تلقائياً (حماية للجلسات القديمة)، ثم يحوّلك للوحة الرئيسية.</li>
+</ol></div>
+<div class="blk sys"><b class="tag">ضمن المنظومة</b>كل طلب لاحق يحمل المفتاح في ترويسة <span class="ltr">x-api-key</span>، والباك إند يفرض صلاحيات الدور على كل نقطة وصول (الواجهة تخفي الأزرار فقط؛ <b>الفرض الحقيقي في الخادم</b>).</div>
+
+<!-- ════════════════ 3. SHARED UI ════════════════ -->
+<h2><span class="no">3</span>عناصر الواجهة المشتركة</h2>
+
+<h3>القائمة الجانبية (Sidebar)</h3>
+<p>منظمة حسب طبقات الحوكمة: <b>GOVERNANCE COMMAND</b> (الوجهات الاستراتيجية) ثم <b>AGENT LAYERS · L0–L8</b> (كل طبقة بوسمها) ثم <b>TOOLS &amp; EVIDENCE</b> ثم <b>ADMIN</b>. قابلة <b>للطي</b> عبر الزر الدائري عند الحافة (تتحول لشريط أيقونات 68px وتُحفظ حالتها)، ومتجاوبة مع الموبايل (قائمة منزلقة). <b>كل دور يرى قائمته الخاصة فقط</b> حسب صلاحياته.</p>
+
+<h3>تبديل المشروع (Project Switcher)</h3>
+<figure><img src="shots/admin-project-switcher.png" alt="Project switcher"><figcaption>الشريط العلوي — قائمة التبديل بين المشاريع (P-1000 Nile Tower و P-2000 Marina Plaza)</figcaption></figure>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>اضغط على شارة المشروع في الشريط العلوي لفتح القائمة، واختر المشروع. <b>كل الصفحات تعيد تحميل بياناتها فوراً</b> للمشروع المختار (التنبيهات، الملخصات، التحليلات، المخاطر…) ويُحفظ اختيارك للجلسات القادمة.</div>
+
+<h3>الوضع الداكن والفاتح (Dark / Light)</h3>
+<p>زر الشمس/القمر في الشريط العلوي يبدّل الثيم فوراً ويحفظ التفضيل. كل المخططات والشارات تتكيف تلقائياً.</p>
+<figure class="tall"><img src="shots/dark-overview.png" alt="Dark mode"><figcaption>اللوحة الرئيسية في الوضع الداكن</figcaption></figure>
+
+<h3>اللغة العربية (RTL)</h3>
+<p>زر اللغة (<span class="ltr">ع / E</span>) يبدّل بين الإنجليزية والعربية مع انعكاس كامل لاتجاه الواجهة (RTL) — القوائم والجداول والمخططات.</p>
+<figure class="tall"><img src="shots/ar-overview.png" alt="Arabic RTL"><figcaption>اللوحة الرئيسية بالعربية — واجهة RTL كاملة</figcaption></figure>
+
+<!-- ════════════════ 4. GOVERNANCE COMMAND ════════════════ -->
+<h2><span class="no">4</span>قيادة الحوكمة (Governance Command)</h2>
+
+<h3>اللوحة الرئيسية — Overview <span class="route">/</span></h3>
+<figure class="tall"><img src="shots/admin-overview.png" alt="Overview"><figcaption>اللوحة الرئيسية: عدّادات، توزيع التنبيهات، آخر استيراد، وآخر ملخص تنفيذي — كلها للمشروع المختار</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>نبضة سريعة للمشروع المختار: عدد عمليات الاستيراد، إجمالي التنبيهات (الحرجة/التحذيرية)، ثقة آخر استيراد، توزيع التنبيهات حسب القاعدة، وآخر ملخص تنفيذي أسبوعي.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>البطاقات الأربع العلوية روابط مباشرة (Input · Review · Approval · Evidence). بدّل المشروع من الأعلى لترى نبضة المشروع الآخر فوراً.</div>
+<div class="blk who"><b class="tag">من يراها</b>جميع الأدوار (كلٌ ببيانات نطاقه).</div>
+
+<h3>مركز القيادة — Command Center (L8) <span class="route">/governance-command</span></h3>
+<figure><img src="shots/admin-governance-command.png" alt="Command Center"><figcaption>مركز قيادة الحوكمة — الحالة الموحّدة لكل عقدة + الإجراءات التصحيحية</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>الواجهة المرئية لوكيل L8 (السلطة النهائية): يجمع مخرجات كل الوكلاء لكل عقدة (مشروع/برنامج/محفظة/منشأة) في <b>حالة واحدة معتمدة</b> (أخضر/أصفر/برتقالي/أحمر) مع درجة رقمية مفسَّرة، ويولّد <b>إجراءات تصحيحية</b> قابلة للتتبع.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>
+<ol>
+  <li>راقب توزيع الحالات والشجرة الهرمية مع شارة حالة لكل عقدة.</li>
+  <li>اضغط <b>Recompute</b> لإعادة التجميع بعد أي بيانات جديدة (إعادة الحساب آمنة التكرار idempotent).</li>
+  <li>اعمل على قائمة <b>Corrective actions</b>: غيّر حالتها (open → in-progress → done) مع المالك.</li>
+  <li>انزل لتفاصيل أي عقدة لرؤية سجل تنفيذ كل وكيل (الدليل الكامل لكل رقم).</li>
+</ol></div>
+<div class="blk who"><b class="tag">من يراها</b>طبقة الحوكمة (Admin · Reviewer · Client · Consultant · Contractor) — لا تظهر لمقاول الباطن.</div>
+
+<h3>لوحة الإدارة التنفيذية — Executive (L7) <span class="route">/executive</span></h3>
+<figure class="tall"><img src="shots/admin-executive.png" alt="Executive"><figcaption>المؤشرات الاستراتيجية الموحّدة من كل الطبقات + العنوان التنفيذي</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>رؤية مجلس الإدارة: حالة الحوكمة، صحة الجدول، صحة التكلفة، نسبة التجاوز المتوقعة، التعرض للمخاطر، والنتائج الحرجة — في سطر عنوان واحد وبطاقات KPI.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>تُقرأ من أعلى لأسفل: العنوان التنفيذي ← بطاقات KPI ← التفاصيل. بدّل المشروع لمقارنة المحفظة. كل رقم له أصل حتمي يمكن تتبعه من سجل الوكلاء.</div>
+
+<h3>هيكل الحوكمة — Hierarchy <span class="route">/hierarchy</span></h3>
+<figure><img src="shots/admin-hierarchy.png" alt="Hierarchy"><figcaption>شجرة Enterprise → Portfolio → Program → Project مع حالة كل عقدة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>إدارة الهرمية الرباعية وربط المشاريع بالبرامج والمحافظ، مع تجميع الحالة «الأسوأ يطفو لأعلى» (worst-of-children roll-up).</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>أنشئ العقد بالأزرار العلوية، ثم اربط المشروع بعقدة عبر <b>Attach</b>، وحدّد <b>مرحلة دورة الحياة</b> لكل عقدة. زر <b>Recompute</b> يعيد تجميع الحالات صعوداً.</div>
+<div class="blk who"><b class="tag">من يراها</b>الإدارة عبر صلاحية <span class="ltr">canManageHierarchy</span> (Admin والعميل)، والاطلاع لطبقة الحوكمة.</div>
+
+<h3>سجل الوكلاء — Agent Registry <span class="route">/agents</span></h3>
+<figure><img src="shots/admin-agents.png" alt="Agents"><figcaption>كل وكيل ببطاقة عقده الموحّد: الهدف، المدخلات، المخرجات، المراجع، وآخر تنفيذ</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>إثبات «العقد الموحّد»: كل الوكلاء (L0–L8 + الامتدادات) يظهرون تلقائياً بنفس البطاقة، مع سجل التنفيذات (AgentExecution) لكل تشغيل: المُدخلات، الثقة، التصعيد، الحالة.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>شغّل أي وكيل يدوياً بزر <b>Run</b> (أو الخط الكامل L1→L8 بزر <b>Run pipeline</b>)، وراجع تاريخ التنفيذات أسفل الصفحة. أي وكيل جديد يُضاف للمنصة يظهر هنا تلقائياً بدون أي تعديل.</div>
+
+<h3>المشاريع — Projects <span class="route">/projects</span></h3>
+<figure><img src="shots/admin-projects.png" alt="Projects"><figcaption>قائمة المشاريع المستوردة وحالة كل منها</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>كل المشاريع الحالية في النظام (تنشأ تلقائياً من الاستيراد في L1) مع بياناتها الأساسية وتاريخ البيانات (Data Date)، ومنها تستطيع تعيين المشروع الحالي.</div>
+
+<!-- ════════════════ 5. INVESTMENT ════════════════ -->
+<h2><span class="no">5</span>الاستثمار ودراسات الجدوى — Investment &amp; Feasibility Intelligence</h2>
+<p>قدرة متكاملة تدعم المستثمر <b>من مرحلة الفكرة حتى جاهزية التمويل</b>، على مستويين + مسار الإسكتشات، ومسجلة كوكيل امتداد <span class="ltr">ext.investment</span> بحيث يُدقَّق كل تقييم في سجل الوكلاء.</p>
+
+<h3>قائمة الفرص — المستوى الأول <span class="route">/feasibility</span></h3>
+<figure class="tall"><img src="shots/admin-feasibility.png" alt="Feasibility hub"><figcaption>مركز الفرص الاستثمارية + نموذج «التقييم السريع» — مدخلات قليلة تكفي</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>التقييم الاستثماري السريع (Rapid Investment Assessment)</b>: بمدخلات قليلة فقط (نوع المشروع، الموقع، حجم الاستثمار، هيكل التمويل، الهدف) يولّد النظام تقييماً مبدئياً كاملاً اعتماداً على <b>مكتبة افتراضات مرجعية مُدارة بإصدارات</b>.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>
+<ol>
+  <li>اضغط <b>New opportunity</b> واملأ النموذج (يكفي نوع المشروع + المدينة + حجم الاستثمار <i>أو</i> مساحة البناء BUA).</li>
+  <li>اضبط هيكل التمويل: نسبة حقوق الملكية / الدين، الفائدة، مدة السداد.</li>
+  <li>افتح الفرصة وشغّل <b>Run rapid assessment</b>.</li>
+</ol></div>
+
+<h3>نتائج التقييم — NPV · IRR · Payback · DSCR</h3>
+<figure class="tall"><img src="shots/admin-feasibility-detail.png" alt="Assessment"><figcaption>تقييم INV-0001: توصية «Proceed with conditions» مع كل المؤشرات وجدول التدفقات النقدية</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>النتائج تشمل: الجدوى المبدئية، تفصيل CAPEX، تقديرات OPEX، توقعات الإيرادات مع منحنى التشغيل التدريجي، <b>NPV</b> مبدئي، <b>IRR</b> للمشروع وللملكية، فترة الاسترداد، <b>DSCR</b> (تغطية خدمة الدين)، تصنيف مخاطر مُسمّى الأسباب، و<b>توصية حوكمية</b>: Proceed · Proceed with Conditions · Hold · Reject — مرتبطة بالحالة الرباعية (أخضر/أصفر/برتقالي/أحمر).</div>
+<div class="blk sys"><b class="tag">ضمن المنظومة</b>كل تشغيل يُحفظ <b>append-only</b> مع لقطة المدخلات والافتراضات المستخدمة (قابلية إعادة الإنتاج للأبد)، ويسجَّل كتنفيذ مدقَّق للوكيل <span class="ltr">ext.investment</span> بدرجة ثقة مبنية على اكتمال المدخلات. كل شرط في التوصية مُسمّى صراحة («رفع IRR إلى عتبة 12%»…).</div>
+
+<h3>الدراسة الاحترافية — المستوى الثاني (Bankability Engine)</h3>
+<figure class="tall"><img src="shots/admin-feasibility-study.png" alt="Study"><figcaption>دراسة الجدوى الاحترافية — 17 قسماً قابلة للاعتماد قسماً قسماً</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>إذا كانت الفرصة واعدة، يولّد زر <b>Generate professional study</b> دراسة كاملة من <b>17 قسماً</b>: الملخص التنفيذي، تقييم السوق، الجدوى الفنية، النموذج التشغيلي، تحليل CAPEX &amp; OPEX، توقعات الإيرادات، التدفقات النقدية، <b>القوائم المالية</b> (بجدول إطفاء حقيقي للدين وضريبة 9%)، تحليلات NPV وIRR وفترة الاسترداد وDSCR، <b>تحليل الحساسية</b> (6 سيناريوهات معاد حسابها بالكامل)، تقييم المخاطر، متطلبات التمويل، <b>تقييم القابلية للتمويل البنكي</b> (6 معايير نجاح/فشل)، والتوصية الحوكمية.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>افتح أي قسم للاطلاع، ثم <b>Approve section</b> — الاعتماد البشري هو البوابة قبل التضمين النهائي في الباقات. إعادة التوليد تنشئ نسخة جديدة وتحفظ القديمة (versioned).</div>
+
+<h3>باقات الجمهور — Investor · Partner · Bank</h3>
+<figure><img src="shots/admin-feasibility-packages.png" alt="Packages"><figcaption>تركيب باقة حسب الجمهور: مستثمر / شريك / بنك — مع طباعة PDF</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>نفس الدراسة تُركَّب تلقائياً في ثلاث باقات موجهة: <b>Investor Package</b> (قصة العائد)، <b>Partner Package</b> (قصة المشروع)، <b>Bank Financing Package</b> (قصة الائتمان: قوائم مالية + DSCR + متطلبات تمويل). زر <b>Print / save PDF</b> يخرج الباقة مستندَ تسليم.</div>
+
+<h3>الإسكتشات والرسومات الأولية (Concept Sketches)</h3>
+<figure><img src="shots/admin-feasibility-sketches.png" alt="Sketches"><figcaption>رفع إسكتش/صورة/PDF ← استخلاص آلي ← مراجعة واعتماد بشري</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>كثير من المستثمرين يبدأون بإسكتش يدوي أو ملاحظات مكتوبة. ترفع الملف (صورة أو PDF حتى 15MB) فيستخلص الذكاء الاصطناعي (OCR + رؤية حاسوبية) البيانات المتاحة: مساحة الأرض، مساحة البناء BUA، عدد الأدوار، المناطق الوظيفية، الأبعاد التقريبية، مزيج الوحدات، السعة، الملاحظات المكتوبة، والافتراضات.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>
+<ol>
+  <li>ارفع الملف من تبويب <b>Concept sketches</b>.</li>
+  <li>اضغط <b>AI extract</b> — يقترح النظام الحقول (اقتراح فقط، لا يُطبَّق شيء).</li>
+  <li>راجع وعدّل في نموذج <b>Review &amp; confirm</b> ثم اعتمد — <b>أنت بوابة الاعتماد</b>؛ عندها فقط تُدمج الحقول في مدخلات الجدوى.</li>
+  <li>أعد تشغيل التقييم: إن لم يوجد رقم استثمار، يشتق النظام CAPEX من <span class="ltr">BUA × benchmark تكلفة/م² × معامل الموقع</span>.</li>
+</ol></div>
+<div class="blk note">بدون مفتاح Anthropic مُهيأ، يتحول المستند لوضع <b>الإدخال اليدوي</b> بنفس نموذج الاعتماد — لا يتعطل المسار.</div>
+<div class="blk who"><b class="tag">من يراها</b>Admin · Reviewer · Client · Consultant (صلاحية <span class="ltr">canRunFeasibility</span>). بيانات الاستثمار محجوبة عن المقاول ومقاول الباطن.</div>
+
+<!-- ════════════════ 6. AGENT LAYERS ════════════════ -->
+<h2><span class="no">6</span>طبقات الوكلاء L0 → L8 صفحةً صفحة</h2>
+
+<h3>L0 · المعرفة والقواعد <span class="route">/knowledge</span></h3>
+<figure><img src="shots/admin-knowledge.png" alt="Knowledge"><figcaption>مكتبة Sigma: القواعد، المصادر، الأطر، والدروس المستفادة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>الأساس المعرفي لكل الوكلاء: <b>مكتبة قواعد Sigma</b> (عتبات الانحراف، قواعد الموارد…)، سجل المصادر (FIDIC · PMI · ISO)، الأطر والسياسات، والدروس المستفادة القابلة للنمو.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>تنقّل بين التبويبات الأربعة. أي اقتباس ذكاء اصطناعي في المنصة يستشهد بمعرّفات هذه المصادر بصيغة <span class="ltr">[SOURCE: id]</span>.</div>
+
+<h3>L1 · إدخال البيانات <span class="route">/input</span></h3>
+<figure><img src="shots/admin-input.png" alt="Input"><figcaption>رفع الملفات (XER · XML · Excel · CSV · PDF) وسجل عمليات الاستيراد</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>بوابة دخول البيانات: جداول Primavera/MS Project، تقارير التقدم، وسجلات المشروع (RFI/Submittal/NCR/تغييرات/مشتريات/موارد/تكلفة/صور موقع).</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>اسحب الملف أو اختره، فيُحفظ نسخة أصلية مؤرشفة (content-addressed)، ويُحلَّل ويُطبَّع في النموذج القانوني <b>بدون استبدال</b> (إصدارات append-only)، وتحصل كل عملية على <b>درجة ثقة</b>. راقب الجدول السفلي لحالة كل عملية.</div>
+<div class="blk who"><b class="tag">من يراها</b>أصحاب صلاحيات الرفع (Admin، المقاول لجداوله وتقاريره، مقاول الباطن لتقارير أنشطته فقط).</div>
+
+<h3>L2 · المراجعة <span class="route">/review</span></h3>
+<figure><img src="shots/admin-review.png" alt="Review"><figcaption>التنبيهات بحسب الخطورة + توليد الملخص الأسبوعي</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>واجهة محرك القواعد: زر <b>Evaluate</b> يفحص بيانات المشروع الحالي ضد مكتبة القواعد ويولّد <b>تنبيهات</b> (حرج/تحذير/معلومة)، ثم يصدر قرارات الحوكمة المرتبطة تلقائياً.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>شغّل التقييم، رشّح بالخطورة، وافتح أي تنبيه لرؤية قراره. زر <b>Weekly summary</b> يولّد الملخص التنفيذي (حتمي أو بصياغة AI إذا فُعّل) للمشروع المختار.</div>
+
+<h3>L3 · أرشيف القرارات <span class="route">/decisions</span></h3>
+<figure><img src="shots/admin-decisions.png" alt="Decisions"><figcaption>كل قرارات الحوكمة: المسؤولية، بند FIDIC، مستوى التصعيد، وحالة الاعتماد</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>سجل قرارات L3 الكامل للمشروع المختار: الطرف المسؤول، بند FIDIC المنطبق ومهله، مستوى التصعيد (L1–L3)، وما إذا اعتُمد القرار أو رُفض أو جرى الإقرار به.</div>
+
+<h3>L4 · التحليلات والقيمة المكتسبة <span class="route">/analytics</span></h3>
+<figure><img src="shots/admin-analytics.png" alt="Analytics"><figcaption>EVM كامل: PV/EV/AC، مؤشرا SPI وCPI، وتوقع EAC</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>حساب القيمة المكتسبة بصيغ PMI الحتمية من بيانات الأنشطة والتقارير: PV · EV · AC ← SPI · CPI · EAC · ETC · VAC، مع مخططات الاتجاه وتوقع الانحراف.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>اختر المشروع وشغّل التحليل؛ كل لقطة KPI تُحفظ بتاريخ بياناتها لتتبع الاتجاه عبر الزمن.</div>
+
+<h3>L5 · سجل المخاطر <span class="route">/risk</span></h3>
+<figure><img src="shots/admin-risk.png" alt="Risk"><figcaption>مصفوفة الاحتمال × الأثر وسجل المخاطر المولّد من إشارات المشروع</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>توليد وتقييم المخاطر حتمياً (احتمال × أثر) من إشارات المشروع (انزلاقات، تجاوزات تكلفة، NCRs…) مع أولويات معالجة وخريطة حرارية.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>زر التشغيل يستدعي وكيل <span class="ltr">l5.risk</span> فيحدّث السجل؛ المخاطر عالية الدرجة تغذّي التصعيد والحالة الرباعية تلقائياً.</div>
+
+<h3>L6 · المطالبات والنزاعات <span class="route">/claims</span></h3>
+<figure><img src="shots/admin-claims.png" alt="Claims"><figcaption>تحليل نوافذ التأخير والمطالبات المرشحة وربط الأدلة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>تحليل تأخير حتمي (مخطَّط مقابل فعلي، نافذةً نافذة)، تحديد المطالبات المحتملة، إسناد المسؤولية، وربط كل مطالبة بأدلتها — تمهيداً لخطابات FIDIC في صفحة Letters.</div>
+
+<p class="footer-note">طبقتا L7 وL8 شُرحتا في القسم 4 (Executive وCommand Center) — هما نفس الصفحتين ضمن تبويب طبقات الوكلاء.</p>
+
+<!-- ════════════════ 7. TOOLS ════════════════ -->
+<h2><span class="no">7</span>الأدوات والأدلة (Tools &amp; Evidence)</h2>
+
+<h3>مستودع الوثائق <span class="route">/repository</span></h3>
+<figure><img src="shots/admin-repository.png" alt="Repository"><figcaption>سجلات المشروع بكل أنواعها مع الترشيح بالنوع والحالة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>كل سجلات L1 للمشروع (RFIs · Submittals · NCRs · أوامر التغيير · المشتريات · الموارد · التكلفة · صور الموقع) في جدول واحد قابل للترشيح، مع إضافة سجلات جديدة يدوياً.</div>
+
+<h3>الأدلة <span class="route">/evidence</span></h3>
+<figure><img src="shots/admin-evidence.png" alt="Evidence"><figcaption>حزمة الدليل الكاملة لأي تنبيه: لماذا هذا الرقم هنا؟</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>الإجابة الدائمة على سؤال «من أين جاء هذا؟»: لكل تنبيه حزمة دليل تضم الصف الخام الأصلي، الملف المصدر وبصمته SHA-256، درجة الثقة، والمنطق الذي أطلق القاعدة.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>اختر تنبيهاً من القائمة (مرشّحة بالمشروع الحالي) لعرض حزمته كاملة.</div>
+
+<h3>الاعتماد <span class="route">/approval</span></h3>
+<figure><img src="shots/admin-approval.png" alt="Approval"><figcaption>طابور قرارات الحوكمة: اعتماد / رفض / إقرار مع سجل مراجعات</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>بوابة الاعتماد البشري لقرارات L3: كل قرار يظهر مع تنبيهه ومسؤوليته وبند FIDIC، وتُسجَّل كل مراجعة بهوية مراجعها (سجل تدقيق دائم).</div>
+
+<h3>خطوط الأساس <span class="route">/baselines</span> · المحاكاة <span class="route">/simulation</span></h3>
+<figure><img src="shots/admin-baselines.png" alt="Baselines"><figcaption>Baselines — طلبات بناء خط الأساس وحالتها</figcaption></figure>
+<figure><img src="shots/admin-simulation.png" alt="Simulation"><figcaption>Simulation — سيناريوهات What-if معزولة لا تمس بيانات الحقيقة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>Baselines</b>: إدارة خطوط الأساس الزمنية ومقارناتها. <b>Simulation</b>: تفريع سيناريو رملي (Sandbox) تجرب فيه «ماذا لو» (تأخير نشاط، تغيير موارد) بأمان كامل — الكتابة في فرع السيناريو فقط، ثم تُرقّى النتيجة لقاعدة الحقيقة بقرار صريح أو تُهمل.</div>
+
+<h3>التعارضات <span class="route">/clashes</span> · المخططات <span class="route">/drawings</span></h3>
+<figure><img src="shots/admin-clashes.png" alt="Clashes"><figcaption>تعارضات BIM/Navisworks مع خيارات حل لكل تعارض</figcaption></figure>
+<figure><img src="shots/admin-drawings.png" alt="Drawings"><figcaption>حزم المخططات PDF مع اكتشاف عدد الأدوار آلياً</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>Clashes</b>: استيراد تقارير التعارض ومتابعة الحل والمسؤولية. <b>Drawings</b>: رفع حزم المخططات؛ يستخرج النظام بياناتها (كعدد الأدوار) لتغذية مولّد خط الأساس.</div>
+
+<h3>الخطابات <span class="route">/letters</span> · سجل المصادر <span class="route">/sources</span></h3>
+<figure><img src="shots/admin-letters.png" alt="Letters"><figcaption>صياغة خطابات FIDIC مع بوابة اعتماد بشري إلزامية</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>Letters</b>: صياغة خطابات FIDIC (إشعارات، ردود) بمساعدة الذكاء الاصطناعي مع <b>استشهاد إلزامي بالمصادر</b> واعتماد بشري قبل أي اعتماد نهائي — لا إرسال آلي إطلاقاً. <b>Sources</b>: السجل المرجعي (FIDIC Red Book، PMI، ISO…) الذي تُسند إليه الاقتباسات.</div>
+
+<h3>التقرير الشهري <span class="route">/reports/monthly</span> · AI مقابل الإنسان <span class="route">/comparison</span></h3>
+<figure><img src="shots/admin-reports-monthly.png" alt="Monthly report"><figcaption>التقرير الشهري السردي ثنائي اللغة مع تصدير PDF</figcaption></figure>
+<figure><img src="shots/admin-comparison.png" alt="Comparison"><figcaption>مقارنة مخرجات AI بمخرجات الإنسان لتحسين الشخصيات</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>Monthly reports</b>: توليد التقرير الشهري (عربي/إنجليزي) من بيانات المشروع الحقيقية مع اعتماده وتصديره. <b>AI vs Human</b>: رفع مخرج بشري ومقارنته بمخرج المنصة وتسجيل حكم بشري — تغذية راجعة لتحسين الجودة.</div>
+
+<!-- ════════════════ 8. ADMIN ════════════════ -->
+<h2><span class="no">8</span>صفحات الإدارة (Admin)</h2>
+
+<h3>صلاحيات الأدوار <span class="route">/admin/roles</span></h3>
+<figure><img src="shots/admin-admin-roles.png" alt="Role permissions"><figcaption>مصفوفة الصلاحيات: 20 صلاحية × 6 أدوار قابلة للتبديل لحظياً</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>تحكم الأدمن الفعلي في صلاحيات بقية الأدوار <b>أثناء التشغيل</b>: أي مفتاح يُقلب هنا يسري فوراً على الخادم (الطلب التالي للمستخدم المتأثر يُرفض أو يُقبل) وعلى واجهته (تختفي/تظهر الصفحات).</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>بدّل أي خلية في المصفوفة. عمود الأدمن مقفول (لا يمكن إقفال الأدمن خارجاً)، وصلاحيتا <span class="ltr">canRead</span> و<span class="ltr">canManageRoles</span> محميتان. <b>Reset</b> يعيد الافتراضات لدور أو للكل.</div>
+
+<h3>السياسة <span class="route">/admin/policy</span> · الشخصيات <span class="route">/admin/personas</span></h3>
+<figure><img src="shots/admin-admin-policy.png" alt="Policy"><figcaption>سياسة الحوكمة: العتبات والتصعيد وإشعارات الأطراف — بإصدارات</figcaption></figure>
+<figure><img src="shots/admin-admin-personas.png" alt="Personas"><figcaption>شخصيات الخبراء للذكاء الاصطناعي — كل تعديل يولّد نسخة جديدة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>Policy</b>: تهيئة قواعد القرار (عتبات الخطورة، مستويات التصعيد، الأطراف المُخطرة) بنسخ متتابعة لا تُستبدل. <b>Personas</b>: إدارة شخصيات الخبراء (مخطِّط، خبير FIDIC، محلل مخاطر…) التي يتكلم النظام من خلالها — append-only بالكامل.</div>
+
+<h3>المستخدمون <span class="route">/admin/users</span></h3>
+<figure><img src="shots/admin-admin-users.png" alt="Users"><figcaption>إدارة كاملة: إضافة وتعديل وحذف، إعادة تعيين كلمات المرور، وتدوير المفاتيح</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>دورة حياة المستخدمين كاملة: إنشاء مستخدم بدور ونطاق مشاريع، تعديل (الاسم/الدور/التفعيل)، إعادة تعيين كلمة مرور، تدوير مفتاح API (يظهر مرة واحدة)، وحذف — مع <b>حماية آخر أدمن نشط</b> من التعطيل أو الحذف.</div>
+
+<h3>الإعدادات المتقدمة <span class="route">/admin/settings</span> · سجل التدقيق <span class="route">/audit</span></h3>
+<figure><img src="shots/admin-admin-settings.png" alt="Settings"><figcaption>إدخال مفتاح Anthropic مشفّراً (AES-256-GCM) وتفعيل قدرات AI بدون إعادة تشغيل</figcaption></figure>
+<figure><img src="shots/admin-audit.png" alt="Audit"><figcaption>سجل تدقيق موحّد لكل العمليات الحساسة</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b><b>Settings</b>: مفتاح الذكاء الاصطناعي يُحفظ مشفّراً في قاعدة البيانات ويسري فوراً. <b>Audit</b>: تتبع زمني للعمليات (استيراد، قرارات، مراجعات…) لأغراض الحوكمة والتسليم.</div>
+
+<!-- ════════════════ 9. ROLES ════════════════ -->
+<h2><span class="no">9</span>الأدوار الستة — ماذا يرى كل مستخدم</h2>
+<p>لكل دور <b>قائمة جانبية وصلاحيات مختلفة فعلياً</b> — ليس إخفاءً شكلياً: الخادم يرفض أي طلب خارج صلاحية الدور حتى لو طُلب مباشرة.</p>
+
+<h3>Sigma Admin — مدير المنصة</h3>
+<p>يرى كل شيء ويدير كل شيء (الأقسام 1–8 أعلاه كلها بصلاحياته). حصرياً: مصفوفة الصلاحيات، المستخدمون، الشخصيات، الإعدادات المتقدمة، وComputer Use.</p>
+
+<h3>Sigma Reviewer — المراجع الداخلي</h3>
+<figure><img src="shots/reviewer-overview.png" alt="Reviewer overview"><figcaption>لوحة المراجع — قراءة شاملة بدون أدوات رفع أو محاكاة</figcaption></figure>
+<figure><img src="shots/reviewer-review.png" alt="Reviewer review"><figcaption>المراجع في صفحة Review: يقيّم وينشئ ملخصات لكنه لا يرفع بيانات</figcaption></figure>
+<div class="blk who"><b class="tag">ميثاق الدور</b>عين Sigma الفاحصة: اطلاع كامل على كل المشاريع، تشغيل التقييمات والملخصات والمقارنات (AI vs Human)، <b>بدون</b> رفع بيانات أو تعديل سياسة أو محاكاة أو إدارة مستخدمين. يملك صلاحية دراسات الجدوى.</div>
+
+<h3>Client — العميل (مالك القرار)</h3>
+<figure><img src="shots/client-overview.png" alt="Client overview"><figcaption>لوحة العميل — رؤية المحفظة كاملة</figcaption></figure>
+<figure><img src="shots/client-governance-command.png" alt="Client command"><figcaption>العميل في مركز القيادة: الحالة الموحّدة والإجراءات التصحيحية</figcaption></figure>
+<figure><img src="shots/client-approval.png" alt="Client approval"><figcaption>بوابة الاعتماد — العميل يعتمد القرارات والخطابات وخطوط الأساس</figcaption></figure>
+<div class="blk who"><b class="tag">ميثاق الدور</b>صاحب القرار: اطلاع كامل، تعديل السياسة، <b>اعتماد</b> الخطابات وخطوط الأساس والقرارات، إدارة الهرمية، المحاكاة، ودراسات الجدوى (هو المستثمر غالباً). لا يرفع بيانات تشغيلية ولا يدير المستخدمين.</div>
+
+<h3>Consultant — الاستشاري</h3>
+<figure><img src="shots/consultant-overview.png" alt="Consultant overview"><figcaption>لوحة الاستشاري</figcaption></figure>
+<figure><img src="shots/consultant-simulation.png" alt="Consultant simulation"><figcaption>الاستشاري في المحاكاة: يقترح ويجرب في سيناريو رملي آمن</figcaption></figure>
+<div class="blk who"><b class="tag">ميثاق الدور</b>قراءة + اقتراح + محاكاة: اطلاع كامل وتقييم القواعد والتحليلات والملخصات والمحاكاة ودراسات الجدوى — <b>بدون</b> رفع بيانات أو اعتمادات أو تعديل سياسة.</div>
+
+<h3>Contractor — المقاول</h3>
+<figure><img src="shots/contractor-overview.png" alt="Contractor overview"><figcaption>لوحة المقاول — شريحته هو (canReadAll معطّلة)</figcaption></figure>
+<figure><img src="shots/contractor-input.png" alt="Contractor input"><figcaption>المقاول يرفع جداوله وتقاريره وBoQ وخطاباته</figcaption></figure>
+<div class="blk who"><b class="tag">ميثاق الدور</b>طرف التنفيذ: يرفع الجداول والتقارير وBoQ والخطابات، يقيّم قواعد شريحته ويولّد ملخصاتها، ويحاكي في فرع رملي. <b>لا يرى</b> المستويات الأعلى من الهرمية (Enterprise/Portfolio) ولا بيانات الاستثمار، ولا يملك أي اعتماد.</div>
+
+<h3>Subcontractor — مقاول الباطن</h3>
+<figure><img src="shots/subcontractor-overview.png" alt="Subcontractor overview"><figcaption>لوحة مقاول الباطن — أصغر شريحة في النظام</figcaption></figure>
+<figure><img src="shots/subcontractor-blocked-risk.png" alt="Blocked"><figcaption>محاولة فتح صفحة خارج صلاحياته (سجل المخاطر) — يحجبه AuthGate بوضوح</figcaption></figure>
+<div class="blk who"><b class="tag">ميثاق الدور</b>أضيق نطاق: يرفع تقارير التقدم <b>لأنشطته المسندة فقط</b> (activityScope) ويحاكي عليها، ولا يرى الوضع المالي العام للمشروع ولا صفحات الحوكمة — وأي مسار خارج نطاقه يقابله حاجز الصلاحيات أعلاه.</div>
+
+<!-- ════════════════ 10. APPENDIX ════════════════ -->
+<h2><span class="no">10</span>ملاحق</h2>
+
+<h3>الحسابات التجريبية</h3>
+<table>
+  <tr><th>الدور</th><th>البريد الإلكتروني</th><th>كلمة المرور</th></tr>
+  <tr><td>Sigma Admin</td><td class="ltr">admin@sigma.local</td><td class="ltr">AdminSigma#2026</td></tr>
+  <tr><td>Sigma Reviewer</td><td class="ltr">reviewer@sigma.local</td><td class="ltr">ReviewerSigma#2026</td></tr>
+  <tr><td>Client</td><td class="ltr">client@sigma.ae</td><td class="ltr">ClientSigma#2026</td></tr>
+  <tr><td>Consultant</td><td class="ltr">consultant@sigma.ae</td><td class="ltr">ConsultantSigma#2026</td></tr>
+  <tr><td>Contractor</td><td class="ltr">contractor@sigma.ae</td><td class="ltr">ContractorSigma#2026</td></tr>
+  <tr><td>Subcontractor</td><td class="ltr">subcontractor@sigma.ae</td><td class="ltr">SubcontractorSigma#2026</td></tr>
+</table>
+
+<h3>جدول الصلاحيات المختصر</h3>
+<table>
+  <tr><th>الصلاحية</th><th>Admin</th><th>Reviewer</th><th>Client</th><th>Consultant</th><th>Contractor</th><th>Subcontractor</th></tr>
+  <tr><td>القراءة (نطاق الدور)</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td></tr>
+  <tr><td>الاطلاع على كل المشاريع</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td></tr>
+  <tr><td>رفع الجداول والبيانات</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td><td class="ok">✓</td><td class="ok">تقاريره فقط</td></tr>
+  <tr><td>تقييم القواعد (L2)</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="no2">✗</td></tr>
+  <tr><td>توليد الملخصات</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="no2">✗</td></tr>
+  <tr><td>المحاكاة (Sandbox)</td><td class="ok">✓</td><td class="no2">✗</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td></tr>
+  <tr><td>تعديل السياسة</td><td class="ok">✓</td><td class="no2">✗</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td></tr>
+  <tr><td>اعتماد الخطابات / خطوط الأساس</td><td class="ok">✓</td><td class="no2">✗</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td></tr>
+  <tr><td>إدارة الهرمية</td><td class="ok">✓</td><td class="no2">✗</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td></tr>
+  <tr><td>دراسات الجدوى الاستثمارية</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td></tr>
+  <tr><td>إدارة الصلاحيات والمستخدمين</td><td class="ok">✓</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td><td class="no2">✗</td></tr>
+</table>
+<p class="footer-note">ملاحظة: هذه هي الافتراضات؛ يستطيع الأدمن تعديل أي صلاحية لأي دور لحظياً من صفحة <span class="route">/admin/roles</span> — والجدول الفعلي النافذ هو ما يعرضه النظام هناك.<br>
+Sigma PMO · دليل الاستخدام v1.0 · يونيو 2026 · أُنشئت كل اللقطات آلياً من النظام الحي ويمكن إعادة توليدها بأمر <span class="ltr">node capture.mjs</span>.</p>
+
+</main>
+</body>
+</html>
