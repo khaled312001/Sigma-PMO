@@ -13,9 +13,23 @@ import { Repository } from 'typeorm';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { AgentExecution } from '../canonical/entities';
-import type { AgentRunContext } from './agent-contract.interface';
+import {
+  AgentConfig,
+  AgentConfigService,
+  ALLOWED_MODEL_TIERS,
+} from './agent-config.service';
+import type { AgentDescriptor, AgentRunContext } from './agent-contract.interface';
 import { AgentOrchestrator } from './agent-orchestrator.service';
 import { AgentRegistry } from './agent.registry';
+
+/** A registry descriptor enriched with its runtime config (enabled / tier). */
+interface EnrichedAgentDescriptor extends AgentDescriptor {
+  config: AgentConfig;
+}
+
+interface SaveAgentConfigBody extends Partial<AgentConfig> {
+  updatedBy?: string | null;
+}
 
 /**
  * `/agents` — the standardized agent surface (2026-06-11 governance OS).
@@ -29,15 +43,58 @@ export class AgentsController {
   constructor(
     private readonly registry: AgentRegistry,
     private readonly orchestrator: AgentOrchestrator,
+    private readonly agentConfig: AgentConfigService,
     @InjectRepository(AgentExecution)
     private readonly executions: Repository<AgentExecution>,
   ) {}
 
-  /** The agent registry — every layer's contract descriptor. */
+  /** The agent registry — every layer's contract descriptor, enriched with config. */
   @Get()
   @RequiresCapability('canRead')
-  list() {
-    return this.registry.list();
+  async list(): Promise<EnrichedAgentDescriptor[]> {
+    return this.enrich(this.registry.list());
+  }
+
+  /**
+   * Per-agent configuration surface (enabled / model tier) for every registered
+   * agent. Reads are `canRead`; the descriptor is enriched so a config screen
+   * has the layer + objective alongside the toggle without a second call.
+   */
+  @Get('config')
+  @RequiresCapability('canRead')
+  async configList(): Promise<{
+    agents: EnrichedAgentDescriptor[];
+    allowedModelTiers: readonly string[];
+  }> {
+    return {
+      agents: await this.enrich(this.registry.list()),
+      allowedModelTiers: ALLOWED_MODEL_TIERS,
+    };
+  }
+
+  /**
+   * Upsert one agent's config (enabled toggle + model tier). Gated on
+   * `canManageRoles` — the governance-admin tier that owns role + agent wiring.
+   */
+  @Post(':agentKey/config')
+  @HttpCode(200)
+  @RequiresCapability('canManageRoles')
+  async saveConfig(
+    @Param('agentKey') agentKey: string,
+    @Body() body: SaveAgentConfigBody,
+  ): Promise<EnrichedAgentDescriptor> {
+    if (!this.registry.has(agentKey)) {
+      throw new BadRequestException(
+        `Unknown agent "${agentKey}". Registered: ${this.registry.list().map((d) => d.agentKey).join(', ') || '(none yet)'}`,
+      );
+    }
+    const patch: Partial<AgentConfig> = {};
+    if (typeof body?.enabled === 'boolean') patch.enabled = body.enabled;
+    if (typeof body?.modelTier === 'string') patch.modelTier = body.modelTier;
+    const updatedBy = typeof body?.updatedBy === 'string' ? body.updatedBy : null;
+    const config = await this.agentConfig.setFor(agentKey, patch, updatedBy);
+    const descriptor = this.registry.get(agentKey).descriptor();
+    return { ...descriptor, config };
   }
 
   /** Recent agent-execution audit rows (filterable by node / agent). */
@@ -94,5 +151,14 @@ export class AgentsController {
       );
     }
     return this.orchestrator.runAgent(agentKey, body ?? {});
+  }
+
+  /** Attach each descriptor's effective config (defaults applied when unset). */
+  private async enrich(descriptors: AgentDescriptor[]): Promise<EnrichedAgentDescriptor[]> {
+    const map = await this.agentConfig.getAll();
+    return descriptors.map((d) => ({
+      ...d,
+      config: map[d.agentKey] ?? { enabled: true, modelTier: 'default' },
+    }));
   }
 }

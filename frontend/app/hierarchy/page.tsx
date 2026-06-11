@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
 import { GovernanceStatusBadge } from '../../components/GovernanceStatusBadge';
-import { GovernanceTree, HierarchyTree } from '../../components/HierarchyTree';
+import { GovernanceTree, HierarchyTree, RollupNode } from '../../components/HierarchyTree';
 import { LifecyclePhaseBar } from '../../components/LifecyclePhaseBar';
 import { IconFolder, IconRefresh } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
@@ -41,6 +41,7 @@ function HierarchyPage() {
   const canManage = !!caps?.canManageHierarchy;
 
   const [tree, setTree] = useState<GovernanceTree | null>(null);
+  const [rollups, setRollups] = useState<Map<string, RollupNode>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ type: string; key: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -48,8 +49,12 @@ function HierarchyPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const t = await api<GovernanceTree>('/hierarchy/tree');
+      const [t, r] = await Promise.all([
+        api<GovernanceTree>('/hierarchy/tree'),
+        api<{ nodes: RollupNode[] }>('/hierarchy/rollups').catch(() => ({ nodes: [] as RollupNode[] })),
+      ]);
       setTree(t);
+      setRollups(new Map(r.nodes.map((n) => [n.businessKey, n])));
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -138,6 +143,17 @@ function HierarchyPage() {
         <GovernanceStatusBadge status="red" />
       </div>
 
+      {/* Roll-up chip legend (md+ — chips render next to each node). */}
+      <div className="hidden flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 md:flex">
+        <span>Per-node roll-ups:</span>
+        <span><span className="font-mono text-slate-300">CPI</span> cost index (EV/AC)</span>
+        <span><span className="font-mono text-slate-300">SPI</span> schedule index (EV/PV)</span>
+        <span><span className="font-mono text-slate-300">R</span> open risks</span>
+        <span><span className="font-mono text-slate-300">C</span> open claims</span>
+        <span><span className="font-mono text-slate-300">B</span> benefit realized %</span>
+        <span className="text-slate-600">Parents are BAC-weighted; hover a chip for full numbers.</span>
+      </div>
+
       {canManage && form && (
         <CreateNodeForm
           kind={form}
@@ -162,6 +178,7 @@ function HierarchyPage() {
               tree={tree}
               selectedKey={selected?.key}
               onSelectNode={(type, key) => setSelected({ type, key })}
+              rollups={rollups}
             />
           )}
         </Card>

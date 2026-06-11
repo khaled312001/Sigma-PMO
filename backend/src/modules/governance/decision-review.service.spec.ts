@@ -1,20 +1,35 @@
 import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 
-import { DecisionReview, GovernanceDecision, User } from '../canonical/entities';
+import { Alert, DecisionReview, GovernanceDecision, User } from '../canonical/entities';
 import { Role } from '../auth/roles.enum';
 import { DecisionReviewService } from './decision-review.service';
 
 function makeReviewRepo(): { create: jest.Mock; save: jest.Mock; find: jest.Mock } {
+  // Accumulate saved rows so the post-save chain-state read (find) sees them —
+  // mirrors a real repo and lets chainState assertions hold.
+  const store: DecisionReview[] = [];
   return {
     create: jest.fn((e) => e),
-    save: jest.fn(async (e) => ({ id: 'rev-1', ...e })),
-    find: jest.fn().mockResolvedValue([]),
+    save: jest.fn(async (e) => {
+      const row = { id: `rev-${store.length + 1}`, createdAt: new Date(), ...e } as DecisionReview;
+      store.push(row);
+      return row;
+    }),
+    find: jest.fn(async (opts?: { where?: { action?: string } }) => {
+      const action = opts?.where?.action;
+      return action ? store.filter((r) => r.action === action) : [...store];
+    }),
   };
 }
 
 function makeDecisionRepo(decision: GovernanceDecision | null): { findOne: jest.Mock } {
   return { findOne: jest.fn().mockResolvedValue(decision) };
+}
+
+/** Alert repo whose findOne yields a non-critical alert (single-approval path). */
+function makeAlertRepo(severity: 'info' | 'warning' | 'critical' = 'warning'): { findOne: jest.Mock } {
+  return { findOne: jest.fn().mockResolvedValue({ id: 'alert-1', severity } as Alert) };
 }
 
 const REAL_USER: User = {
@@ -34,6 +49,7 @@ describe('DecisionReviewService', () => {
     const service = new DecisionReviewService(
       makeReviewRepo() as unknown as Repository<DecisionReview>,
       makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      makeAlertRepo() as unknown as Repository<Alert>,
     );
     await expect(service.record('dec-1', 'approve', null, null))
       .rejects.toBeInstanceOf(UnauthorizedException);
@@ -43,6 +59,7 @@ describe('DecisionReviewService', () => {
     const service = new DecisionReviewService(
       makeReviewRepo() as unknown as Repository<DecisionReview>,
       makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      makeAlertRepo() as unknown as Repository<Alert>,
     );
     const ghost = { ...REAL_USER, id: '' } as User;
     await expect(service.record('dec-1', 'approve', null, ghost))
@@ -53,6 +70,7 @@ describe('DecisionReviewService', () => {
     const service = new DecisionReviewService(
       makeReviewRepo() as unknown as Repository<DecisionReview>,
       makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      makeAlertRepo() as unknown as Repository<Alert>,
     );
     await expect(service.record('dec-1', 'destroy', null, REAL_USER))
       .rejects.toBeInstanceOf(BadRequestException);
@@ -62,6 +80,7 @@ describe('DecisionReviewService', () => {
     const service = new DecisionReviewService(
       makeReviewRepo() as unknown as Repository<DecisionReview>,
       makeDecisionRepo(null) as unknown as Repository<GovernanceDecision>,
+      makeAlertRepo() as unknown as Repository<Alert>,
     );
     await expect(service.record('missing', 'approve', null, REAL_USER))
       .rejects.toBeInstanceOf(NotFoundException);
@@ -72,6 +91,7 @@ describe('DecisionReviewService', () => {
     const service = new DecisionReviewService(
       reviewRepo as unknown as Repository<DecisionReview>,
       makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      makeAlertRepo() as unknown as Repository<Alert>,
     );
     const result = await service.record('dec-1', 'approve', 'looks good', REAL_USER);
     expect(reviewRepo.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -82,7 +102,9 @@ describe('DecisionReviewService', () => {
       performedByUserId: 'user-1',
       performedByDisplay: 'Admin User',
     }));
-    expect(result).toMatchObject({ performedByUserId: 'user-1', performedByDisplay: 'Admin User' });
+    expect(result.review).toMatchObject({ performedByUserId: 'user-1', performedByDisplay: 'Admin User' });
+    // Non-critical alert → single approval reaches the approved state.
+    expect(result.chainState).toBe('approved');
   });
 
   it('falls back to email if displayName missing', async () => {
@@ -90,6 +112,7 @@ describe('DecisionReviewService', () => {
     const service = new DecisionReviewService(
       reviewRepo as unknown as Repository<DecisionReview>,
       makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+      makeAlertRepo() as unknown as Repository<Alert>,
     );
     const noName = { ...REAL_USER, displayName: undefined as unknown as string };
     await service.record('dec-1', 'acknowledge', null, noName);
@@ -103,6 +126,7 @@ describe('DecisionReviewService', () => {
       const service = new DecisionReviewService(
         makeReviewRepo() as unknown as Repository<DecisionReview>,
         makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+        makeAlertRepo() as unknown as Repository<Alert>,
       );
       const result = await service.listForDecisionMany([]);
       expect(result).toEqual({});
@@ -118,6 +142,7 @@ describe('DecisionReviewService', () => {
       const service = new DecisionReviewService(
         reviewRepo as unknown as Repository<DecisionReview>,
         makeDecisionRepo(DECISION) as unknown as Repository<GovernanceDecision>,
+        makeAlertRepo() as unknown as Repository<Alert>,
       );
       const result = await service.listForDecisionMany(['d1', 'd2', 'd3']);
       expect(Object.keys(result).sort()).toEqual(['d1', 'd2', 'd3']);

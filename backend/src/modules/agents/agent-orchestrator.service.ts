@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 
 import { AgentLayer } from '../../common/enums';
 import { AgentExecution } from '../canonical/entities';
+import { AgentConfigService } from './agent-config.service';
 import { AgentRunContext } from './agent-contract.interface';
 import { AgentRegistry } from './agent.registry';
 
@@ -32,10 +33,22 @@ export const PIPELINE_ORDER: AgentLayer[] = [
 export class AgentOrchestrator {
   private readonly logger = new Logger(AgentOrchestrator.name);
 
-  constructor(private readonly registry: AgentRegistry) {}
+  constructor(
+    private readonly registry: AgentRegistry,
+    private readonly config: AgentConfigService,
+  ) {}
 
-  /** Run one agent by key. */
-  runAgent(agentKey: string, ctx: AgentRunContext): Promise<AgentExecution> {
+  /**
+   * Run one agent by key. Refuses (409) when an admin has disabled the agent
+   * in the Governance Configuration Center (`agents.config`).
+   */
+  async runAgent(agentKey: string, ctx: AgentRunContext): Promise<AgentExecution> {
+    if (!(await this.config.isEnabled(agentKey))) {
+      throw new ConflictException(
+        `Agent "${agentKey}" is disabled in the Governance Configuration Center. ` +
+          'Enable it under Admin → Governance Config before running it.',
+      );
+    }
     return this.registry.get(agentKey).run(ctx);
   }
 
@@ -49,6 +62,14 @@ export class AgentOrchestrator {
     for (const layer of PIPELINE_ORDER) {
       const agents = this.registry.byLayer(layer);
       for (const agent of agents) {
+        const agentKey = agent.descriptor().agentKey;
+        // An admin can disable an agent in the Governance Configuration Center;
+        // the pipeline skips it (rather than 409-ing the whole run) so one
+        // disabled layer can't blind the rest — same tolerance as a failure.
+        if (!(await this.config.isEnabled(agentKey))) {
+          this.logger.log(`Pipeline ${correlationId}: skipping disabled agent ${agentKey}`);
+          continue;
+        }
         try {
           const exec = await agent.run({ ...ctx, correlationId });
           runs.push(exec);

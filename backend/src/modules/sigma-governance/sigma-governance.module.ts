@@ -4,6 +4,7 @@ import { AgentsModule } from '../agents/agents.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { HierarchyModule } from '../hierarchy/hierarchy.module';
 import { OutboxModule } from '../outbox/outbox.module';
+import { CommandCenterService } from './command-center.service';
 import { ConsolidationService } from './consolidation.service';
 import { SigmaGovernanceAgentService } from './sigma-governance-agent.service';
 import { SigmaGovernanceController } from './sigma-governance.controller';
@@ -17,7 +18,7 @@ import { SigmaGovernanceController } from './sigma-governance.controller';
 @Module({
   imports: [AgentsModule, CanonicalModule, OutboxModule, HierarchyModule],
   controllers: [SigmaGovernanceController],
-  providers: [ConsolidationService, SigmaGovernanceAgentService],
-  exports: [ConsolidationService, SigmaGovernanceAgentService],
+  providers: [ConsolidationService, SigmaGovernanceAgentService, CommandCenterService],
+  exports: [ConsolidationService, SigmaGovernanceAgentService, CommandCenterService],
 })
 export class SigmaGovernanceModule {}

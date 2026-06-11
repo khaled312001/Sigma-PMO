@@ -28,6 +28,23 @@ export class KnowledgeController {
     return this.knowledge.rules();
   }
 
+  /**
+   * Unified keyword search across the rule library, sources, frameworks, and
+   * lessons. Deterministic keyword-v1 retrieval (RAG embeddings on roadmap).
+   */
+  @Get('search')
+  @RequiresCapability('canRead')
+  searchKnowledge(@Query('q') q?: string) {
+    return this.knowledge.search(q ?? '');
+  }
+
+  /** Industry cost/return benchmarks + location factors + reference taxonomies. */
+  @Get('benchmarks')
+  @RequiresCapability('canRead')
+  benchmarks() {
+    return this.knowledge.benchmarks();
+  }
+
   @Get('sources')
   @RequiresCapability('canRead')
   sources() {

@@ -2,14 +2,15 @@
 
 /**
  * /analytics — the L4 Analytics Agent surface (Mr. Ayham's Layer 4): EVM
- * indicators (SPI/CPI/EAC/VAC), productivity KPIs, schedule + cost forecast.
- * Deterministic — the numbers come from canonical activity rows.
+ * indicators (SPI/CPI/EAC/VAC), productivity KPIs, schedule + cost forecast,
+ * Earned Schedule (time-based forecasting), SPI/CPI trends and a whole-estate
+ * portfolio roll-up. Deterministic — the numbers come from canonical rows.
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
-import { BarChart, GaugeChart } from '../../components/Charts';
+import { BarChart, GaugeChart, LineChart, CHART_PALETTE } from '../../components/Charts';
 import { IconRefresh } from '../../components/Icons';
 import { Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -27,6 +28,40 @@ interface Productivity {
 interface Forecast { scheduleHealth: 'on-track' | 'at-risk' | 'slipping'; projectedCostOverrunPct: number | null; note: string }
 interface AnalyticsResult { nodeBusinessKey: string; evm: EvmResult; productivity: Productivity; forecast: Forecast }
 
+interface EarnedScheduleResult {
+  projectKey: string;
+  es: number | null; at: number | null; spiT: number | null;
+  plannedDurationDays: number | null; predictedDurationDays: number | null;
+  predictedCompletionDate: string | null; capped: boolean;
+  basis: { es: string; at: string; spiT: string; predictedDuration: string; curvePoints: number };
+}
+
+type TrendDirection = 'improving' | 'stable' | 'deteriorating';
+interface TrendSeries {
+  metric: 'spi' | 'cpi';
+  points: Array<{ computedAt: string; value: number }>;
+  slopePer30Days: number | null;
+  direction: TrendDirection;
+  latest: number | null;
+}
+interface TrendsResult {
+  projectKey: string; sampleCount: number;
+  history: Array<{ computedAt: string; spi: number | null; cpi: number | null }>;
+  spi: TrendSeries; cpi: TrendSeries; basis: string;
+}
+
+interface PortfolioRow {
+  projectKey: string; name: string;
+  programBusinessKey: string | null; portfolioBusinessKey: string | null;
+  pv: number; ev: number; ac: number; bac: number; spi: number | null; cpi: number | null;
+}
+interface PortfolioResult {
+  projectCount: number;
+  totals: { pv: number; ev: number; ac: number; bac: number };
+  weightedSpi: number | null; weightedCpi: number | null;
+  rows: PortfolioRow[]; basis: string;
+}
+
 export default function AnalyticsPageRoute() {
   return (
     <AuthGate capability="canEvaluateRules" surface="Analytics">
@@ -39,9 +74,18 @@ function money(n: number): string {
   return new Intl.NumberFormat('en', { maximumFractionDigits: 0 }).format(n);
 }
 
+const DIRECTION_TONE: Record<TrendDirection, 'emerald' | 'slate' | 'rose'> = {
+  improving: 'emerald', stable: 'slate', deteriorating: 'rose',
+};
+
 function AnalyticsPage() {
   const projectKey = useCurrentProjectKey();
+  const [tab, setTab] = useState<'project' | 'portfolio'>('project');
+
   const [data, setData] = useState<AnalyticsResult | null>(null);
+  const [es, setEs] = useState<EarnedScheduleResult | null>(null);
+  const [trends, setTrends] = useState<TrendsResult | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,8 +93,14 @@ function AnalyticsPage() {
     if (!projectKey) return;
     setLoading(true);
     try {
-      const r = await api<AnalyticsResult>(`/analytics/evm?projectKey=${encodeURIComponent(projectKey)}`);
-      setData(r);
+      const q = `projectKey=${encodeURIComponent(projectKey)}`;
+      const [r, e, t, p] = await Promise.all([
+        api<AnalyticsResult>(`/analytics/evm?${q}`),
+        api<EarnedScheduleResult>(`/analytics/earned-schedule?${q}`).catch(() => null),
+        api<TrendsResult>(`/analytics/trends?${q}`).catch(() => null),
+        api<PortfolioResult>(`/analytics/portfolio`).catch(() => null),
+      ]);
+      setData(r); setEs(e); setTrends(t); setPortfolio(p);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -65,7 +115,6 @@ function AnalyticsPage() {
   const evm = data?.evm;
   const prod = data?.productivity;
   const fc = data?.forecast;
-
   const healthTone = fc?.scheduleHealth === 'slipping' ? 'rose' : fc?.scheduleHealth === 'at-risk' ? 'amber' : 'emerald';
 
   return (
@@ -74,8 +123,8 @@ function AnalyticsPage() {
         eyebrow="Layer 4 · Analytics"
         title="Analytics & Earned Value"
         description={
-          'Deterministic EVM (SPI / CPI / EAC / VAC), productivity KPIs and schedule + cost forecasting ' +
-          'computed from canonical activity rows — never an LLM.'
+          'Deterministic EVM (SPI / CPI / EAC / VAC), Earned Schedule, productivity KPIs, trends and a ' +
+          'whole-estate portfolio roll-up — computed from canonical activity rows, never an LLM.'
         }
         actions={
           <button type="button" onClick={load} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-slate-500">
@@ -84,9 +133,27 @@ function AnalyticsPage() {
         }
       />
 
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg border border-slate-800 bg-slate-900/40 p-1 text-xs">
+        {(['project', 'portfolio'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`rounded-md px-3 py-1.5 font-medium transition ${
+              tab === t ? 'bg-slate-800 text-slate-100' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t === 'project' ? 'This project' : 'Portfolio'}
+          </button>
+        ))}
+      </div>
+
       <ErrorBanner message={error} />
 
-      {loading ? (
+      {tab === 'portfolio' ? (
+        <PortfolioSection portfolio={portfolio} loading={loading} />
+      ) : loading ? (
         <Card><div className="h-40 animate-pulse rounded bg-slate-800/40" /></Card>
       ) : !evm ? (
         <EmptyState title="No analytics" description={`No activity data to analyse for ${projectKey}.`} />
@@ -108,6 +175,9 @@ function AnalyticsPage() {
             </div>
           )}
 
+          {/* Earned Schedule */}
+          {es && <EarnedScheduleCard es={es} />}
+
           {/* EVM gauges */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card title="Schedule Performance (SPI)">
@@ -121,6 +191,9 @@ function AnalyticsPage() {
               ) : <p className="text-sm text-slate-500">No actual-cost data.</p>}
             </Card>
           </div>
+
+          {/* Trends */}
+          {trends && <TrendsCard trends={trends} />}
 
           {/* EVM money tiles */}
           <Card title="Earned Value (currency)">
@@ -172,4 +245,188 @@ function AnalyticsPage() {
       )}
     </div>
   );
+}
+
+function EarnedScheduleCard({ es }: { es: EarnedScheduleResult }) {
+  const spiTTone = es.spiT === null ? 'slate' : es.spiT >= 1 ? 'emerald' : es.spiT >= 0.9 ? 'amber' : 'rose';
+  return (
+    <Card title="Earned Schedule (time-based forecast)">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="flex items-center justify-center">
+          {es.spiT !== null ? (
+            <GaugeChart
+              value={Math.min(es.spiT, 1.5)}
+              max={1.5}
+              label={es.spiT.toFixed(3)}
+              hint={es.spiT >= 1 ? 'ahead of schedule (time)' : 'behind schedule (time)'}
+              title="SPI(t)"
+            />
+          ) : (
+            <p className="text-sm text-slate-500">Not enough schedule data to compute SPI(t).</p>
+          )}
+        </div>
+        <div className="flex flex-col justify-center gap-2 text-sm text-slate-200">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Earned Schedule (ES)</span>
+            <strong className="tabular-nums" dir="ltr">{es.es === null ? '—' : `${es.es} d`}</strong>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Actual Time (AT)</span>
+            <strong className="tabular-nums" dir="ltr">{es.at === null ? '—' : `${es.at} d`}</strong>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">SPI(t)</span>
+            <Pill tone={spiTTone}>{es.spiT === null ? 'n/a' : es.spiT.toFixed(3)}</Pill>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Planned duration</span>
+            <strong className="tabular-nums" dir="ltr">{es.plannedDurationDays === null ? '—' : `${es.plannedDurationDays} d`}</strong>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Predicted duration</span>
+            <strong className="tabular-nums" dir="ltr">
+              {es.predictedDurationDays === null ? '—' : `${es.predictedDurationDays} d`}{es.capped ? ' (capped)' : ''}
+            </strong>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500">Predicted completion</span>
+            <strong className="tabular-nums" dir="ltr">{es.predictedCompletionDate ?? '—'}</strong>
+          </div>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] text-slate-500">{es.basis.es} {es.basis.predictedDuration}</p>
+    </Card>
+  );
+}
+
+function TrendsCard({ trends }: { trends: TrendsResult }) {
+  if (trends.sampleCount < 2) {
+    return (
+      <Card title="SPI / CPI trends">
+        <p className="text-sm text-slate-500">
+          Only {trends.sampleCount} analytics snapshot(s) so far — at least two are needed to plot a trend.
+          Re-run the L4 analytics agent over time to build the series.
+        </p>
+      </Card>
+    );
+  }
+  const spiPts = trends.spi.points.map((p, i) => ({ x: shortDate(p.computedAt, i), y: p.value }));
+  const cpiPts = trends.cpi.points.map((p, i) => ({ x: shortDate(p.computedAt, i), y: p.value }));
+  return (
+    <Card title="SPI / CPI trends">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs text-slate-400">SPI</span>
+        <Pill tone={DIRECTION_TONE[trends.spi.direction]}>{trends.spi.direction}</Pill>
+        {trends.spi.slopePer30Days !== null && (
+          <span className="font-mono text-[10px] text-slate-500" dir="ltr">
+            slope {trends.spi.slopePer30Days >= 0 ? '+' : ''}{trends.spi.slopePer30Days}/30d
+          </span>
+        )}
+        <span className="mx-2 text-slate-700">·</span>
+        <span className="text-xs text-slate-400">CPI</span>
+        <Pill tone={DIRECTION_TONE[trends.cpi.direction]}>{trends.cpi.direction}</Pill>
+        {trends.cpi.slopePer30Days !== null && (
+          <span className="font-mono text-[10px] text-slate-500" dir="ltr">
+            slope {trends.cpi.slopePer30Days >= 0 ? '+' : ''}{trends.cpi.slopePer30Days}/30d
+          </span>
+        )}
+      </div>
+      <LineChart
+        height={220}
+        yLabel="index"
+        series={[
+          { label: 'SPI', points: spiPts, accent: CHART_PALETTE.sky },
+          { label: 'CPI', points: cpiPts, accent: CHART_PALETTE.emerald },
+        ]}
+      />
+      <p className="mt-2 text-[11px] text-slate-500">{trends.basis}</p>
+    </Card>
+  );
+}
+
+function PortfolioSection({ portfolio, loading }: { portfolio: PortfolioResult | null; loading: boolean }) {
+  if (loading) return <Card><div className="h-40 animate-pulse rounded bg-slate-800/40" /></Card>;
+  if (!portfolio || portfolio.projectCount === 0) {
+    return <EmptyState title="No portfolio data" description="No current projects with analysable activity were found." />;
+  }
+  return (
+    <div className="space-y-4">
+      {/* Weighted KPIs */}
+      <Card title="Portfolio KPIs (BAC-weighted)">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {[
+            { k: 'Projects', v: String(portfolio.projectCount) },
+            { k: 'BAC', v: money(portfolio.totals.bac) },
+            { k: 'PV', v: money(portfolio.totals.pv) },
+            { k: 'EV', v: money(portfolio.totals.ev) },
+            { k: 'AC', v: money(portfolio.totals.ac) },
+            { k: 'Wtd SPI', v: portfolio.weightedSpi === null ? '—' : portfolio.weightedSpi.toFixed(3) },
+          ].map((c) => (
+            <div key={c.k} className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{c.k}</p>
+              <p className="mt-0.5 text-sm font-semibold tabular-nums text-slate-100" dir="ltr">{c.v}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+          <span>Weighted CPI:</span>
+          <Pill tone={portfolio.weightedCpi === null ? 'slate' : portfolio.weightedCpi >= 1 ? 'emerald' : 'rose'}>
+            {portfolio.weightedCpi === null ? 'n/a' : portfolio.weightedCpi.toFixed(3)}
+          </Pill>
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">{portfolio.basis}</p>
+      </Card>
+
+      {/* Per-project table */}
+      <Card title="Per-project performance">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500">
+                <th className="py-2 pe-3 font-semibold">Project</th>
+                <th className="py-2 pe-3 text-right font-semibold">BAC</th>
+                <th className="py-2 pe-3 text-right font-semibold">PV</th>
+                <th className="py-2 pe-3 text-right font-semibold">EV</th>
+                <th className="py-2 pe-3 text-right font-semibold">AC</th>
+                <th className="py-2 pe-3 text-right font-semibold">SPI</th>
+                <th className="py-2 text-right font-semibold">CPI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {portfolio.rows.map((r) => (
+                <tr key={r.projectKey} className="border-b border-slate-800/60">
+                  <td className="py-2 pe-3">
+                    <span className="text-slate-100">{r.name}</span>
+                    <span className="ms-1 font-mono text-[10px] text-slate-500" dir="ltr">{r.projectKey}</span>
+                  </td>
+                  <td className="py-2 pe-3 text-right tabular-nums text-slate-300" dir="ltr">{money(r.bac)}</td>
+                  <td className="py-2 pe-3 text-right tabular-nums text-slate-300" dir="ltr">{money(r.pv)}</td>
+                  <td className="py-2 pe-3 text-right tabular-nums text-slate-300" dir="ltr">{money(r.ev)}</td>
+                  <td className="py-2 pe-3 text-right tabular-nums text-slate-300" dir="ltr">{money(r.ac)}</td>
+                  <td className="py-2 pe-3 text-right tabular-nums" dir="ltr">
+                    <span className={indexTone(r.spi)}>{r.spi === null ? '—' : r.spi.toFixed(2)}</span>
+                  </td>
+                  <td className="py-2 text-right tabular-nums" dir="ltr">
+                    <span className={indexTone(r.cpi)}>{r.cpi === null ? '—' : r.cpi.toFixed(2)}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function indexTone(v: number | null): string {
+  if (v === null) return 'text-slate-500';
+  if (v >= 1) return 'text-emerald-300';
+  if (v >= 0.9) return 'text-amber-300';
+  return 'text-rose-300';
+}
+function shortDate(iso: string, fallbackIdx: number): string {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return `#${fallbackIdx + 1}`;
+  return new Date(ms).toISOString().slice(5, 10); // MM-DD
 }

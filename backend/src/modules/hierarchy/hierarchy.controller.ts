@@ -14,6 +14,7 @@ import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Enterprise, Portfolio, Program, Project } from '../canonical/entities';
 import { GovernanceStatusService } from './governance-status.service';
 import { GovernanceTree, HierarchyService } from './hierarchy.service';
+import { RollupService, RollupsResponse } from './rollup.service';
 
 interface CreateNodeBody {
   businessKey: string;
@@ -38,12 +39,24 @@ export class HierarchyController {
   constructor(
     private readonly hierarchy: HierarchyService,
     private readonly status: GovernanceStatusService,
+    private readonly rollup: RollupService,
   ) {}
 
   @Get('tree')
   @RequiresCapability('canRead')
   tree(): Promise<GovernanceTree> {
     return this.hierarchy.getTree();
+  }
+
+  /**
+   * Per-node deterministic roll-ups: CPI, SPI, open risks, open claims +
+   * exposure, and benefit-realization %, for every node in the tree. Projects
+   * computed directly; parents aggregate children BAC-weighted.
+   */
+  @Get('rollups')
+  @RequiresCapability('canRead')
+  rollups(): Promise<RollupsResponse> {
+    return this.rollup.rollups();
   }
 
   @Post('enterprise')

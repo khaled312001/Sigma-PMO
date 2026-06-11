@@ -6,10 +6,10 @@
  * Lessons Learned. Every intelligence layer references this engine.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
-import { IconBook, IconRefresh } from '../../components/Icons';
+import { IconBook, IconRefresh, IconSearch } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -21,7 +21,25 @@ interface SourceEntry { id: string; externalId: string; title?: string; kind?: s
 interface FrameworkEntry { id: string; projectKey: string | null; version: number }
 interface LessonEntry { id: string; title: string; content: string; category: string; standardRef: string | null; projectBusinessKey: string | null }
 
-type Tab = 'rules' | 'sources' | 'frameworks' | 'lessons';
+interface SearchHit { kind: 'rule' | 'source' | 'framework' | 'lesson'; id: string; title: string; snippet: string }
+interface SearchResponse { query: string; retrievalMode: string; roadmap: string; total: number; hits: SearchHit[] }
+
+interface BenchmarkTypeEntry {
+  type: string; label: string; costPerSqmBua: number; annualRevenueYieldPct: number;
+  opexPctOfRevenue: number; hurdleIrrPct: number; terminalValueMultiple: number; sectorRiskScore: number;
+}
+interface LocationFactorEntry { location: string; costFactor: number; marketStrength: number; countryRisk: number }
+interface ReferenceTaxonomy { family: string; sources: { externalId: string; title: string; year: number; verification: string }[] }
+interface BenchmarksResponse {
+  version: string; costBenchmarks: BenchmarkTypeEntry[];
+  locationFactors: LocationFactorEntry[]; referenceTaxonomies: ReferenceTaxonomy[];
+}
+
+type Tab = 'rules' | 'sources' | 'frameworks' | 'lessons' | 'benchmarks';
+
+const KIND_TONE: Record<SearchHit['kind'], 'sky' | 'violet' | 'amber' | 'emerald'> = {
+  rule: 'amber', source: 'sky', framework: 'violet', lesson: 'emerald',
+};
 
 export default function KnowledgePageRoute() {
   return (
@@ -42,18 +60,26 @@ function KnowledgePage() {
   const [sources, setSources] = useState<SourceEntry[] | null>(null);
   const [frameworks, setFrameworks] = useState<FrameworkEntry[] | null>(null);
   const [lessons, setLessons] = useState<LessonEntry[] | null>(null);
+  const [benchmarks, setBenchmarks] = useState<BenchmarksResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
+  // Debounced unified search.
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState<SearchResponse | null>(null);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const load = useCallback(async () => {
     try {
-      const [r, s, f, l] = await Promise.all([
+      const [r, s, f, l, b] = await Promise.all([
         api<RuleEntry[]>('/knowledge/rules'),
         api<SourceEntry[]>('/knowledge/sources'),
         api<FrameworkEntry[]>('/knowledge/frameworks'),
         api<LessonEntry[]>('/knowledge/lessons'),
+        api<BenchmarksResponse>('/knowledge/benchmarks'),
       ]);
-      setRules(r); setSources(s); setFrameworks(f); setLessons(l);
+      setRules(r); setSources(s); setFrameworks(f); setLessons(l); setBenchmarks(b);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -62,11 +88,36 @@ function KnowledgePage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Debounce the search query → /knowledge/search.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const term = query.trim();
+    if (!term) { setSearch(null); setSearching(false); return; }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        setSearch(await api<SearchResponse>(`/knowledge/search?q=${encodeURIComponent(term)}`));
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  const groupedHits = useMemo(() => {
+    const g: Record<string, SearchHit[]> = {};
+    for (const h of search?.hits ?? []) (g[h.kind] = g[h.kind] ?? []).push(h);
+    return g;
+  }, [search]);
+
   const counts = {
     rules: rules?.length ?? 0,
     sources: sources?.length ?? 0,
     frameworks: frameworks?.length ?? 0,
     lessons: lessons?.length ?? 0,
+    benchmarks: benchmarks?.costBenchmarks.length ?? 0,
   };
 
   return (
@@ -93,12 +144,63 @@ function KnowledgePage() {
 
       <ErrorBanner message={error} />
 
+      {/* Unified L0 keyword search (rules · standards · frameworks · lessons). */}
+      <Card>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
+            <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-slate-500">
+              <IconSearch className="h-4 w-4" />
+            </span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search the knowledge base — rules, standards, frameworks, lessons…"
+              className="w-full rounded-lg border border-slate-800 bg-slate-950/60 ps-9 pe-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
+            />
+          </div>
+          <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-200">
+            Keyword retrieval v1 — RAG roadmap
+          </span>
+        </div>
+
+        {query.trim() && (
+          <div className="mt-3 border-t border-slate-800 pt-3">
+            {searching ? (
+              <p className="text-sm text-slate-400">Searching…</p>
+            ) : (search?.total ?? 0) === 0 ? (
+              <p className="text-sm text-slate-500">No matches for “{query.trim()}”.</p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-[11px] text-slate-500">{search?.total} match(es) across the L0 knowledge base.</p>
+                {(['rule', 'source', 'framework', 'lesson'] as const).map((kind) =>
+                  (groupedHits[kind] ?? []).length === 0 ? null : (
+                    <div key={kind} className="space-y-1.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{kind}s</p>
+                      {(groupedHits[kind] ?? []).map((h) => (
+                        <div key={`${h.kind}-${h.id}`} className="rounded-lg border border-slate-800 bg-slate-900/30 px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Pill tone={KIND_TONE[h.kind]}>{h.kind}</Pill>
+                            <span className="font-mono text-[10px] text-slate-500" dir="ltr">{h.id}</span>
+                            <span className="text-sm font-medium text-slate-100">{h.title}</span>
+                          </div>
+                          {h.snippet && <p className="mt-1 text-[13px] text-slate-300">{h.snippet}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+
       {canEdit && showForm && (
         <RecordLessonForm onCancel={() => setShowForm(false)} onSaved={async () => { setShowForm(false); await load(); }} toast={toast} />
       )}
 
       <div className="flex flex-wrap items-center gap-1.5">
-        {(['rules', 'sources', 'frameworks', 'lessons'] as const).map((k) => (
+        {(['rules', 'sources', 'frameworks', 'lessons', 'benchmarks'] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -108,7 +210,7 @@ function KnowledgePage() {
               tab === k ? 'border-sky-500/50 bg-sky-500/15 text-sky-200' : 'border-slate-800 bg-slate-900/40 text-slate-300 hover:border-slate-600'
             }`}
           >
-            {k === 'rules' ? 'Sigma Rule Library' : k === 'sources' ? 'Standards' : k}
+            {k === 'rules' ? 'Sigma Rule Library' : k === 'sources' ? 'Standards' : k === 'benchmarks' ? 'Benchmarks' : k}
             <span className="rounded bg-slate-800/80 px-1 py-0.5 font-mono text-[9px] text-slate-400">{counts[k]}</span>
           </button>
         ))}
@@ -180,6 +282,101 @@ function KnowledgePage() {
           )}
         </div>
       )}
+
+      {tab === 'benchmarks' && (
+        <BenchmarksTab benchmarks={benchmarks} />
+      )}
+    </div>
+  );
+}
+
+function BenchmarksTab({ benchmarks }: { benchmarks: BenchmarksResponse | null }) {
+  if (!benchmarks) return <Card><div className="h-24 animate-pulse rounded bg-slate-800/40" /></Card>;
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-slate-300">Industry cost &amp; return benchmarks the feasibility engine reasons against.</span>
+        <Pill tone="violet">{benchmarks.version}</Pill>
+        <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/40 px-2 py-0.5 text-[11px] text-slate-400">
+          Deterministic · snapshotted onto every assessment
+        </span>
+      </div>
+
+      <Card title={`Cost benchmarks per project type (${benchmarks.costBenchmarks.length})`} padded={false}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-4 py-2 text-start">Type</th>
+                <th className="px-4 py-2 text-end">Cost / m² BUA (AED)</th>
+                <th className="px-4 py-2 text-end">Annual yield</th>
+                <th className="px-4 py-2 text-end">Opex % rev</th>
+                <th className="px-4 py-2 text-end">Hurdle IRR</th>
+                <th className="px-4 py-2 text-end">Exit ×</th>
+                <th className="px-4 py-2 text-end">Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {benchmarks.costBenchmarks.map((b) => (
+                <tr key={b.type} className="border-b border-slate-800/50 last:border-b-0">
+                  <td className="px-4 py-2 text-slate-100">{b.label}</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-200" dir="ltr">{b.costPerSqmBua > 0 ? b.costPerSqmBua.toLocaleString() : '—'}</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{pct(b.annualRevenueYieldPct)}</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{pct(b.opexPctOfRevenue)}</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{pct(b.hurdleIrrPct)}</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{b.terminalValueMultiple}×</td>
+                  <td className="px-4 py-2 text-end"><Pill tone={b.sectorRiskScore >= 4 ? 'rose' : b.sectorRiskScore === 3 ? 'amber' : 'emerald'}>{b.sectorRiskScore}</Pill></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card title={`Location factors (${benchmarks.locationFactors.length})`} padded={false}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500">
+              <tr>
+                <th className="px-4 py-2 text-start">Location</th>
+                <th className="px-4 py-2 text-end">Cost factor</th>
+                <th className="px-4 py-2 text-end">Market strength</th>
+                <th className="px-4 py-2 text-end">Country risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {benchmarks.locationFactors.map((f) => (
+                <tr key={f.location} className="border-b border-slate-800/50 last:border-b-0">
+                  <td className="px-4 py-2 capitalize text-slate-100">{f.location}</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{f.costFactor.toFixed(2)}×</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{f.marketStrength}/5</td>
+                  <td className="px-4 py-2 text-end font-mono text-slate-300" dir="ltr">{f.countryRisk}/5</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+        {benchmarks.referenceTaxonomies.map((t) => (
+          <Card key={t.family} title={`${t.family} (${t.sources.length})`}>
+            {t.sources.length === 0 ? (
+              <p className="text-sm text-slate-500">No sources in this family.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {t.sources.map((s) => (
+                  <li key={s.externalId} className="flex items-start gap-2 text-[13px]">
+                    <Pill tone={s.verification === 'confirmed' ? 'emerald' : 'amber'}>{s.year}</Pill>
+                    <span className="text-slate-200">{s.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

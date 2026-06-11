@@ -20,6 +20,15 @@ import {
 
 type Filter = 'all' | 'critical' | 'warning' | 'info';
 
+/** Result shape of POST /rules/workflows/run (defined locally — lib/api is shared). */
+interface WorkflowResult {
+  scope: 'project' | 'all';
+  projectCount: number;
+  totalAlertCount: number;
+  totalDecisionCount: number;
+  projects: { projectKey: string; alertCount: number; decisionCount: number }[];
+}
+
 export default function ReviewPageRoute() {
   return <AuthGate capability="canEvaluateRules" surface="Review"><ReviewPage /></AuthGate>;
 }
@@ -31,6 +40,7 @@ function ReviewPage() {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [decisionsByAlert, setDecisionsByAlert] = useState<Record<string, GovernanceDecision[]>>({});
   const [busy, setBusy] = useState(false);
+  const [workflowBusy, setWorkflowBusy] = useState<'project' | 'all' | null>(null);
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -77,6 +87,24 @@ function ReviewPage() {
     finally { setBusy(false); }
   };
 
+  // One-click governance review workflow (evaluate -> decide) for the current
+  // project, or every current project when `scope === 'all'`.
+  const runWorkflow = async (scope: 'project' | 'all') => {
+    setWorkflowBusy(scope);
+    try {
+      const body = scope === 'all' ? {} : { projectKey };
+      const result = await api<WorkflowResult>('/rules/workflows/run', {
+        method: 'POST', body: JSON.stringify(body),
+      });
+      await refresh();
+      toast.success(
+        scope === 'all' ? 'Governance workflow complete (all projects)' : 'Governance workflow complete',
+        `${result.projectCount} project(s) · ${result.totalAlertCount} alerts · ${result.totalDecisionCount} decisions`,
+      );
+    } catch (e) { toast.error('Workflow failed', (e as Error).message); }
+    finally { setWorkflowBusy(null); }
+  };
+
   const generateSummary = async () => {
     setGeneratingSummary(true);
     try {
@@ -99,6 +127,24 @@ function ReviewPage() {
           <>
             <Button variant="success" size="sm" disabled={busy} onClick={evaluate}>
               {busy ? t('common.loading') : `${t('review.evaluate')} · ${projectKey}`}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={workflowBusy !== null}
+              onClick={() => runWorkflow('project')}
+              title="Run evaluate + decide for the current project"
+            >
+              {workflowBusy === 'project' ? t('common.loading') : `Run governance workflow · ${projectKey}`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={workflowBusy !== null}
+              onClick={() => runWorkflow('all')}
+              title="Run evaluate + decide across every current project"
+            >
+              {workflowBusy === 'all' ? t('common.loading') : 'Run · All projects'}
             </Button>
             <Button variant="primary" size="sm" disabled={generatingSummary} onClick={generateSummary}>
               <IconSparkles className="h-3.5 w-3.5" /> {generatingSummary ? t('common.loading') : t('review.weeklySummary')}

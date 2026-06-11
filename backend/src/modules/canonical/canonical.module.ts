@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CANONICAL_ENTITIES } from './entities';
 import { ProjectsController } from './projects.controller';
+import { ProjectsScoresService } from './projects-scores.service';
 
 /**
  * Registers the canonical data-model repositories and re-exports TypeOrmModule
@@ -12,6 +13,7 @@ import { ProjectsController } from './projects.controller';
 @Module({
   imports: [TypeOrmModule.forFeature(CANONICAL_ENTITIES)],
   controllers: [ProjectsController],
-  exports: [TypeOrmModule],
+  providers: [ProjectsScoresService],
+  exports: [TypeOrmModule, ProjectsScoresService],
 })
 export class CanonicalModule {}

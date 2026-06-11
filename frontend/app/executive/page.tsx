@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
+import { GaugeChart } from '../../components/Charts';
 import { GovernanceStatusBadge } from '../../components/GovernanceStatusBadge';
 import { IconRefresh } from '../../components/Icons';
 import { Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
@@ -20,6 +21,15 @@ interface Kpis {
   riskExposure: number; criticalRisks: number; potentialClaims: number; openCorrectiveActions: number;
 }
 interface ExecutivePack { nodeBusinessKey: string; kpis: Kpis; headline: string }
+
+interface StrategicKpis {
+  projectKey: string;
+  strategicObjectiveAlignment: number;
+  portfolioValueTracking: { totalBAC: number; totalEV: number; totalAC: number; valueDeliveredPct: number };
+  benefitsRealizationPct: number;
+  enterpriseGovernanceScore: number;
+  basis: Record<string, string>;
+}
 
 export default function ExecutiveRoute() {
   return (
@@ -42,6 +52,7 @@ function Tile({ label, value, tone = 'slate' }: { label: string; value: React.Re
 function ExecutivePage() {
   const projectKey = useCurrentProjectKey();
   const [pack, setPack] = useState<ExecutivePack | null>(null);
+  const [strategic, setStrategic] = useState<StrategicKpis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,9 +60,12 @@ function ExecutivePage() {
     if (!projectKey) return;
     setLoading(true);
     try {
-      const p = await api<ExecutivePack>(`/executive/overview?projectKey=${encodeURIComponent(projectKey)}`);
-      setPack(p); setError(null);
-    } catch (e) { setError((e as Error).message); setPack(null); }
+      const [p, s] = await Promise.all([
+        api<ExecutivePack>(`/executive/overview?projectKey=${encodeURIComponent(projectKey)}`),
+        api<StrategicKpis>(`/executive/strategic?projectKey=${encodeURIComponent(projectKey)}`).catch(() => null),
+      ]);
+      setPack(p); setStrategic(s); setError(null);
+    } catch (e) { setError((e as Error).message); setPack(null); setStrategic(null); }
     finally { setLoading(false); }
   }, [projectKey]);
 
@@ -96,8 +110,83 @@ function ExecutivePage() {
             <Tile label="Potential claims" value={k.potentialClaims} tone={k.potentialClaims > 0 ? 'amber' : 'slate'} />
             <Tile label="Open actions" value={k.openCorrectiveActions} tone={k.openCorrectiveActions > 0 ? 'sky' : 'slate'} />
           </div>
+
+          {strategic && <StrategicSection s={strategic} />}
         </>
       )}
     </div>
+  );
+}
+
+/** Compact currency formatter (e.g. 12.3M / 4.5K) for the value-tracking card. */
+function money(n: number): string {
+  if (!Number.isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return `${Math.round(n)}`;
+}
+
+function StrategicSection({ s }: { s: StrategicKpis }) {
+  const pv = s.portfolioValueTracking;
+  const alignTone = s.strategicObjectiveAlignment >= 70 ? 'emerald' : s.strategicObjectiveAlignment >= 40 ? 'amber' : 'rose';
+  const benefitTone = s.benefitsRealizationPct >= 70 ? 'emerald' : s.benefitsRealizationPct >= 40 ? 'amber' : 'rose';
+  const govTone = s.enterpriseGovernanceScore >= 75 ? 'emerald' : s.enterpriseGovernanceScore >= 50 ? 'amber' : 'rose';
+  const valuePct = Math.max(0, Math.min(100, pv.valueDeliveredPct));
+  return (
+    <section className="space-y-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Strategic</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card title="Strategic Objective Alignment">
+          <div className="flex items-center justify-center">
+            <GaugeChart
+              value={s.strategicObjectiveAlignment}
+              max={100}
+              width={190}
+              label={`${s.strategicObjectiveAlignment}`}
+              hint={alignTone === 'emerald' ? 'ALIGNED' : alignTone === 'amber' ? 'PARTIAL' : 'WEAK'}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500">{s.basis.strategicObjectiveAlignment}</p>
+        </Card>
+
+        <Card title="Portfolio Value Tracking">
+          <dl className="grid grid-cols-3 gap-2 text-center">
+            <div><dt className="text-[10px] uppercase tracking-wider text-slate-500">BAC</dt><dd className="text-base font-semibold tabular-nums text-slate-100">{money(pv.totalBAC)}</dd></div>
+            <div><dt className="text-[10px] uppercase tracking-wider text-slate-500">EV</dt><dd className="text-base font-semibold tabular-nums text-emerald-300">{money(pv.totalEV)}</dd></div>
+            <div><dt className="text-[10px] uppercase tracking-wider text-slate-500">AC</dt><dd className="text-base font-semibold tabular-nums text-amber-300">{money(pv.totalAC)}</dd></div>
+          </dl>
+          <div className="mt-3">
+            <div className="mb-1 flex items-center justify-between text-[11px] text-slate-400">
+              <span>Value delivered</span>
+              <span className="tabular-nums text-slate-200">{pv.valueDeliveredPct}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-full rounded-full bg-emerald-500/70" style={{ width: `${valuePct}%` }} />
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Benefits Realization" hint={s.basis.benefitsRealizationPct}>
+          <p className={`text-4xl font-semibold tabular-nums ${benefitTone === 'emerald' ? 'text-emerald-300' : benefitTone === 'amber' ? 'text-amber-300' : 'text-rose-300'}`}>
+            {s.benefitsRealizationPct}<span className="ms-1 text-lg text-slate-500">%</span>
+          </p>
+          <p className="mt-2 text-[11px] text-slate-500">EV/BAC weighted by the governance-status multiplier (deterministic heuristic v1).</p>
+        </Card>
+
+        <Card title="Enterprise Governance Score">
+          <div className="flex items-center justify-center">
+            <GaugeChart
+              value={s.enterpriseGovernanceScore}
+              max={100}
+              width={190}
+              label={`${s.enterpriseGovernanceScore}`}
+              hint={govTone === 'emerald' ? 'HEALTHY' : govTone === 'amber' ? 'WATCH' : 'AT RISK'}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500">{s.basis.enterpriseGovernanceScore}</p>
+        </Card>
+      </div>
+    </section>
   );
 }

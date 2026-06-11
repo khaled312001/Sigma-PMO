@@ -33,6 +33,25 @@ interface Counts {
   warning: number;
 }
 
+interface ExecutiveKpis {
+  projectKey: string;
+  name: string;
+  spi: number | null;
+  cpi: number | null;
+  governanceStatus: string | null;
+  projectHealthScore: number;
+  governanceConfidenceScore: number;
+  forecastDelayDays: number | null;
+  forecastCostOverrunPct: number | null;
+  forecastCompletionDate: string | null;
+}
+
+interface PortfolioKpis {
+  portfolioHealthScore: number;
+  worstHealthScore: number;
+  projectCount: number;
+}
+
 export default function OverviewPage() {
   return <AuthGate surface="the dashboard"><Overview /></AuthGate>;
 }
@@ -45,6 +64,8 @@ function Overview() {
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
+  const [kpis, setKpis] = useState<ExecutiveKpis | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioKpis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Re-fetches whenever the project switcher changes projectKey. Ingestion
@@ -74,6 +95,29 @@ function Overview() {
     })();
   }, [projectKey]);
 
+  // Executive KPI strip — project-scoped (refetches on switcher change). Kept
+  // in its own effect with a soft failure so a KPI hiccup never blanks the
+  // dashboard's core counts/charts.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [k, pf] = await Promise.all([
+          api<ExecutiveKpis>(`/executive/kpis?projectKey=${encodeURIComponent(projectKey)}`),
+          api<PortfolioKpis>('/executive/kpis/portfolio'),
+        ]);
+        if (!alive) return;
+        setKpis(k);
+        setPortfolio(pf);
+      } catch {
+        if (!alive) return;
+        setKpis(null);
+        setPortfolio(null);
+      }
+    })();
+    return () => { alive = false; };
+  }, [projectKey]);
+
   const latestConfidence = (latestRun?.summary?.confidence as { overall?: number } | undefined)?.overall;
 
   return (
@@ -85,6 +129,8 @@ function Overview() {
       />
 
       <ErrorBanner message={error} />
+
+      <ExecutiveKpiStrip kpis={kpis} portfolio={portfolio} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label={t('overview.cards.ingestionRuns')} value={counts?.runs}    icon={<IconDatabase className="h-5 w-5" />}       tone="sky"     href="/input" />
@@ -250,6 +296,95 @@ function OverviewAnalytics({
         </div>
       )}
     </section>
+  );
+}
+
+type KpiTone = 'emerald' | 'amber' | 'rose' | 'sky' | 'slate';
+
+/** Threshold → tone for a 0–100 score where higher is better. */
+function scoreTone(score: number | null | undefined): KpiTone {
+  if (score === null || score === undefined) return 'slate';
+  if (score >= 75) return 'emerald';
+  if (score >= 50) return 'amber';
+  return 'rose';
+}
+
+/**
+ * Executive KPIs strip — 6 deterministic headline tiles above the operational
+ * stat cards. Project-scoped (Health, Governance Confidence, Forecast Delay,
+ * Forecast Cost Overrun, Forecast Completion) plus the portfolio-wide Health.
+ */
+function ExecutiveKpiStrip({
+  kpis, portfolio,
+}: { kpis: ExecutiveKpis | null; portfolio: PortfolioKpis | null }) {
+  const dash = '—';
+  const overrun = kpis?.forecastCostOverrunPct;
+  const delay = kpis?.forecastDelayDays;
+  return (
+    <section>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+        Executive KPIs
+      </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <KpiTile
+          label="Project Health"
+          value={kpis ? `${kpis.projectHealthScore}` : dash}
+          suffix={kpis ? '/100' : undefined}
+          tone={scoreTone(kpis?.projectHealthScore)}
+        />
+        <KpiTile
+          label="Gov. Confidence"
+          value={kpis ? `${kpis.governanceConfidenceScore}` : dash}
+          suffix={kpis ? '/100' : undefined}
+          tone={scoreTone(kpis?.governanceConfidenceScore)}
+        />
+        <KpiTile
+          label="Forecast Delay"
+          value={delay === null || delay === undefined ? dash : `${delay}`}
+          suffix={delay === null || delay === undefined ? undefined : 'd'}
+          tone={delay === null || delay === undefined ? 'slate' : delay <= 0 ? 'emerald' : delay <= 30 ? 'amber' : 'rose'}
+        />
+        <KpiTile
+          label="Cost Overrun"
+          value={overrun === null || overrun === undefined ? dash : `${overrun >= 0 ? '+' : ''}${overrun}`}
+          suffix={overrun === null || overrun === undefined ? undefined : '%'}
+          tone={overrun === null || overrun === undefined ? 'slate' : overrun <= 0 ? 'emerald' : overrun <= 10 ? 'amber' : 'rose'}
+        />
+        <KpiTile
+          label="Forecast Finish"
+          value={kpis?.forecastCompletionDate ?? dash}
+          tone="slate"
+          small
+        />
+        <KpiTile
+          label="Portfolio Health"
+          value={portfolio ? `${portfolio.portfolioHealthScore}` : dash}
+          suffix={portfolio ? '/100' : undefined}
+          tone={scoreTone(portfolio?.portfolioHealthScore)}
+        />
+      </div>
+    </section>
+  );
+}
+
+function KpiTile({
+  label, value, suffix, tone, small,
+}: { label: string; value: string; suffix?: string; tone: KpiTone; small?: boolean }) {
+  const ring: Record<KpiTone, string> = {
+    emerald: 'ring-emerald-500/50 text-emerald-200',
+    amber: 'ring-amber-400/50 text-amber-200',
+    rose: 'ring-rose-500/50 text-rose-200',
+    sky: 'ring-sky-500/50 text-sky-200',
+    slate: 'ring-slate-700 text-slate-200',
+  };
+  return (
+    <div className={`rounded-xl border border-slate-800 bg-slate-950/40 px-3.5 py-3 ring-1 ${ring[tone]}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
+      <p className={`mt-1 font-semibold tabular-nums ${small ? 'text-sm' : 'text-2xl'} ${ring[tone].split(' ')[1]}`}>
+        {value}
+        {suffix && <span className="ms-0.5 text-xs font-normal text-slate-400">{suffix}</span>}
+      </p>
+    </div>
   );
 }
 

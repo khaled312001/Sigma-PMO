@@ -177,6 +177,8 @@ function SimulationPage() {
         </div>
       )}
 
+      <PortfolioScenarioPlanning />
+
       {forkOpen && current && (
         <ForkDialog
           projectBusinessKey={current.businessKey}
@@ -190,6 +192,299 @@ function SimulationPage() {
       )}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio scenario planning — open scenarios across ALL projects + a
+// deterministic what-if (inject a delay, see the shifted finish + cost-of-delay).
+// Surfaced here so a PMO can plan across the portfolio without per-project drills.
+// ---------------------------------------------------------------------------
+
+interface ScenarioImpactRow {
+  id: string;
+  name: string;
+  projectBusinessKey: string;
+  projectName: string | null;
+  status: string;
+  forkedFromAt: string;
+  summary: string;
+  kind: string | null;
+  impact: {
+    scheduleDeltaDays: number | null;
+    costDelta: number | null;
+    isPlaceholder: boolean;
+    baseline: { activityCount: number | null; criticalAlerts: number | null; plannedFinish: string | null };
+  };
+}
+interface PortfolioImpactResponse {
+  scenarios: ScenarioImpactRow[];
+  totals: { openScenarios: number; projectsWithScenarios: number };
+  allImpactsArePlaceholders: boolean;
+}
+interface WhatIfProjectRow {
+  projectBusinessKey: string;
+  projectName: string | null;
+  currentForecastFinish: string | null;
+  delayDays: number;
+  adjustedForecastFinish: string | null;
+  budgetAtCompletion: number | null;
+  plannedDurationDays: number | null;
+  costOfDelay: number | null;
+  note: string | null;
+}
+interface PortfolioWhatIfResponse {
+  basis: { overheadFactor: number; formula: string };
+  projects: WhatIfProjectRow[];
+  totals: { projectsAnalyzed: number; totalDelayDays: number; totalCostOfDelay: number };
+}
+
+function PortfolioScenarioPlanning() {
+  const toast = useToast();
+  const { projects } = useProject();
+  const [impact, setImpact] = useState<PortfolioImpactResponse | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      const r = await api<PortfolioImpactResponse>('/simulation/portfolio-impact');
+      setImpact(r);
+    } catch (e) {
+      setErr((e as Error).message);
+      setImpact({ scenarios: [], totals: { openScenarios: 0, projectsWithScenarios: 0 }, allImpactsArePlaceholders: false });
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  // What-if mini-form state.
+  const [projectKey, setProjectKey] = useState('');
+  const [delayDays, setDelayDays] = useState<number>(14);
+  const [whatIf, setWhatIf] = useState<PortfolioWhatIfResponse | null>(null);
+  const [running, setRunning] = useState(false);
+
+  // Default the picker to the first project once the list arrives.
+  useEffect(() => {
+    if (!projectKey && projects.length) setProjectKey(projects[0].businessKey);
+  }, [projects, projectKey]);
+
+  const runWhatIf = async () => {
+    if (!projectKey) { toast.error('Pick a project first'); return; }
+    setRunning(true);
+    try {
+      const r = await api<PortfolioWhatIfResponse>('/simulation/portfolio-whatif', {
+        method: 'POST',
+        body: JSON.stringify({ delayDaysPerProject: { [projectKey]: delayDays } }),
+      });
+      setWhatIf(r);
+    } catch (e) {
+      toast.error('What-if failed', (e as Error).message);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const money = (n: number | null) =>
+    n === null ? '—' : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+  return (
+    <div className="space-y-4 border-t border-slate-800 pt-7">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
+            Portfolio scenario planning
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-slate-100">
+            Open scenarios across the portfolio
+          </h2>
+          <p className="mt-1 max-w-2xl text-xs text-slate-400">
+            Every OPEN scenario across all projects, plus a deterministic what-if to price an
+            injected delay. Nothing here mutates canonical truth.
+          </p>
+        </div>
+        <Button variant="ghost" onClick={() => void load()}>Refresh</Button>
+      </div>
+
+      {err && <ErrorBanner message={err} />}
+
+      {impact === null ? (
+        <Card><p className="text-sm text-slate-400">Loading…</p></Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile label="Open scenarios" value={impact.totals.openScenarios} />
+            <StatTile label="Projects with scenarios" value={impact.totals.projectsWithScenarios} />
+            <StatTile
+              label="Impact data"
+              value={impact.allImpactsArePlaceholders ? 'Placeholder' : impact.scenarios.length ? 'Partial' : '—'}
+              tone={impact.allImpactsArePlaceholders ? 'amber' : 'slate'}
+            />
+          </div>
+
+          {impact.allImpactsArePlaceholders && impact.scenarios.length > 0 && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
+              Scenario snapshots currently freeze a baseline only — no before/after delta is stored,
+              so the schedule/cost impact columns below are placeholders. Baseline counters are real.
+            </p>
+          )}
+
+          {impact.scenarios.length === 0 ? (
+            <Card><p className="text-sm text-slate-400">No open scenarios across the portfolio.</p></Card>
+          ) : (
+            <Card padded={false}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="px-3 py-2 text-start">Scenario</th>
+                      <th className="px-3 py-2 text-start">Project</th>
+                      <th className="px-3 py-2 text-end">Schedule Δ (d)</th>
+                      <th className="px-3 py-2 text-end">Cost Δ</th>
+                      <th className="px-3 py-2 text-end">Activities</th>
+                      <th className="px-3 py-2 text-end">Critical</th>
+                      <th className="px-3 py-2 text-end">Forked</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {impact.scenarios.map((s) => (
+                      <tr key={s.id}>
+                        <td className="px-3 py-2.5">
+                          <span className="block text-slate-100" dir="auto">{s.name}</span>
+                          {s.kind && <Pill tone="violet">{s.kind}</Pill>}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span className="block text-slate-200" dir="auto">{s.projectName ?? '—'}</span>
+                          <span className="font-mono text-[10px] text-slate-500" dir="ltr">{s.projectBusinessKey}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-end tabular-nums" dir="ltr">
+                          {s.impact.scheduleDeltaDays !== null
+                            ? s.impact.scheduleDeltaDays
+                            : <PlaceholderCell />}
+                        </td>
+                        <td className="px-3 py-2.5 text-end tabular-nums" dir="ltr">
+                          {s.impact.costDelta !== null ? money(s.impact.costDelta) : <PlaceholderCell />}
+                        </td>
+                        <td className="px-3 py-2.5 text-end tabular-nums text-slate-300" dir="ltr">
+                          {s.impact.baseline.activityCount ?? '—'}
+                        </td>
+                        <td className="px-3 py-2.5 text-end tabular-nums text-slate-300" dir="ltr">
+                          {s.impact.baseline.criticalAlerts ?? '—'}
+                        </td>
+                        <td className="px-3 py-2.5 text-end text-xs text-slate-400" dir="ltr">
+                          {new Date(s.forkedFromAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </>
+      )}
+
+      {/* What-if mini-form */}
+      <Card
+        title="Delay what-if"
+        hint="Deterministic arithmetic only — projects a shifted finish and a naive cost-of-delay. Persists nothing."
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Project</span>
+            <select
+              value={projectKey}
+              onChange={(e) => setProjectKey(e.target.value)}
+              className="mt-1 block min-w-56 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500/60"
+              dir="ltr"
+            >
+              {projects.length === 0 && <option value="">No projects</option>}
+              {projects.map((p) => (
+                <option key={p.businessKey} value={p.businessKey}>
+                  {p.businessKey} · {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Delay (days)</span>
+            <input
+              type="number"
+              min={0}
+              max={3650}
+              value={delayDays}
+              onChange={(e) => setDelayDays(Math.max(0, Number(e.target.value) || 0))}
+              className="mt-1 block w-32 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 tabular-nums outline-none focus:border-sky-500/60"
+              dir="ltr"
+            />
+          </label>
+          <Button variant="primary" onClick={runWhatIf} disabled={running || !projectKey}>
+            <IconSparkles className="h-4 w-4" /> {running ? 'Computing…' : 'Run what-if'}
+          </Button>
+        </div>
+
+        {whatIf && (
+          <div className="mt-4 space-y-3">
+            <p className="text-[11px] text-slate-500" dir="ltr">
+              Basis: {whatIf.basis.formula} · overhead {Math.round(whatIf.basis.overheadFactor * 100)}%
+            </p>
+            <div className="overflow-x-auto rounded-lg border border-slate-800">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2 text-start">Project</th>
+                    <th className="px-3 py-2 text-end">Current finish</th>
+                    <th className="px-3 py-2 text-end">Delay (d)</th>
+                    <th className="px-3 py-2 text-end">Adjusted finish</th>
+                    <th className="px-3 py-2 text-end">Cost of delay</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80">
+                  {whatIf.projects.map((p) => (
+                    <tr key={p.projectBusinessKey}>
+                      <td className="px-3 py-2.5">
+                        <span className="block text-slate-200" dir="auto">{p.projectName ?? '—'}</span>
+                        <span className="font-mono text-[10px] text-slate-500" dir="ltr">{p.projectBusinessKey}</span>
+                        {p.note && <span className="mt-0.5 block text-[10px] text-amber-300/80">{p.note}</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-end tabular-nums text-slate-300" dir="ltr">{p.currentForecastFinish ?? '—'}</td>
+                      <td className="px-3 py-2.5 text-end tabular-nums text-slate-300" dir="ltr">{p.delayDays}</td>
+                      <td className="px-3 py-2.5 text-end tabular-nums text-sky-200" dir="ltr">{p.adjustedForecastFinish ?? '—'}</td>
+                      <td className="px-3 py-2.5 text-end tabular-nums text-amber-200" dir="ltr">{money(p.costOfDelay)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t border-slate-700 bg-slate-900/60">
+                  <tr className="text-xs">
+                    <td className="px-3 py-2 font-semibold text-slate-300">
+                      Totals · {whatIf.totals.projectsAnalyzed} project(s)
+                    </td>
+                    <td />
+                    <td className="px-3 py-2 text-end tabular-nums text-slate-300" dir="ltr">{whatIf.totals.totalDelayDays}</td>
+                    <td />
+                    <td className="px-3 py-2 text-end tabular-nums font-semibold text-amber-200" dir="ltr">{money(whatIf.totals.totalCostOfDelay)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function StatTile({ label, value, tone = 'slate' }: { label: string; value: number | string; tone?: 'slate' | 'amber' }) {
+  const cls = tone === 'amber' ? 'border-amber-500/40 text-amber-200' : 'border-slate-700 text-slate-100';
+  return (
+    <div className={`rounded-lg border bg-slate-900/50 px-3 py-2.5 ${cls}`}>
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums" dir="ltr">{value}</p>
+    </div>
+  );
+}
+
+function PlaceholderCell() {
+  return <span className="text-[10px] uppercase tracking-wide text-slate-500">placeholder</span>;
 }
 
 // ---------------------------------------------------------------------------

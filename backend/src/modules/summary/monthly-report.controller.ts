@@ -44,6 +44,7 @@ export class MonthlyReportController {
       projectKey: body.projectKey,
       monthIso: body.monthIso,
       audience: body.audience,
+      narrativeType: body.narrativeType,
       authoredBy: body.authoredBy ?? null,
     });
   }

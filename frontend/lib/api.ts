@@ -39,7 +39,10 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ---- Shared types --------------------------------------------------------
 
-export type Role = 'sigma_admin' | 'sigma_reviewer' | 'client' | 'consultant' | 'contractor' | 'subcontractor';
+export type Role =
+  | 'sigma_admin' | 'sigma_reviewer' | 'client' | 'consultant' | 'contractor' | 'subcontractor'
+  // Expanded taxonomy (2026-06-12): the full capital-project ecosystem.
+  | 'owner' | 'operator' | 'investor' | 'lender' | 'pmo' | 'governance_board';
 
 export interface MeResponse {
   authenticated: boolean;

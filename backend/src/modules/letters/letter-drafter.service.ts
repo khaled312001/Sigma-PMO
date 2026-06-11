@@ -71,6 +71,18 @@ export interface ComplianceLetterContext {
   narrative: string;
   /** Optional facts (rule findings, dates, dependencies) the persona may cite. */
   facts?: Record<string, unknown>;
+  /**
+   * Optional FIDIC letter-template prefill. When present, its clause + body
+   * scaffold prime the persona AND act as the deterministic fallback for the
+   * letter's `fidicClauseRef` / `subject` when the persona omits them.
+   */
+  template?: {
+    key: string;
+    title: string;
+    fidicClause: string;
+    category: string;
+    bodySkeleton: string;
+  };
 }
 
 /**
@@ -198,10 +210,17 @@ export class LetterDrafterService {
     }
 
     const userMessage = this.buildComplianceDraftPrompt(projectKey, complianceTrigger);
+    const templateBlock = context.template
+      ? `\n<fidic_template key="${context.template.key}" clause="${context.template.fidicClause}" category="${context.template.category}">\n` +
+        `title: ${context.template.title}\n` +
+        `skeleton: ${context.template.bodySkeleton}\n` +
+        `</fidic_template>\n`
+      : '';
     const personaContext =
       `<compliance_trigger code="${complianceTrigger}" project="${projectKey}">\n` +
       `${context.narrative}\n` +
       (context.facts ? `\nfacts:\n${JSON.stringify(context.facts, null, 2)}\n` : '') +
+      templateBlock +
       `</compliance_trigger>`;
 
     const result = await this.claude.callPersona(FIDIC_PERSONA_SLUG, userMessage, {
@@ -214,10 +233,12 @@ export class LetterDrafterService {
       projectKey,
       trigger: 'compliance-flag',
       incomingLetterSourceFileId: null,
-      subject: draft.subject || `Compliance — ${complianceTrigger}`,
+      // Template prefill is the deterministic fallback when the persona omits
+      // the subject / clause (e.g. offline test mode with no live Claude).
+      subject: draft.subject || context.template?.title || `Compliance — ${complianceTrigger}`,
       bodyAr: draft.bodyAr,
       bodyEn: draft.bodyEn,
-      fidicClauseRef: draft.fidicClauseRef,
+      fidicClauseRef: draft.fidicClauseRef ?? context.template?.fidicClause ?? null,
       deadlineDays: draft.deadlineDays,
       citations,
     });

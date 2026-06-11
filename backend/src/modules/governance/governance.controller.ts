@@ -4,13 +4,19 @@ import { In, Repository } from 'typeorm';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, DecisionReview, GovernanceDecision, GovernancePolicy, User } from '../canonical/entities';
+import { SettingsService } from '../settings/settings.service';
 import { ConfidenceService } from './confidence.service';
-import { DecisionReviewService } from './decision-review.service';
+import { DecisionReviewService, ReviewRecordResult } from './decision-review.service';
+import { DECISION_TEMPLATES, DecisionTemplate } from './decision-templates';
 import { DecideDto } from './dto/decide.dto';
 import { UpsertPolicyDto } from './dto/upsert-policy.dto';
 import { EvidencePackage, EvidenceService } from './evidence.service';
 import { GovernanceDecisionService } from './governance-decision.service';
 import { GovernancePolicyService } from './governance-policy.service';
+import { DecisionTrace, GovernanceTraceService } from './governance-trace.service';
+
+/** Default days before a still-pending decision is considered escalated. */
+const DEFAULT_ESCALATE_AFTER_DAYS = 7;
 
 @Controller('governance')
 export class GovernanceController {
@@ -20,10 +26,26 @@ export class GovernanceController {
     private readonly policies: GovernancePolicyService,
     private readonly decisions: GovernanceDecisionService,
     private readonly reviews: DecisionReviewService,
+    private readonly trace: GovernanceTraceService,
+    private readonly settings: SettingsService,
     @InjectRepository(GovernanceDecision) private readonly decisionRepo: Repository<GovernanceDecision>,
     @InjectRepository(GovernancePolicy) private readonly policyRepo: Repository<GovernancePolicy>,
     @InjectRepository(Alert) private readonly alertRepo: Repository<Alert>,
   ) {}
+
+  /** Static decision-template catalog (Layer 3 — keyed by alert-code family). */
+  @Get('decision-templates')
+  @RequiresCapability('canRead')
+  decisionTemplates(): DecisionTemplate[] {
+    return DECISION_TEMPLATES;
+  }
+
+  /** Full traceability chain for one decision (decision → … → confidence). */
+  @Get('decisions/:id/trace')
+  @RequiresCapability('canRead')
+  traceForDecision(@Param('id') id: string): Promise<DecisionTrace> {
+    return this.trace.forDecision(id);
+  }
 
   /** Full evidence chain for an alert (Cycle 3 acceptance surface). */
   @Get('alerts/:id/evidence')
@@ -79,7 +101,7 @@ export class GovernanceController {
     @Param('id') id: string,
     @Body() body: { action: string; comment?: string },
     @Req() req: { user?: User },
-  ): Promise<DecisionReview> {
+  ): Promise<ReviewRecordResult> {
     return this.reviews.record(id, body.action, body.comment ?? null, req.user ?? null);
   }
 
@@ -159,15 +181,72 @@ export class GovernanceController {
     @Query('limit') limit?: string,
   ) {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '100', 10) || 100, 1), 500);
-    if (alertId) return this.decisionRepo.find({ where: { alertId }, order: { createdAt: 'DESC' }, take });
-    if (evaluationId) {
+    let rows: GovernanceDecision[];
+    if (alertId) {
+      rows = await this.decisionRepo.find({ where: { alertId }, order: { createdAt: 'DESC' }, take });
+    } else if (evaluationId) {
       // Decisions don't store evaluationId; resolve via the Alert table.
       const alerts = await this.alertRepo.find({ where: { ruleEvaluationId: evaluationId } });
       const ids = alerts.map((a) => a.id);
-      return ids.length === 0
+      rows = ids.length === 0
         ? []
-        : this.decisionRepo.find({ where: { alertId: In(ids) }, order: { createdAt: 'DESC' }, take });
+        : await this.decisionRepo.find({ where: { alertId: In(ids) }, order: { createdAt: 'DESC' }, take });
+    } else {
+      rows = await this.decisionRepo.find({ order: { createdAt: 'DESC' }, take });
     }
-    return this.decisionRepo.find({ order: { createdAt: 'DESC' }, take });
+    return this.enrichDecisions(rows);
+  }
+
+  /**
+   * Attach the approval-chain state + escalation flags to each decision row.
+   *
+   *  - `chainState` / `approvals` / `requiresDualApproval` / `approvalsRemaining`
+   *    come from the dual-approval engine (critical decisions need two distinct
+   *    approvers).
+   *  - `pendingAgeDays` is the age of a still-`pending` decision in whole days.
+   *  - `escalated` is true when a pending decision is older than
+   *    `governance.escalateAfterDays` (default {@link DEFAULT_ESCALATE_AFTER_DAYS}).
+   */
+  private async enrichDecisions(rows: GovernanceDecision[]): Promise<unknown[]> {
+    if (rows.length === 0) return [];
+
+    // Resolve which decisions are critical (require dual approval) via the alert join.
+    const alertIds = [...new Set(rows.map((d) => d.alertId))];
+    const alerts = await this.alertRepo.find({ where: { id: In(alertIds) } });
+    const severityByAlert = new Map(alerts.map((a) => [a.id, a.severity]));
+    const criticalDecisionIds = new Set(
+      rows.filter((d) => severityByAlert.get(d.alertId) === 'critical').map((d) => d.id),
+    );
+
+    const chainStates = await this.reviews.chainStatesFor(
+      rows.map((d) => d.id),
+      criticalDecisionIds,
+    );
+
+    const escalateAfterDays = await this.resolveEscalateAfterDays();
+    const now = Date.now();
+
+    return rows.map((d) => {
+      const chain = chainStates[d.id];
+      const isPending = chain.chainState === 'pending' || chain.chainState === 'awaiting-second-approval';
+      const ageDays = Math.floor((now - new Date(d.createdAt).getTime()) / 86_400_000);
+      const escalated = isPending && ageDays >= escalateAfterDays;
+      return {
+        ...d,
+        chainState: chain.chainState,
+        approvals: chain.approvals,
+        requiresDualApproval: chain.requiresDualApproval,
+        approvalsRemaining: chain.approvalsRemaining,
+        pendingAgeDays: isPending ? ageDays : null,
+        escalateAfterDays,
+        escalated,
+      };
+    });
+  }
+
+  private async resolveEscalateAfterDays(): Promise<number> {
+    const raw = await this.settings.getPlaintext('governance.escalateAfterDays');
+    const n = raw === null ? NaN : Number.parseInt(raw, 10);
+    return Number.isFinite(n) && n > 0 ? n : DEFAULT_ESCALATE_AFTER_DAYS;
   }
 }

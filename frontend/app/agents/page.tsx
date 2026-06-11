@@ -25,6 +25,21 @@ interface Execution {
   confidenceOverall: number | null; finishedAt: string | null;
 }
 
+/** Per-agent runtime config the enriched /agents listing now carries. */
+interface AgentConfig {
+  enabled: boolean;
+  modelTier: 'default' | 'claude-haiku' | 'claude-sonnet' | 'claude-opus' | string;
+}
+/** The enriched descriptor: the standard contract + its config. */
+type EnrichedAgent = AgentDescriptor & { config?: AgentConfig };
+
+const TIER_LABEL: Record<string, string> = {
+  default: 'Platform default',
+  'claude-haiku': 'Claude Haiku',
+  'claude-sonnet': 'Claude Sonnet',
+  'claude-opus': 'Claude Opus',
+};
+
 export default function AgentsRoute() {
   return (
     <AuthGate capability="canEvaluateRules" surface="Agents">
@@ -39,7 +54,7 @@ function AgentsPage() {
   const { me } = useMe();
   const canRun = !!(me?.user?.role && CAPABILITIES[me.user.role].canEvaluateRules);
 
-  const [agents, setAgents] = useState<AgentDescriptor[] | null>(null);
+  const [agents, setAgents] = useState<EnrichedAgent[] | null>(null);
   const [execs, setExecs] = useState<Execution[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -47,7 +62,7 @@ function AgentsPage() {
   const load = useCallback(async () => {
     try {
       const [a, e] = await Promise.all([
-        api<AgentDescriptor[]>('/agents'),
+        api<EnrichedAgent[]>('/agents'),
         api<Execution[]>(`/agents/executions?nodeBusinessKey=${encodeURIComponent(projectKey)}&limit=30`),
       ]);
       // Order by layer key (l0..l8).
@@ -101,28 +116,46 @@ function AgentsPage() {
         <div className="space-y-3">
           {agents.map((a) => {
             const last = latestFor(a.agentKey);
+            const enabled = a.config?.enabled ?? true;
+            const tier = a.config?.modelTier ?? 'default';
             return (
               <AgentContractCard
                 key={a.agentKey}
                 descriptor={a}
                 footer={
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {last ? (
-                      <>
-                        <span className="text-slate-500">Last run:</span>
-                        <Pill tone={last.status === 'completed' ? 'emerald' : 'rose'}>{last.status}</Pill>
-                        {last.governanceStatus && <GovernanceStatusBadge status={last.governanceStatus} size="sm" />}
-                        {last.confidenceOverall !== null && <span className="text-slate-400">conf {Math.round(last.confidenceOverall * 100)}%</span>}
-                        {last.finishedAt && <span className="text-slate-500" dir="ltr">{new Date(last.finishedAt).toLocaleString()}</span>}
-                      </>
-                    ) : (
-                      <span className="text-slate-500">No run yet for {projectKey}.</span>
-                    )}
-                    {canRun && (
-                      <Button variant="ghost" size="sm" className="ms-auto" disabled={busy === a.agentKey} onClick={() => run(a.agentKey)}>
-                        {busy === a.agentKey ? 'Running…' : `Run ${a.agentKey}`}
-                      </Button>
-                    )}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <Pill tone={enabled ? 'emerald' : 'rose'}>{enabled ? 'Enabled' : 'Disabled'}</Pill>
+                      <Pill tone="slate">{TIER_LABEL[tier] ?? tier}</Pill>
+                      {!enabled && (
+                        <span className="text-rose-300/90">
+                          Disabled in the Governance Configuration Center — runs are refused (409) until re-enabled.
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {last ? (
+                        <>
+                          <span className="text-slate-500">Last run:</span>
+                          <Pill tone={last.status === 'completed' ? 'emerald' : 'rose'}>{last.status}</Pill>
+                          {last.governanceStatus && <GovernanceStatusBadge status={last.governanceStatus} size="sm" />}
+                          {last.confidenceOverall !== null && <span className="text-slate-400">conf {Math.round(last.confidenceOverall * 100)}%</span>}
+                          {last.finishedAt && <span className="text-slate-500" dir="ltr">{new Date(last.finishedAt).toLocaleString()}</span>}
+                        </>
+                      ) : (
+                        <span className="text-slate-500">No run yet for {projectKey}.</span>
+                      )}
+                      {canRun && (
+                        <span
+                          className="ms-auto"
+                          title={enabled ? undefined : 'This agent is disabled in Admin → Governance Config.'}
+                        >
+                          <Button variant="ghost" size="sm" disabled={busy === a.agentKey || !enabled} onClick={() => run(a.agentKey)}>
+                            {busy === a.agentKey ? 'Running…' : `Run ${a.agentKey}`}
+                          </Button>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 }
               />

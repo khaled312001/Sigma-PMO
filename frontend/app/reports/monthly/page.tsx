@@ -63,6 +63,15 @@ type Audience = 'owner' | 'pd' | 'contractor';
 
 type Cadence = 'day' | 'week' | 'month';
 
+type NarrativeType = 'executive' | 'governance' | 'investment' | 'portfolio';
+
+const NARRATIVE_TYPES: { key: NarrativeType; label: string }[] = [
+  { key: 'executive', label: 'Executive' },
+  { key: 'governance', label: 'Governance' },
+  { key: 'investment', label: 'Investment' },
+  { key: 'portfolio', label: 'Portfolio' },
+];
+
 interface MonthlyReportRow {
   id: string;
   projectBusinessKey: string;
@@ -117,6 +126,7 @@ function MonthlyReportsPage() {
   const [day, setDay] = useState<string>(defaultDay());
   const [week, setWeek] = useState<string>(defaultIsoWeek());
   const [audience, setAudience] = useState<Audience>('owner');
+  const [narrativeType, setNarrativeType] = useState<NarrativeType>('executive');
   const [openId, setOpenId] = useState<string | null>(null);
 
   const canGenerate = !!me?.user && CAPABILITIES[me.user.role].canGenerateSummary;
@@ -196,7 +206,7 @@ function MonthlyReportsPage() {
           : '/reports/monthly/periodic/generate';
       const body =
         cadence === 'month'
-          ? { projectKey, monthIso: month, audience, authoredBy }
+          ? { projectKey, monthIso: month, audience, narrativeType, authoredBy }
           : { projectKey, cadence, periodKey, audience, authoredBy };
       const created = await api<MonthlyReportRow>(path, {
         method: 'POST',
@@ -216,7 +226,7 @@ function MonthlyReportsPage() {
     } finally {
       setGenerating(false);
     }
-  }, [projectKey, cadence, month, week, day, audience, authoredBy, t, toast, refresh]);
+  }, [projectKey, cadence, month, week, day, audience, narrativeType, authoredBy, t, toast, refresh]);
 
   const openRow = useMemo(
     () => (openId ? rows?.find((r) => r.id === openId) ?? null : null),
@@ -258,6 +268,7 @@ function MonthlyReportsPage() {
           week={week}
           day={day}
           audience={audience}
+          narrativeType={narrativeType}
           generating={generating}
           projectKey={projectKey}
           onCadenceChange={setCadence}
@@ -265,6 +276,7 @@ function MonthlyReportsPage() {
           onWeekChange={setWeek}
           onDayChange={setDay}
           onAudienceChange={setAudience}
+          onNarrativeTypeChange={setNarrativeType}
           onSubmit={onGenerate}
         />
       ) : (
@@ -296,6 +308,7 @@ function GenerateForm({
   week,
   day,
   audience,
+  narrativeType,
   generating,
   projectKey,
   onCadenceChange,
@@ -303,6 +316,7 @@ function GenerateForm({
   onWeekChange,
   onDayChange,
   onAudienceChange,
+  onNarrativeTypeChange,
   onSubmit,
 }: {
   cadence: Cadence;
@@ -310,6 +324,7 @@ function GenerateForm({
   week: string;
   day: string;
   audience: Audience;
+  narrativeType: NarrativeType;
   generating: boolean;
   projectKey: string;
   onCadenceChange: (v: Cadence) => void;
@@ -317,6 +332,7 @@ function GenerateForm({
   onWeekChange: (v: string) => void;
   onDayChange: (v: string) => void;
   onAudienceChange: (v: Audience) => void;
+  onNarrativeTypeChange: (v: NarrativeType) => void;
   onSubmit: () => void;
 }) {
   const { t } = useI18n();
@@ -427,6 +443,32 @@ function GenerateForm({
           </div>
         </fieldset>
 
+        {cadence === 'month' && (
+          <fieldset className="flex flex-col gap-1 text-xs">
+            <legend className="font-semibold uppercase tracking-[0.14em] text-slate-300">
+              Narrative type
+            </legend>
+            <div className="flex flex-wrap gap-1.5">
+              {NARRATIVE_TYPES.map((nt) => (
+                <button
+                  key={nt.key}
+                  type="button"
+                  aria-pressed={narrativeType === nt.key}
+                  onClick={() => onNarrativeTypeChange(nt.key)}
+                  title={`${nt.label} narrative composition`}
+                  className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    narrativeType === nt.key
+                      ? 'border-violet-400 bg-violet-500/30 text-violet-50 shadow-sm scale-105'
+                      : 'border-slate-600 bg-slate-900/60 text-slate-200 hover:border-slate-400 hover:scale-105'
+                  }`}
+                >
+                  {nt.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+
         <div className="ms-auto">
           <Button
             type="submit"
@@ -507,6 +549,7 @@ function ReportsList({
                       {row.month}
                     </span>
                     <AudiencePill audience={row.audience as Audience} />
+                    <NarrativeTypePill metrics={row.metrics} />
                     <SourceBadge source={row.narrativeSource} />
                     <Pill tone="slate">
                       {t('reportsMonthly.list.citationsCount', {
@@ -837,6 +880,16 @@ function AudiencePill({ audience }: { audience: Audience }) {
     contractor: 'emerald',
   };
   return <Pill tone={tone[audience] ?? 'slate'}>{audienceLabel(t, audience)}</Pill>;
+}
+
+/** Narrative-type pill from the persisted metrics. Hidden for legacy/executive. */
+function NarrativeTypePill({ metrics }: { metrics: Record<string, unknown> }) {
+  const nt = typeof metrics?.narrativeType === 'string' ? (metrics.narrativeType as string) : null;
+  if (!nt || nt === 'executive') return null;
+  const tone: Record<string, 'violet' | 'amber' | 'sky'> = {
+    governance: 'violet', investment: 'amber', portfolio: 'sky',
+  };
+  return <Pill tone={tone[nt] ?? 'slate'}>{nt}</Pill>;
 }
 
 function SourceBadge({ source }: { source: string }) {

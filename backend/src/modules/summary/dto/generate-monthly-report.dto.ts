@@ -13,6 +13,17 @@ export class GenerateMonthlyReportDto {
   @IsIn(['owner', 'pd', 'contractor'])
   audience!: 'owner' | 'pd' | 'contractor';
 
+  /**
+   * Narrative composition (default `executive` = legacy behaviour):
+   *  - `executive` — schedule/alerts/governance/BoQ/confidence (current).
+   *  - `governance` — decisions / escalations / corrective focus.
+   *  - `investment` — latest feasibility assessments + recommendations.
+   *  - `portfolio` — cross-project BAC/EV/AC totals + statuses.
+   */
+  @IsOptional()
+  @IsIn(['executive', 'governance', 'investment', 'portfolio'])
+  narrativeType?: 'executive' | 'governance' | 'investment' | 'portfolio';
+
   /** Optional author override; defaults to the calling user when omitted. */
   @IsOptional()
   @IsString()

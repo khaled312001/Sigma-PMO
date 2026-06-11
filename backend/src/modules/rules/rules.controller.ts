@@ -5,12 +5,15 @@ import { Repository } from 'typeorm';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, Project, RuleEvaluation } from '../canonical/entities';
 import { EvaluateDto } from './dto/evaluate.dto';
+import { RunWorkflowDto } from './dto/run-workflow.dto';
+import { ReviewWorkflowResult, ReviewWorkflowService } from './review-workflow.service';
 import { RuleEngineService, RuleEvaluationOutcome } from './rule-engine.service';
 
 @Controller('rules')
 export class RulesController {
   constructor(
     private readonly engine: RuleEngineService,
+    private readonly workflow: ReviewWorkflowService,
     @InjectRepository(Project) private readonly projects: Repository<Project>,
     @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
     @InjectRepository(RuleEvaluation) private readonly evaluations: Repository<RuleEvaluation>,
@@ -35,6 +38,19 @@ export class RulesController {
     }
     if (body.projectId) return this.engine.evaluateProject(body.projectId);
     return this.engine.evaluateAll();
+  }
+
+  /**
+   * One-click automated governance-review workflow: evaluate -> decide for one
+   * project (or every current project when `projectKey` is omitted). Returns
+   * per-project `{projectKey, alertCount, decisionCount}` so the review page
+   * can toast the outcome without a second round-trip.
+   */
+  @Post('workflows/run')
+  @HttpCode(200)
+  @RequiresCapability('canEvaluateRules')
+  runWorkflow(@Body() body: RunWorkflowDto): Promise<ReviewWorkflowResult> {
+    return this.workflow.run(body?.projectKey ?? null);
   }
 
   /**

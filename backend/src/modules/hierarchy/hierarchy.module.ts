@@ -4,6 +4,7 @@ import { CanonicalModule } from '../canonical/canonical.module';
 import { GovernanceStatusService } from './governance-status.service';
 import { HierarchyController } from './hierarchy.controller';
 import { HierarchyService } from './hierarchy.service';
+import { RollupService } from './rollup.service';
 
 /**
  * HierarchyModule — the multi-level governance hierarchy
@@ -17,7 +18,7 @@ import { HierarchyService } from './hierarchy.service';
 @Module({
   imports: [CanonicalModule],
   controllers: [HierarchyController],
-  providers: [HierarchyService, GovernanceStatusService],
-  exports: [HierarchyService, GovernanceStatusService],
+  providers: [HierarchyService, GovernanceStatusService, RollupService],
+  exports: [HierarchyService, GovernanceStatusService, RollupService],
 })
 export class HierarchyModule {}

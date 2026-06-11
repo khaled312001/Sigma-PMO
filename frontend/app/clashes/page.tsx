@@ -233,6 +233,11 @@ function ClashesPage() {
 
       <ErrorBanner message={loadError} />
 
+      <p className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[13px] text-slate-300">
+        Working from BIM models? Upload IFC sets and run model-validation checks in the{' '}
+        <a href="/drawings" className="text-sky-300 underline-offset-2 hover:underline">BIM Models (IFC) section on Drawings</a>.
+      </p>
+
       <PolicyAddonInline projectKey={projectKey} surface="engineering" />
 
       <UploadCard

@@ -5,7 +5,9 @@ import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { RulesModule } from '../rules/rules.module';
 import { AnalyticsAgentService } from './analytics-agent.service';
+import { AnalyticsExtrasService } from './analytics-extras.service';
 import { AnalyticsController } from './analytics.controller';
+import { EarnedScheduleService } from './earned-schedule.service';
 import { EvmService } from './evm.service';
 
 /**
@@ -16,7 +18,7 @@ import { EvmService } from './evm.service';
 @Module({
   imports: [AgentsModule, CanonicalModule, OutboxModule, RulesModule],
   controllers: [AnalyticsController],
-  providers: [EvmService, AnalyticsAgentService],
-  exports: [AnalyticsAgentService, EvmService],
+  providers: [EvmService, EarnedScheduleService, AnalyticsAgentService, AnalyticsExtrasService],
+  exports: [AnalyticsAgentService, EvmService, EarnedScheduleService, AnalyticsExtrasService],
 })
 export class AnalyticsModule {}

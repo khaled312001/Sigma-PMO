@@ -6,7 +6,10 @@ import { RuleEvaluationStatus } from '../../common/enums';
 import { Alert, RuleEvaluation } from '../canonical/entities';
 import { BaselineDurationOutlierRule } from './rules/baseline-duration-outlier.rule';
 import { CostOverrunRule } from './rules/cost-overrun.rule';
+import { DataCompletenessRule } from './rules/data-completeness.rule';
 import { DurationOverrunRule } from './rules/duration-overrun.rule';
+import { MissingWeeklyReportRule } from './rules/missing-weekly-report.rule';
+import { ReportedVsScheduleMismatchRule } from './rules/reported-vs-schedule-mismatch.rule';
 import { ResourceUnderuseRule } from './rules/resource-underuse.rule';
 import { ScheduleBehindPlanRule } from './rules/schedule-behind-plan.rule';
 import { ScheduleFinishSlippedRule } from './rules/schedule-finish-slipped.rule';
@@ -42,6 +45,9 @@ export class RuleEngineService {
     resourceUnderuse: ResourceUnderuseRule,
     staleReporting: StaleReportingRule,
     baselineDurationOutlier: BaselineDurationOutlierRule,
+    reportedVsSchedule: ReportedVsScheduleMismatchRule,
+    missingWeekly: MissingWeeklyReportRule,
+    dataCompleteness: DataCompletenessRule,
   ) {
     this.rules = [
       finishSlipped,
@@ -51,6 +57,9 @@ export class RuleEngineService {
       resourceUnderuse,
       staleReporting,
       baselineDurationOutlier,
+      reportedVsSchedule,
+      missingWeekly,
+      dataCompleteness,
     ];
   }
 

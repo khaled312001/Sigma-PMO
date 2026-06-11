@@ -24,8 +24,8 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: 'Sigma PMO — Governance Operations Console',
-  description: 'AI-enabled governance & transformation platform — built on FIDIC 2017 and PMI/PMBOK.',
+  title: 'Sigma PMO — AI Governance Operating System',
+  description: 'From Data to Governance Decisions — an AI Governance Operating System spanning investments, portfolios, programs, projects, claims, risk and executive decision intelligence.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

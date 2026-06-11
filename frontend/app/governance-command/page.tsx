@@ -12,9 +12,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
-import { DonutChart } from '../../components/Charts';
+import { BarChart, DonutChart } from '../../components/Charts';
 import { GovernanceStatusBadge } from '../../components/GovernanceStatusBadge';
-import { IconRefresh, IconShield, IconSparkles } from '../../components/Icons';
+import { IconAlertCritical, IconArrowRight, IconClock, IconRefresh, IconShield, IconSparkles } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
@@ -30,7 +30,34 @@ interface ConsolidatedNode {
 interface Overview { nodes: ConsolidatedNode[]; statusTally: Record<string, number> }
 interface CorrectiveAction { id: string; title: string; description: string; sourceLayer: string; priority: string; escalationLevel: string | null; status: string }
 
+// Command-center derived analytics (Agent B)
+interface RecommendedAction {
+  id: string | null; nodeBusinessKey: string; title: string; rationale: string;
+  sourceLayer: string; priority: string; derived: boolean; status: string | null; ageDays: number | null;
+}
+interface EscalationPathRow {
+  decisionId: string; alertCode: string; projectKey: string; escalationLevel: string;
+  responsibleParty: string; ageDays: number; path: string[]; currentStep: number; nextStep: string;
+}
+interface ImpactAnalysis {
+  degraded: Array<{ projectKey: string; name: string; bac: number; shareOfPortfolioBacPct: number }>;
+  totals: { portfolioBac: number; valueAtRisk: number; valueAtRiskPct: number };
+  benefitRealization: {
+    perProject: Array<{ projectKey: string; name: string; status: string | null; benefitPct: number }>;
+    weightedTargetPct: number; weightedRealizedPct: number; benefitGapPct: number;
+  };
+}
+
 const STATUS_ACCENT: Record<string, string> = { green: '#10b981', yellow: '#fbbf24', orange: '#f97316', red: '#dc2626', unknown: '#475569' };
+const PRIORITY_TONE: Record<string, 'rose' | 'amber' | 'sky' | 'slate'> = { critical: 'rose', high: 'amber', medium: 'sky', low: 'slate' };
+
+/** Compact money formatter for value-at-risk bars/tiles. */
+function fmtMoney(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toFixed(0);
+}
 
 export default function GovernanceCommandRoute() {
   return (
@@ -51,6 +78,10 @@ function GovernanceCommand() {
   const [actions, setActions] = useState<CorrectiveAction[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [recommended, setRecommended] = useState<RecommendedAction[] | null>(null);
+  const [escalations, setEscalations] = useState<EscalationPathRow[] | null>(null);
+  const [impact, setImpact] = useState<ImpactAnalysis | null>(null);
+
   const load = useCallback(async () => {
     try {
       const o = await api<Overview>('/governance-command/overview');
@@ -59,7 +90,19 @@ function GovernanceCommand() {
     } catch (e) { setError((e as Error).message); }
   }, [selected]);
 
+  const loadCommandCenter = useCallback(async () => {
+    const [rec, esc, imp] = await Promise.allSettled([
+      api<{ rows: RecommendedAction[] }>('/governance-command/recommended-actions'),
+      api<{ rows: EscalationPathRow[] }>('/governance-command/escalation-paths'),
+      api<ImpactAnalysis>('/governance-command/impact-analysis'),
+    ]);
+    setRecommended(rec.status === 'fulfilled' ? rec.value.rows : []);
+    setEscalations(esc.status === 'fulfilled' ? esc.value.rows : []);
+    setImpact(imp.status === 'fulfilled' ? imp.value : null);
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void loadCommandCenter(); }, [loadCommandCenter]);
 
   const loadActions = useCallback(async (key: string) => {
     try {
@@ -77,6 +120,7 @@ function GovernanceCommand() {
       toast.success('Consolidated', `${key}: L8 recomputed status + corrective actions.`);
       await load();
       await loadActions(key);
+      await loadCommandCenter();
     } catch (e) { toast.error('Recompute failed', (e as Error).message); }
     finally { setBusy(null); }
   };
@@ -101,7 +145,7 @@ function GovernanceCommand() {
         eyebrow="Layer 8 · Sigma Governance AI"
         title="Governance Command Center"
         description="The final authority: every node's consolidated 4-tier verdict, the agents behind it, and the corrective-action queue. Recompute re-runs the L8 consolidation and re-issues actions."
-        actions={<Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>}
+        actions={<Button variant="ghost" size="sm" onClick={() => { void load(); void loadCommandCenter(); }}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>}
       />
       <ErrorBanner message={error} />
 
@@ -220,9 +264,198 @@ function GovernanceCommand() {
         </div>
       )}
 
+      {/* Recommended Actions */}
+      <RecommendedActionsSection rows={recommended} />
+
+      {/* Escalation Paths */}
+      <EscalationPathsSection rows={escalations} />
+
+      {/* Executive Impact + Benefit Realization */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <ImpactAnalysisSection impact={impact} />
+        <BenefitRealizationSection impact={impact} />
+      </div>
+
       <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
-        <IconShield className="h-3.5 w-3.5" /> L8 consolidation is pull-based and idempotent — recompute is safe to run repeatedly.
+        <IconShield className="h-3.5 w-3.5" /> L8 consolidation is pull-based and idempotent. Recommended actions, escalation paths and impact analysis are computed deterministically from current governance state.
       </p>
+    </div>
+  );
+}
+
+// Recommended Actions
+
+function RecommendedActionsSection({ rows }: { rows: RecommendedAction[] | null }) {
+  return (
+    <Card title="Recommended actions" hint="Open corrective actions plus on-the-fly recommendations for degraded nodes, ranked by priority and age.">
+      {rows === null ? (
+        <div className="h-24 animate-pulse rounded bg-slate-800/40" />
+      ) : rows.length === 0 ? (
+        <EmptyState title="Nothing recommended" description="No open corrective actions and no degraded nodes." />
+      ) : (
+        <ul className="space-y-2">
+          {rows.map((r, i) => (
+            <li key={r.id ?? `derived-${r.nodeBusinessKey}-${i}`} className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <Pill tone={PRIORITY_TONE[r.priority] ?? 'slate'}>{r.priority}</Pill>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-slate-100">{r.title}</span>
+                  <span className="font-mono text-[10px] text-slate-500" dir="ltr">{r.nodeBusinessKey}</span>
+                  {r.derived ? (
+                    <Pill tone="violet">derived</Pill>
+                  ) : (
+                    <span className="font-mono text-[10px] text-slate-500" dir="ltr">{r.sourceLayer}</span>
+                  )}
+                  {r.ageDays !== null && r.ageDays > 0 && (
+                    <span className="flex items-center gap-1 text-[10px] text-slate-500"><IconClock className="h-3 w-3" />{r.ageDays}d</span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-slate-400">{r.rationale}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+// Escalation Paths
+
+function LevelStepper({ currentStep }: { currentStep: number }) {
+  // Always show the full L1 -> L2 -> L3 ladder; highlight up to the current level.
+  const full = ['L1 Project', 'L2 Program/PMO', 'L3 Executive'];
+  return (
+    <ol className="flex flex-wrap items-center gap-1.5" aria-label="Escalation ladder">
+      {full.map((label, i) => {
+        const stepNo = i + 1;
+        const reached = stepNo <= currentStep;
+        const isCurrent = stepNo === currentStep;
+        return (
+          <li key={label} className="flex items-center gap-1.5">
+            <span
+              className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                isCurrent
+                  ? 'bg-rose-500/20 text-rose-200 ring-1 ring-rose-500/40'
+                  : reached
+                    ? 'bg-amber-500/15 text-amber-200'
+                    : 'bg-slate-800/60 text-slate-500'
+              }`}
+            >
+              {label}
+            </span>
+            {i < full.length - 1 && <IconArrowRight className={`h-3 w-3 ${reached && currentStep > stepNo ? 'text-amber-400' : 'text-slate-600'}`} />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function EscalationPathsSection({ rows }: { rows: EscalationPathRow[] | null }) {
+  return (
+    <Card title="Escalation paths" hint="Open governance escalations without an approving review, each at its position on the L1 -> L2 -> L3 ladder.">
+      {rows === null ? (
+        <div className="h-24 animate-pulse rounded bg-slate-800/40" />
+      ) : rows.length === 0 ? (
+        <EmptyState title="No open escalations" description="Every escalated decision has been approved, or none has been raised." />
+      ) : (
+        <ul className="space-y-3">
+          {rows.map((r) => (
+            <li key={r.decisionId} className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <IconAlertCritical className="h-3.5 w-3.5 text-rose-400" />
+                <span className="font-mono text-xs text-slate-200" dir="ltr">{r.alertCode}</span>
+                <span className="font-mono text-[10px] text-slate-500" dir="ltr">{r.projectKey}</span>
+                <Pill tone="slate">{r.responsibleParty}</Pill>
+                <span className="ms-auto flex items-center gap-1 text-[10px] text-slate-500"><IconClock className="h-3 w-3" />{r.ageDays}d</span>
+              </div>
+              <div className="mt-2">
+                <LevelStepper currentStep={r.currentStep} />
+              </div>
+              <p className="mt-2 text-xs text-slate-400"><span className="text-slate-500">Next:</span> {r.nextStep}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+// Executive Impact Analysis
+
+function ImpactAnalysisSection({ impact }: { impact: ImpactAnalysis | null }) {
+  if (impact === null) {
+    return <Card title="Executive impact analysis"><div className="h-40 animate-pulse rounded bg-slate-800/40" /></Card>;
+  }
+  const { totals, degraded } = impact;
+  const bars = degraded.map((d) => ({
+    label: `${d.projectKey} (${d.shareOfPortfolioBacPct}%)`,
+    value: Math.round(d.bac),
+    accent: STATUS_ACCENT.red,
+  }));
+  return (
+    <Card title="Executive impact analysis" hint="Budget-at-Completion at risk from degraded (orange/red) projects, against total portfolio BAC.">
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <Tile label="Value at risk" value={fmtMoney(totals.valueAtRisk)} tone="rose" />
+        <Tile label="of portfolio" value={`${totals.valueAtRiskPct}%`} tone="amber" />
+        <Tile label="Portfolio BAC" value={fmtMoney(totals.portfolioBac)} tone="slate" />
+      </div>
+      {degraded.length === 0 ? (
+        <p className="text-sm text-slate-500">No degraded projects. Zero value at risk.</p>
+      ) : (
+        <BarChart
+          data={bars}
+          caption="BAC at risk by project"
+          labelWidth={150}
+          emptyLabel="no degraded projects"
+        />
+      )}
+    </Card>
+  );
+}
+
+// Benefit Realization Impact
+
+function BenefitRealizationSection({ impact }: { impact: ImpactAnalysis | null }) {
+  if (impact === null) {
+    return <Card title="Benefit realization impact"><div className="h-40 animate-pulse rounded bg-slate-800/40" /></Card>;
+  }
+  const { benefitRealization: br } = impact;
+  const bars = br.perProject
+    .slice()
+    .sort((a, b) => a.benefitPct - b.benefitPct)
+    .map((p) => ({
+      label: p.projectKey,
+      value: p.benefitPct,
+      accent: STATUS_ACCENT[p.status ?? 'unknown'] ?? STATUS_ACCENT.unknown,
+    }));
+  return (
+    <Card title="Benefit realization impact" hint="Realized benefit = (EV/BAC) x status multiplier (green 1 / yellow .85 / orange .6 / red .4).">
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <Tile label="Weighted target" value={`${br.weightedTargetPct}%`} tone="sky" />
+        <Tile label="Weighted realized" value={`${br.weightedRealizedPct}%`} tone="emerald" />
+        <Tile label="Benefit gap" value={`${br.benefitGapPct}%`} tone={br.benefitGapPct > 10 ? 'rose' : 'amber'} />
+      </div>
+      {bars.length === 0 ? (
+        <p className="text-sm text-slate-500">No projects to assess.</p>
+      ) : (
+        <BarChart data={bars} caption="realized benefit %" max={100} labelWidth={110} emptyLabel="no projects" />
+      )}
+    </Card>
+  );
+}
+
+const TILE_TONE: Record<string, string> = {
+  rose: 'text-rose-300', amber: 'text-amber-300', emerald: 'text-emerald-300',
+  sky: 'text-sky-300', slate: 'text-slate-200',
+};
+
+function Tile({ label, value, tone }: { label: string; value: string; tone: keyof typeof TILE_TONE }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={`mt-0.5 font-mono text-lg font-semibold tabular-nums ${TILE_TONE[tone]}`} dir="ltr">{value}</p>
     </div>
   );
 }

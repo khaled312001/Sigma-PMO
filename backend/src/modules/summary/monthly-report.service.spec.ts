@@ -7,7 +7,9 @@ import {
   Alert,
   BoQ,
   ConfidenceScore,
+  FeasibilityAssessment,
   GovernanceDecision,
+  InvestmentOpportunity,
   MonthlyReport,
   Project,
 } from '../canonical/entities';
@@ -100,6 +102,14 @@ function makeConfidenceRepo(rows: ConfidenceScore[]) {
 
 function makeBoqRepo(row: BoQ | null) {
   return { findOne: jest.fn(async () => row) };
+}
+
+function makeOpportunityRepo(rows: InvestmentOpportunity[] = []) {
+  return { find: jest.fn(async () => rows) };
+}
+
+function makeAssessmentRepo(rows: FeasibilityAssessment[] = []) {
+  return { find: jest.fn(async () => rows) };
 }
 
 function makeSnapshotService(snapshot: ProjectSnapshot): SnapshotService {
@@ -295,6 +305,8 @@ function buildService(opts: {
   const decisionRepo = makeDecisionRepo(opts.decisions ?? [makeDecision()]);
   const confidenceRepo = makeConfidenceRepo(opts.confidence ?? [makeConfidence()]);
   const boqRepo = makeBoqRepo(opts.boq === undefined ? makeBoq() : opts.boq);
+  const opportunityRepo = makeOpportunityRepo();
+  const assessmentRepo = makeAssessmentRepo();
   const snapshots = makeSnapshotService(makeSnapshot());
   const pdf = makePdfService();
   const service = new MonthlyReportService(
@@ -304,6 +316,8 @@ function buildService(opts: {
     decisionRepo as unknown as Repository<GovernanceDecision>,
     confidenceRepo as unknown as Repository<ConfidenceScore>,
     boqRepo as unknown as Repository<BoQ>,
+    opportunityRepo as unknown as Repository<InvestmentOpportunity>,
+    assessmentRepo as unknown as Repository<FeasibilityAssessment>,
     snapshots,
     opts.claude,
     opts.sources,

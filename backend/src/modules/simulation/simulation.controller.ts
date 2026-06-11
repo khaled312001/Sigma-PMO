@@ -2,6 +2,11 @@ import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Quer
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Scenario } from '../canonical/entities';
+import {
+  PortfolioImpactResponse,
+  PortfolioScenarioService,
+  PortfolioWhatIfResponse,
+} from './portfolio-scenario.service';
 import { SimulationService } from './simulation.service';
 
 interface ForkScenarioBody {
@@ -12,6 +17,10 @@ interface ForkScenarioBody {
   summary?: string;
 }
 
+interface PortfolioWhatIfBody {
+  delayDaysPerProject: Record<string, number>;
+}
+
 /**
  * Sandbox simulation surface (ADR-0010, post-meeting plan §3.4).
  *
@@ -20,7 +29,37 @@ interface ForkScenarioBody {
  */
 @Controller('simulation')
 export class SimulationController {
-  constructor(private readonly simulation: SimulationService) {}
+  constructor(
+    private readonly simulation: SimulationService,
+    private readonly portfolio: PortfolioScenarioService,
+  ) {}
+
+  /**
+   * Portfolio scenario planning — every OPEN scenario across ALL projects with a
+   * per-scenario impact summary + portfolio totals. Gated on `canSimulate`
+   * (read-only roll-up over the sandbox). Impact figures are flagged as
+   * placeholders when the snapshot carries no real delta.
+   */
+  @Get('portfolio-impact')
+  @RequiresCapability('canSimulate')
+  portfolioImpact(): Promise<PortfolioImpactResponse> {
+    return this.portfolio.portfolioImpact();
+  }
+
+  /**
+   * What-if convenience — inject a per-project delay (days) and get the shifted
+   * forecast finish + a naive cost-of-delay (named-basis formula). DETERMINISTIC
+   * arithmetic only; persists NOTHING (pure analysis).
+   */
+  @Post('portfolio-whatif')
+  @HttpCode(200)
+  @RequiresCapability('canSimulate')
+  portfolioWhatIf(@Body() body: PortfolioWhatIfBody): Promise<PortfolioWhatIfResponse> {
+    if (!body?.delayDaysPerProject || typeof body.delayDaysPerProject !== 'object') {
+      throw new BadRequestException('delayDaysPerProject (Record<projectKey, number>) is required.');
+    }
+    return this.portfolio.portfolioWhatIf(body.delayDaysPerProject);
+  }
 
   @Post('scenarios')
   @HttpCode(200)

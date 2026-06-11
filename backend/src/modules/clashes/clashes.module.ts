@@ -3,8 +3,11 @@ import { Module } from '@nestjs/common';
 import { BoqModule } from '../boq/boq.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { ClaudeModule } from '../claude/claude.module';
+import { IngestionModule } from '../ingestion/ingestion.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { SimulationModule } from '../simulation/simulation.module';
+import { BimController } from './bim.controller';
+import { BimModelService } from './bim-model.service';
 import { ClashIngestionService } from './clash-ingestion.service';
 import { ClashSolutionProposer } from './clash-solution-proposer.service';
 import { ClashSolutionProposerController } from './clash-solution-proposer.controller';
@@ -46,9 +49,9 @@ import { ClashExcelParser } from './parsers/clash-excel.parser';
  *    source of AED numbers per `revit-clash-analyst` rule 1).
  */
 @Module({
-  imports: [CanonicalModule, OutboxModule, ClaudeModule, BoqModule, SimulationModule],
-  controllers: [ClashesController, ClashSolutionProposerController],
-  providers: [ClashIngestionService, ClashExcelParser, ClashSolutionProposer],
-  exports: [ClashIngestionService, ClashSolutionProposer],
+  imports: [CanonicalModule, OutboxModule, ClaudeModule, BoqModule, SimulationModule, IngestionModule],
+  controllers: [ClashesController, ClashSolutionProposerController, BimController],
+  providers: [ClashIngestionService, ClashExcelParser, ClashSolutionProposer, BimModelService],
+  exports: [ClashIngestionService, ClashSolutionProposer, BimModelService],
 })
 export class ClashesModule {}

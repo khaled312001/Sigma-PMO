@@ -1,7 +1,7 @@
 export const en: Dictionary = {
   brand: {
     name: 'Sigma PMO',
-    tagline: 'Governance operating system',
+    tagline: 'AI Governance Operating System',
   },
   nav: {
     operations: 'Operations',
@@ -60,6 +60,12 @@ export const en: Dictionary = {
     consultant: 'Consultant',
     contractor: 'Contractor',
     subcontractor: 'Subcontractor',
+    owner: 'Owner',
+    operator: 'Operator',
+    investor: 'Investor',
+    lender: 'Lender',
+    pmo: 'PMO',
+    governance_board: 'Governance Board',
   },
   common: {
     loading: 'Loading…',
@@ -101,8 +107,8 @@ export const en: Dictionary = {
     rememberMe: 'Keep me signed in',
     osName: 'AI Governance Operating System',
     signInAs: 'Sign in as',
-    heroTitle: 'Govern every project with one intelligent system',
-    heroLead: 'Nine specialized AI agents — from data collection to the final governance verdict — working as one auditable, decision-support platform across projects, programs and portfolios.',
+    heroTitle: 'From Data to Governance Decisions',
+    heroLead: 'An AI Governance Operating System — specialized agents from data collection to the final governance verdict — spanning investments, portfolios, programs, projects, claims, risk and executive decision intelligence on one auditable platform.',
     valueProp: {
       governance: 'Nine AI agents, L0 → L8, one authoritative verdict',
       evidence: 'Every decision traceable to its evidence',
@@ -510,7 +516,7 @@ export interface Dictionary {
     accountMenu: string; openMenu: string; closeMenu: string; collapseMenu: string; expandMenu: string;
     project: string; bootstrapMode: string;
   };
-  roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string; subcontractor: string };
+  roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string; subcontractor: string; owner: string; operator: string; investor: string; lender: string; pmo: string; governance_board: string };
   common: {
     loading: string; loadingWorkspace: string;
     save: string; cancel: string; confirm: string; refresh: string;

@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
+import { SettingsModule } from '../settings/settings.module';
+import { AgentConfigService } from './agent-config.service';
 import { AgentOrchestrator } from './agent-orchestrator.service';
 import { AgentRegistry } from './agent.registry';
 import { AgentsController } from './agents.controller';
@@ -16,9 +18,9 @@ import { AgentsController } from './agents.controller';
  * register its agent and trigger pipeline runs without re-wiring the core.
  */
 @Module({
-  imports: [CanonicalModule, OutboxModule],
+  imports: [CanonicalModule, OutboxModule, SettingsModule],
   controllers: [AgentsController],
-  providers: [AgentRegistry, AgentOrchestrator],
-  exports: [AgentRegistry, AgentOrchestrator],
+  providers: [AgentRegistry, AgentOrchestrator, AgentConfigService],
+  exports: [AgentRegistry, AgentOrchestrator, AgentConfigService],
 })
 export class AgentsModule {}

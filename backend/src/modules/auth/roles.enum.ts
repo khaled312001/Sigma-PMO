@@ -18,6 +18,21 @@ export enum Role {
    * activities; never sees the project-wide financial position.
    */
   SUBCONTRACTOR = 'subcontractor',
+  // ── Expanded role taxonomy (Mr. Ayham, 2026-06-12): Owner, Operator,
+  // Investor, Lender, PMO, Governance Board — the platform serves the full
+  // capital-project ecosystem, not only delivery-side parties. ──
+  /** Asset owner / employer — the decision-authority tier (client-equivalent). */
+  OWNER = 'owner',
+  /** O&M-phase operator: reads its project slice + uploads operational records. */
+  OPERATOR = 'operator',
+  /** Equity investor: portfolio-wide read + Investment & Feasibility access. */
+  INVESTOR = 'investor',
+  /** Lender / financing bank: read-only credit view + feasibility packages. */
+  LENDER = 'lender',
+  /** PMO office: full operational tier — ingest, evaluate, hierarchy, analytics. */
+  PMO = 'pmo',
+  /** Governance board: strategic oversight + approval authority, no operations. */
+  GOVERNANCE_BOARD = 'governance_board',
 }
 
 /**
@@ -106,6 +121,13 @@ export const ROLE_CAPABILITIES: Record<Role, {
   [Role.CONSULTANT]:     { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true,  canManageRoles: false, canRunFeasibility: true },
   [Role.CONTRACTOR]:     { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: true,  canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: false, canViewPortfolio: false, canViewProgram: true,  canManageRoles: false, canRunFeasibility: false },
   [Role.SUBCONTRACTOR]:  { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: false, canViewPortfolio: false, canViewProgram: false, canManageRoles: false, canRunFeasibility: false },
+  // Expanded taxonomy (2026-06-12). Defaults; admin can retune live from /admin/roles.
+  [Role.OWNER]:            { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: true,  canGenerateSummary: true,  canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: true,  canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: false, canManageHierarchy: true,  canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true,  canManageRoles: false, canRunFeasibility: true  },
+  [Role.OPERATOR]:         { canRead: true, canIngest: true,  canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: false, canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: false, canViewPortfolio: false, canViewProgram: true,  canManageRoles: false, canRunFeasibility: false },
+  [Role.INVESTOR]:         { canRead: true, canIngest: false, canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: true,  canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true,  canManageRoles: false, canRunFeasibility: true  },
+  [Role.LENDER]:           { canRead: true, canIngest: false, canEvaluateRules: false, canEditPolicy: false, canGenerateSummary: false, canReadAll: true,  canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true,  canManageRoles: false, canRunFeasibility: true  },
+  [Role.PMO]:              { canRead: true, canIngest: true,  canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true,  canReadAll: true,  canSimulate: true,  canEditPersonas: false, canIngestSchedule: true,  canIngestBoQ: true,  canIngestLetter: false, canApproveLetter: false, canApproveBaseline: false, canTriggerComputerUse: false, canManageHierarchy: true,  canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true,  canManageRoles: false, canRunFeasibility: true  },
+  [Role.GOVERNANCE_BOARD]: { canRead: true, canIngest: false, canEvaluateRules: true,  canEditPolicy: false, canGenerateSummary: true,  canReadAll: true,  canSimulate: false, canEditPersonas: false, canIngestSchedule: false, canIngestBoQ: false, canIngestLetter: false, canApproveLetter: true,  canApproveBaseline: true,  canTriggerComputerUse: false, canManageHierarchy: false, canViewEnterprise: true,  canViewPortfolio: true,  canViewProgram: true,  canManageRoles: false, canRunFeasibility: true  },
 };
 
 /** The full ordered list of capability flag names (derived from admin's row). */

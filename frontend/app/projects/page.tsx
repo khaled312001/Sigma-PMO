@@ -16,7 +16,22 @@ export default function ProjectsPageRoute() {
   return <AuthGate surface="Projects"><ProjectsPage /></AuthGate>;
 }
 
-interface ProjectRow extends ProjectSummary {
+/**
+ * The additive deterministic score bundle the `/projects` endpoint now returns
+ * (Agent A). Typed locally so we needn't widen the shared project-context type.
+ */
+interface ProjectScores {
+  governanceScore: number;
+  riskScore: number;
+  healthScore: number;
+  investmentScore: number | null;
+  compositeScore: number;
+  projectRanking: number;
+  portfolioRanking: number;
+}
+type ScoredProject = ProjectSummary & Partial<ProjectScores>;
+
+interface ProjectRow extends ScoredProject {
   alerts: number;
   criticals: number;
   runs: number;
@@ -27,6 +42,7 @@ interface ProjectRow extends ProjectSummary {
 function ProjectsPage() {
   const { t } = useI18n();
   const { projects, loading } = useProject();
+  const [scored, setScored] = useState<ScoredProject[] | null>(null);
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [runs, setRuns] = useState<IngestionRun[] | null>(null);
 
@@ -34,12 +50,18 @@ function ProjectsPage() {
     Promise.all([
       api<AlertRecord[]>('/rules/alerts?limit=500'),
       api<IngestionRun[]>('/ingestion/runs?limit=200'),
-    ]).then(([a, r]) => { setAlerts(a); setRuns(r); }).catch(() => { setAlerts([]); setRuns([]); });
+      api<ScoredProject[]>('/projects'),
+    ]).then(([a, r, s]) => { setAlerts(a); setRuns(r); setScored(s); })
+      .catch(() => { setAlerts([]); setRuns([]); setScored([]); });
   }, []);
+
+  // Prefer the score-decorated list from /projects; fall back to the context
+  // list (no scores) so the table still renders if the scored fetch failed.
+  const baseProjects: ScoredProject[] = scored && scored.length > 0 ? scored : projects;
 
   const rows: ProjectRow[] = useMemo(() => {
     if (!alerts || !runs) return [];
-    return projects.map((p) => {
+    return baseProjects.map((p) => {
       // CRITICAL: group by businessKey, NOT id. alert.projectId pins to the
       // versioned project row that was current when the alert fired, so a
       // newer ingestion run rolls the project forward and the old alerts
@@ -58,7 +80,7 @@ function ProjectsPage() {
         confidence: conf,
       };
     });
-  }, [projects, alerts, runs]);
+  }, [baseProjects, alerts, runs]);
 
   const totalAlerts = rows.reduce((s, r) => s + r.alerts, 0);
   const totalCriticals = rows.reduce((s, r) => s + r.criticals, 0);
@@ -96,7 +118,7 @@ function ProjectsPage() {
           searchable
           searchPlaceholder={t('common2.search')}
           searchAccessor={(r) => `${r.name} ${r.businessKey} ${r.clientName ?? ''} ${r.status ?? ''}`}
-          initialSort={{ key: 'alerts', dir: 'desc' }}
+          initialSort={{ key: 'composite', dir: 'desc' }}
           emptyTitle={t('projects.empty.title')}
           emptyDescription={t('projects.empty.description')}
           columns={[
@@ -123,6 +145,54 @@ function ProjectsPage() {
               label: t('projects.headers.status'),
               width: '8rem',
               render: (r) => r.status ? <Pill tone="slate">{r.status}</Pill> : <span className="text-slate-500">—</span>,
+              hideOnMobile: true,
+            },
+            {
+              key: 'composite',
+              label: 'Composite',
+              width: '11rem',
+              render: (r) => (
+                <div className="flex flex-col items-start gap-1">
+                  <ScorePill value={r.compositeScore} higherBetter />
+                  <div className="flex items-center gap-1">
+                    {typeof r.projectRanking === 'number' && r.projectRanking > 0 && (
+                      <Pill tone="violet">Rank #{r.projectRanking}</Pill>
+                    )}
+                    {typeof r.portfolioRanking === 'number' && r.portfolioRanking > 0 && (
+                      <Pill tone="sky">Portfolio #{r.portfolioRanking}</Pill>
+                    )}
+                  </div>
+                </div>
+              ),
+              accessor: (r) => r.compositeScore ?? -1,
+            },
+            {
+              key: 'governance',
+              label: 'Governance',
+              width: '7rem',
+              align: 'end',
+              render: (r) => <ScorePill value={r.governanceScore} higherBetter />,
+              accessor: (r) => r.governanceScore ?? -1,
+              hideOnMobile: true,
+            },
+            {
+              key: 'risk',
+              label: 'Risk',
+              width: '6rem',
+              align: 'end',
+              render: (r) => <ScorePill value={r.riskScore} higherBetter={false} />,
+              accessor: (r) => r.riskScore ?? -1,
+              hideOnMobile: true,
+            },
+            {
+              key: 'investment',
+              label: 'Investment',
+              width: '7rem',
+              align: 'end',
+              render: (r) => r.investmentScore === null || r.investmentScore === undefined
+                ? <span className="text-slate-500">—</span>
+                : <ScorePill value={r.investmentScore} higherBetter />,
+              accessor: (r) => r.investmentScore ?? -1,
               hideOnMobile: true,
             },
             {
@@ -178,6 +248,19 @@ function ProjectsPage() {
       </p>
     </div>
   );
+}
+
+/**
+ * A 0–100 score chip. `higherBetter` flips the tone scale so the Risk score
+ * (where 100 = worst) reads red at the top while Governance/Composite read
+ * green at the top.
+ */
+function ScorePill({ value, higherBetter }: { value: number | undefined; higherBetter: boolean }) {
+  if (value === null || value === undefined) return <span className="text-slate-500">—</span>;
+  const good = higherBetter ? value >= 75 : value <= 25;
+  const mid = higherBetter ? value >= 50 : value <= 50;
+  const tone: 'emerald' | 'amber' | 'rose' = good ? 'emerald' : mid ? 'amber' : 'rose';
+  return <Pill tone={tone}>{Math.round(value)}</Pill>;
 }
 
 function StatTile({

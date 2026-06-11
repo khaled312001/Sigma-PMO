@@ -17,6 +17,7 @@ import {
   ComplianceLetterContext,
   LetterDrafterService,
 } from './letter-drafter.service';
+import { deriveCategory, LETTER_TEMPLATES, LetterCategory, LetterTemplate, templateByKey } from './letter-templates';
 import { Letter } from './letter.entity';
 import { LetterPdfService } from './letter-pdf.service';
 
@@ -38,15 +39,18 @@ type LetterWithDeadline = Letter & {
   mustRespondBy: string | null;
   remainingDays: number | null;
   overdue: boolean;
+  /** Correspondence-library category (notice|claim|response|instruction). */
+  category: LetterCategory;
 };
 
-/** Pure mapping — clause days + receipt anchor (`createdAt`) → countdown. */
+/** Pure mapping — clause days + receipt anchor (`createdAt`) → countdown + category. */
 function withDeadline(letter: Letter): LetterWithDeadline {
+  const category = deriveCategory(letter.trigger, letter.fidicClauseRef);
   if (letter.deadlineDays == null || letter.status === 'sent') {
-    return { ...letter, mustRespondBy: null, remainingDays: null, overdue: false };
+    return { ...letter, mustRespondBy: null, remainingDays: null, overdue: false, category };
   }
   const d = computeDeadline(letter.createdAt, letter.deadlineDays, 'calendar');
-  return { ...letter, ...d };
+  return { ...letter, ...d, category };
 }
 
 /** Body for POST /letters/draft-compliance. */
@@ -58,6 +62,8 @@ interface DraftComplianceBody {
   narrative: string;
   /** Optional structured facts (rule findings, etc.) the persona may cite. */
   facts?: Record<string, unknown>;
+  /** Optional template key to prefill the clause + body scaffold. */
+  templateKey?: string;
 }
 
 /**
@@ -91,6 +97,13 @@ export class LettersController {
     private readonly pdf: LetterPdfService,
   ) {}
 
+  /** FIDIC Red Book correspondence template catalog (Layer 3). */
+  @Get('templates')
+  @RequiresCapability('canRead')
+  templates(): LetterTemplate[] {
+    return LETTER_TEMPLATES;
+  }
+
   @Post('draft-from-incoming')
   @HttpCode(200)
   // Plan §7: incoming-letter intake belongs to canIngestLetter
@@ -119,10 +132,23 @@ export class LettersController {
     if (!body?.narrative) {
       throw new BadRequestException('narrative is required');
     }
+    const template = body.templateKey ? templateByKey(body.templateKey) : null;
+    if (body.templateKey && !template) {
+      throw new BadRequestException(`Unknown letter template "${body.templateKey}"`);
+    }
     const context: ComplianceLetterContext = {
       triggerCode: body.complianceTrigger,
       narrative: body.narrative,
       facts: body.facts,
+      template: template
+        ? {
+            key: template.key,
+            title: template.title,
+            fidicClause: template.fidicClause,
+            category: template.category,
+            bodySkeleton: template.bodySkeleton,
+          }
+        : undefined,
     };
     return this.drafter.draftComplianceLetter(
       body.projectKey,

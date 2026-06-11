@@ -40,6 +40,64 @@ export interface GovernanceTree {
   unattachedProjects: TreeProject[];
 }
 
+/** One node's deterministic roll-up (mirror of backend RollupNode). */
+export interface RollupNode {
+  nodeType: string;
+  businessKey: string;
+  name: string;
+  governanceStatus: string | null;
+  cost: { cpi: number | null };
+  schedule: { spi: number | null };
+  risk: { openCount: number; maxScore: number };
+  claims: { openCount: number; exposure: number };
+  benefitRealizationPct: number;
+  bac: number;
+}
+
+/** Format an index (CPI/SPI) for a compact chip; em-dash when null. */
+function fmtIndex(v: number | null): string {
+  return v === null ? '--' : v.toFixed(2);
+}
+
+/**
+ * Compact mono pills carrying a node's roll-up: CPI, SPI, open risks, open
+ * claims, benefit %. Tone keys off the usual cost/schedule thresholds. The
+ * `title` attribute carries the full numbers for hover.
+ */
+function RollupChips({ r }: { r: RollupNode }) {
+  const cpiTone = r.cost.cpi === null ? 'muted' : r.cost.cpi >= 1 ? 'good' : r.cost.cpi >= 0.9 ? 'warn' : 'bad';
+  const spiTone = r.schedule.spi === null ? 'muted' : r.schedule.spi >= 1 ? 'good' : r.schedule.spi >= 0.9 ? 'warn' : 'bad';
+  const benefitTone = r.benefitRealizationPct >= 70 ? 'good' : r.benefitRealizationPct >= 40 ? 'warn' : 'bad';
+  return (
+    <span className="hidden shrink-0 items-center gap-1 md:flex" aria-label="roll-up metrics">
+      <Chip tone={cpiTone} title={`Cost Performance Index ${fmtIndex(r.cost.cpi)} (EV/AC)`}>CPI {fmtIndex(r.cost.cpi)}</Chip>
+      <Chip tone={spiTone} title={`Schedule Performance Index ${fmtIndex(r.schedule.spi)} (EV/PV)`}>SPI {fmtIndex(r.schedule.spi)}</Chip>
+      <Chip tone={r.risk.openCount > 0 ? 'warn' : 'muted'} title={`${r.risk.openCount} open risk(s); max priority score ${r.risk.maxScore}`}>R:{r.risk.openCount}</Chip>
+      <Chip tone={r.claims.openCount > 0 ? 'warn' : 'muted'} title={`${r.claims.openCount} open claim(s); exposure ${Math.round(r.claims.exposure).toLocaleString()}`}>C:{r.claims.openCount}</Chip>
+      <Chip tone={benefitTone} title={`Benefit realization ${r.benefitRealizationPct}% (EV/BAC x status multiplier); BAC ${Math.round(r.bac).toLocaleString()}`}>B:{r.benefitRealizationPct}%</Chip>
+    </span>
+  );
+}
+
+const CHIP_TONE: Record<string, string> = {
+  good: 'border-emerald-700/50 bg-emerald-900/30 text-emerald-300',
+  warn: 'border-amber-700/50 bg-amber-900/30 text-amber-300',
+  bad: 'border-rose-700/50 bg-rose-900/30 text-rose-300',
+  muted: 'border-slate-700/60 bg-slate-800/40 text-slate-400',
+};
+
+function Chip({ tone, title, children }: { tone: string; title: string; children: React.ReactNode }) {
+  return (
+    <span
+      className={`rounded border px-1 py-0.5 font-mono text-[10px] leading-none tabular-nums ${CHIP_TONE[tone] ?? CHIP_TONE.muted}`}
+      title={title}
+      dir="ltr"
+    >
+      {children}
+    </span>
+  );
+}
+
 function Row({
   depth,
   icon,
@@ -47,6 +105,7 @@ function Row({
   businessKey,
   status,
   phase,
+  rollup,
   expandable,
   expanded,
   onToggle,
@@ -59,6 +118,7 @@ function Row({
   businessKey: string;
   status: string | null;
   phase?: string | null;
+  rollup?: RollupNode;
   expandable?: boolean;
   expanded?: boolean;
   onToggle?: () => void;
@@ -98,6 +158,7 @@ function Row({
           {phase.replace(/_/g, ' ')}
         </span>
       )}
+      {rollup && <RollupChips r={rollup} />}
       <GovernanceStatusBadge status={status} size="sm" showLabel={false} />
     </div>
   );
@@ -107,11 +168,15 @@ export function HierarchyTree({
   tree,
   selectedKey,
   onSelectNode,
+  rollups,
 }: {
   tree: GovernanceTree;
   selectedKey?: string | null;
   onSelectNode?: (nodeType: string, businessKey: string) => void;
+  /** Per-node roll-ups keyed by businessKey (CPI/SPI/risks/claims/benefit). */
+  rollups?: Map<string, RollupNode>;
 }) {
+  const ru = (key: string): RollupNode | undefined => rollups?.get(key);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const toggle = (key: string) =>
     setCollapsed((cur) => {
@@ -143,6 +208,7 @@ export function HierarchyTree({
             name={e.name}
             businessKey={e.businessKey}
             status={e.governanceStatus}
+            rollup={ru(e.businessKey)}
             expandable={e.portfolios.length > 0}
             expanded={isOpen(`e:${e.businessKey}`)}
             onToggle={() => toggle(`e:${e.businessKey}`)}
@@ -158,6 +224,7 @@ export function HierarchyTree({
                   name={pf.name}
                   businessKey={pf.businessKey}
                   status={pf.governanceStatus}
+                  rollup={ru(pf.businessKey)}
                   expandable={pf.programs.length > 0}
                   expanded={isOpen(`pf:${pf.businessKey}`)}
                   onToggle={() => toggle(`pf:${pf.businessKey}`)}
@@ -174,6 +241,7 @@ export function HierarchyTree({
                         businessKey={pr.businessKey}
                         status={pr.governanceStatus}
                         phase={pr.currentPhase}
+                        rollup={ru(pr.businessKey)}
                         expandable={pr.projects.length > 0}
                         expanded={isOpen(`pr:${pr.businessKey}`)}
                         onToggle={() => toggle(`pr:${pr.businessKey}`)}
@@ -190,6 +258,7 @@ export function HierarchyTree({
                             businessKey={p.businessKey}
                             status={p.governanceStatus}
                             phase={p.lifecyclePhase}
+                            rollup={ru(p.businessKey)}
                             onSelect={() => onSelectNode?.('project', p.businessKey)}
                             selected={selectedKey === p.businessKey}
                           />
@@ -215,6 +284,7 @@ export function HierarchyTree({
               businessKey={p.businessKey}
               status={p.governanceStatus}
               phase={p.lifecyclePhase}
+              rollup={ru(p.businessKey)}
               onSelect={() => onSelectNode?.('project', p.businessKey)}
               selected={selectedKey === p.businessKey}
             />

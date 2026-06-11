@@ -14,6 +14,12 @@ import { Repository } from 'typeorm';
 import { HierarchyLevel } from '../../common/enums';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { CorrectiveAction, Project } from '../canonical/entities';
+import {
+  CommandCenterService,
+  EscalationPathRow,
+  ImpactAnalysis,
+  RecommendedAction,
+} from './command-center.service';
 import { ConsolidatedNode } from './consolidation.service';
 import { SigmaGovernanceAgentService } from './sigma-governance-agent.service';
 
@@ -27,9 +33,34 @@ import { SigmaGovernanceAgentService } from './sigma-governance-agent.service';
 export class SigmaGovernanceController {
   constructor(
     private readonly l8: SigmaGovernanceAgentService,
+    private readonly commandCenter: CommandCenterService,
     @InjectRepository(Project) private readonly projects: Repository<Project>,
     @InjectRepository(CorrectiveAction) private readonly actions: Repository<CorrectiveAction>,
   ) {}
+
+  /**
+   * Open corrective actions ranked by priority+age, plus derived "convene
+   * recovery review" recommendations for every degraded (orange/red) node.
+   */
+  @Get('recommended-actions')
+  @RequiresCapability('canEvaluateRules')
+  recommendedActions(): Promise<{ rows: RecommendedAction[] }> {
+    return this.commandCenter.recommendedActions();
+  }
+
+  /** Open governance escalations with their L1→L2→L3 path + next step. */
+  @Get('escalation-paths')
+  @RequiresCapability('canEvaluateRules')
+  escalationPaths(): Promise<{ rows: EscalationPathRow[] }> {
+    return this.commandCenter.escalationPaths();
+  }
+
+  /** Executive value-at-risk + benefit-realization impact analysis. */
+  @Get('impact-analysis')
+  @RequiresCapability('canEvaluateRules')
+  impactAnalysis(): Promise<ImpactAnalysis> {
+    return this.commandCenter.impactAnalysis();
+  }
 
   /** Command center: a consolidated row per current project. */
   @Get('overview')

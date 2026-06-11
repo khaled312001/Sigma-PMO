@@ -43,6 +43,12 @@ const ROLE_ACCOUNTS: { role: Role; email: string; password: string }[] = [
   { role: 'consultant', email: 'consultant@sigma.ae', password: 'ConsultantSigma#2026' },
   { role: 'contractor', email: 'contractor@sigma.ae', password: 'ContractorSigma#2026' },
   { role: 'subcontractor', email: 'subcontractor@sigma.ae', password: 'SubcontractorSigma#2026' },
+  { role: 'owner', email: 'owner@sigma.ae', password: 'OwnerSigma#2026' },
+  { role: 'operator', email: 'operator@sigma.ae', password: 'OperatorSigma#2026' },
+  { role: 'investor', email: 'investor@sigma.ae', password: 'InvestorSigma#2026' },
+  { role: 'lender', email: 'lender@sigma.ae', password: 'LenderSigma#2026' },
+  { role: 'pmo', email: 'pmo@sigma.ae', password: 'PmoSigma#2026' },
+  { role: 'governance_board', email: 'board@sigma.ae', password: 'BoardSigma#2026' },
 ];
 
 export default function AuthPage() {

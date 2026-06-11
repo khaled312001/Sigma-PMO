@@ -14,27 +14,59 @@ export default function EvidencePageRoute() {
   return <AuthGate surface="Evidence"><EvidencePage /></AuthGate>;
 }
 
+/** GovernanceDecision enriched with chain state (local — lib/api is shared). */
+interface EvidenceDecision {
+  id: string;
+  responsibleParty: string;
+  escalationLevel: string;
+  fidicClause: string | null;
+  chainState?: 'approved' | 'awaiting-second-approval' | 'rejected' | 'acknowledged' | 'pending';
+  approvalsRemaining?: number;
+  requiresDualApproval?: boolean;
+  escalated?: boolean;
+  pendingAgeDays?: number | null;
+}
+
+/** Decision trace chain (local — from GET /governance/decisions/:id/trace). */
+interface EvidenceTrace {
+  confidence: { overall: number } | null;
+  sourceFile: { filename: string; contentSha256: string } | null;
+  ruleEvaluation: { id: string; status: string } | null;
+}
+
 function EvidencePage() {
   const { t } = useI18n();
   const projectKey = useCurrentProjectKey();
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [evidence, setEvidence] = useState<EvidencePackage | null>(null);
+  const [decisions, setDecisions] = useState<EvidenceDecision[]>([]);
+  const [trace, setTrace] = useState<EvidenceTrace | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Project-scoped; switching projects reloads the list and auto-opens the
   // first alert of the newly selected project.
   useEffect(() => {
     api<AlertRecord[]>(`/rules/alerts?limit=200&projectKey=${encodeURIComponent(projectKey)}`)
-      .then((a) => { setAlerts(a); setSelected(null); setEvidence(null); if (a[0]) void open(a[0].id); })
+      .then((a) => { setAlerts(a); setSelected(null); setEvidence(null); setDecisions([]); setTrace(null); if (a[0]) void open(a[0].id); })
       .catch((e) => setError((e as Error).message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectKey]);
 
   const open = async (id: string) => {
-    setSelected(id); setEvidence(null);
+    setSelected(id); setEvidence(null); setDecisions([]); setTrace(null);
     try { setEvidence(await api<EvidencePackage>(`/governance/alerts/${id}/evidence`)); }
     catch (e) { setError((e as Error).message); }
+    // Evidence-to-decision: the decision(s) this alert produced + their chain
+    // state, and the trace chain for the first decision (reuses /trace).
+    try {
+      const decs = await api<EvidenceDecision[]>(`/governance/decisions?alertId=${encodeURIComponent(id)}`);
+      setDecisions(decs);
+      if (decs[0]) {
+        try { setTrace(await api<EvidenceTrace>(`/governance/decisions/${decs[0].id}/trace`)); }
+        catch { setTrace(null); }
+      }
+    } catch { setDecisions([]); }
   };
 
   return (

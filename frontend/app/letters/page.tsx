@@ -91,7 +91,28 @@ interface LetterRecord {
   mustRespondBy: string | null;
   remainingDays: number | null;
   overdue: boolean;
+  /** Correspondence-library category derived server-side. */
+  category?: LetterCategory;
 }
+
+type LetterCategory = 'notice' | 'claim' | 'response' | 'instruction';
+
+/** Mirror of a backend letter-template (GET /letters/templates). */
+interface LetterTemplate {
+  key: string;
+  title: string;
+  fidicClause: string;
+  category: LetterCategory;
+  bodySkeleton: string;
+}
+
+const CATEGORY_ORDER: LetterCategory[] = ['notice', 'claim', 'response', 'instruction'];
+const CATEGORY_LABEL: Record<LetterCategory, string> = {
+  notice: 'Notices',
+  claim: 'Claims',
+  response: 'Responses',
+  instruction: 'Instructions',
+};
 
 type StatusKey = 'draft' | 'approved' | 'sent';
 type StatusFilter = 'all' | StatusKey;
@@ -131,12 +152,15 @@ function LettersPage() {
   const canApprove = !!caps?.canApproveLetter;
 
   const [letters, setLetters] = useState<LetterRecord[] | null>(null);
+  const [templates, setTemplates] = useState<LetterTemplate[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Which draft form is open, if any. Only one open at a time. */
   const [openForm, setOpenForm] = useState<'incoming' | 'compliance' | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  /** Template selected from the picker to prefill the compliance form. */
+  const [prefillTemplate, setPrefillTemplate] = useState<LetterTemplate | null>(null);
 
   const refresh = useCallback(async () => {
     if (!projectKey) return;
@@ -157,6 +181,19 @@ function LettersPage() {
   }, [projectKey]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // Template catalog is project-independent — fetch once.
+  useEffect(() => {
+    api<LetterTemplate[]>('/letters/templates')
+      .then(setTemplates)
+      .catch(() => setTemplates([]));
+  }, []);
+
+  /** Open the compliance form prefilled from a picked template. */
+  const pickTemplate = useCallback((tpl: LetterTemplate) => {
+    setPrefillTemplate(tpl);
+    setOpenForm('compliance');
+  }, []);
 
   // ────── filter + count derived state ──────
 
@@ -225,6 +262,7 @@ function LettersPage() {
   const draftCompliance = async (input: {
     complianceTrigger: string;
     narrative: string;
+    templateKey?: string;
   }) => {
     if (!canDraft) return;
     setActing('draft-compliance');
@@ -235,10 +273,12 @@ function LettersPage() {
           projectKey,
           complianceTrigger: input.complianceTrigger,
           narrative: input.narrative,
+          ...(input.templateKey ? { templateKey: input.templateKey } : {}),
         }),
       });
       toast.success('Compliance draft created', 'Persona produced a citation-backed notice.');
       setOpenForm(null);
+      setPrefillTemplate(null);
       await refresh();
     } catch (e) {
       toast.error('Drafting refused', (e as Error).message);
@@ -404,9 +444,16 @@ function LettersPage() {
         <DraftComplianceForm
           projectKey={projectKey}
           busy={acting === 'draft-compliance'}
-          onCancel={() => setOpenForm(null)}
+          template={prefillTemplate}
+          onCancel={() => { setOpenForm(null); setPrefillTemplate(null); }}
           onSubmit={draftCompliance}
         />
+      )}
+
+      {/* FIDIC template picker — click a card to prefill the compliance form
+          with that template's clause + body scaffold. */}
+      {canDraft && templates.length > 0 && (
+        <TemplatePicker templates={templates} onPick={pickTemplate} activeKey={prefillTemplate?.key ?? null} />
       )}
 
       {/* Status filter chip row. Mirrors the same pattern Decisions page uses
@@ -449,18 +496,29 @@ function LettersPage() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          {/* Left pane: row list. Click selects the row for the detail pane. */}
-          <ul className="space-y-2" aria-label="Letter list">
-            {filtered.map((l) => (
-              <li key={l.id}>
-                <LetterRowCard
-                  letter={l}
-                  selected={l.id === selectedId}
-                  onSelect={() => setSelectedId(l.id)}
-                />
-              </li>
+          {/* Left pane: row list grouped by correspondence-library category.
+              Headers let a reviewer scan notices vs claims vs responses fast. */}
+          <div className="space-y-4" aria-label="Letter list">
+            {groupByCategory(filtered).map(({ category, items }) => (
+              <section key={category}>
+                <h4 className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  {CATEGORY_LABEL[category]}
+                  <span className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[9px] text-slate-500">{items.length}</span>
+                </h4>
+                <ul className="space-y-2">
+                  {items.map((l) => (
+                    <li key={l.id}>
+                      <LetterRowCard
+                        letter={l}
+                        selected={l.id === selectedId}
+                        onSelect={() => setSelectedId(l.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
 
           {/* Right pane: detail. On small screens it stacks below the list. */}
           <div className="space-y-3">
@@ -771,19 +829,34 @@ function DraftFromIncomingForm({
 function DraftComplianceForm({
   projectKey,
   busy,
+  template,
   onCancel,
   onSubmit,
 }: {
   projectKey: string;
   busy: boolean;
+  template: LetterTemplate | null;
   onCancel: () => void;
-  onSubmit: (input: { complianceTrigger: string; narrative: string }) => void;
+  onSubmit: (input: { complianceTrigger: string; narrative: string; templateKey?: string }) => void;
 }) {
   const [trigger, setTrigger] = useState('');
   const [narrative, setNarrative] = useState('');
+
+  // Prefill from a picked template: trigger = template key, narrative = its
+  // body scaffold (the reviewer fills the {{placeholders}}).
+  useEffect(() => {
+    if (template) {
+      setTrigger(template.key);
+      setNarrative(template.bodySkeleton);
+    }
+  }, [template]);
+
   const valid = trigger.trim().length > 0 && narrative.trim().length > 0;
   return (
-    <Card title="Draft compliance letter" hint={`Project: ${projectKey}`}>
+    <Card
+      title="Draft compliance letter"
+      hint={template ? `Template: ${template.title} · ${template.fidicClause}` : `Project: ${projectKey}`}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -791,10 +864,18 @@ function DraftComplianceForm({
           onSubmit({
             complianceTrigger: trigger.trim(),
             narrative: narrative.trim(),
+            templateKey: template?.key,
           });
         }}
         className="space-y-3"
       >
+        {template && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-[11px] text-violet-200">
+            <Pill tone="violet">{template.category}</Pill>
+            <span className="font-mono" dir="ltr">{template.fidicClause}</span>
+            <span className="text-slate-400">— prefilled from “{template.title}”. Fill the {'{{placeholders}}'} before drafting.</span>
+          </div>
+        )}
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             Trigger code
@@ -838,6 +919,66 @@ function DraftComplianceForm({
       </form>
     </Card>
   );
+}
+
+// ──────────────────────────── template picker ────────────────────────────
+
+/**
+ * Grid of the FIDIC Red Book templates. Each card shows the clause + category;
+ * clicking it prefills the compliance draft form with that template's scaffold.
+ */
+function TemplatePicker({
+  templates,
+  activeKey,
+  onPick,
+}: {
+  templates: LetterTemplate[];
+  activeKey: string | null;
+  onPick: (tpl: LetterTemplate) => void;
+}) {
+  const categoryTone: Record<LetterCategory, 'sky' | 'rose' | 'emerald' | 'violet'> = {
+    notice: 'sky', claim: 'rose', response: 'emerald', instruction: 'violet',
+  };
+  return (
+    <Card
+      title="FIDIC letter templates"
+      hint="Click a template to prefill the compliance draft form with its clause + body scaffold."
+    >
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {templates.map((tpl) => (
+          <button
+            key={tpl.key}
+            type="button"
+            onClick={() => onPick(tpl)}
+            aria-pressed={activeKey === tpl.key}
+            className={`flex flex-col gap-1.5 rounded-xl border px-3 py-2.5 text-start transition ${
+              activeKey === tpl.key
+                ? 'border-violet-500/60 bg-violet-500/10 ring-1 ring-violet-500/30'
+                : 'border-slate-800 bg-slate-900/40 hover:border-slate-600 hover:bg-slate-900/60'
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <Pill tone={categoryTone[tpl.category]}>{tpl.category}</Pill>
+              <span className="font-mono text-[10px] text-slate-400" dir="ltr">{tpl.fidicClause}</span>
+            </div>
+            <span className="text-xs font-medium text-slate-100">{tpl.title}</span>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/** Group letters by their server-derived category, in the canonical order. */
+function groupByCategory(letters: LetterRecord[]): { category: LetterCategory; items: LetterRecord[] }[] {
+  const buckets = new Map<LetterCategory, LetterRecord[]>();
+  for (const l of letters) {
+    const cat = l.category ?? 'notice';
+    (buckets.get(cat) ?? buckets.set(cat, []).get(cat)!).push(l);
+  }
+  return CATEGORY_ORDER
+    .filter((c) => buckets.has(c))
+    .map((category) => ({ category, items: buckets.get(category)! }));
 }
 
 // ──────────────────────────── status / deadline helpers ────────────────────────────

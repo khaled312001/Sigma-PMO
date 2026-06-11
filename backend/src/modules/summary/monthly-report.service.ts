@@ -7,7 +7,9 @@ import {
   Alert,
   BoQ,
   ConfidenceScore,
+  FeasibilityAssessment,
   GovernanceDecision,
+  InvestmentOpportunity,
   MonthlyReport,
   Project,
 } from '../canonical/entities';
@@ -23,12 +25,21 @@ export type MonthlyReportAudience = 'owner' | 'pd' | 'contractor';
 /** Cadence — Wave 4 introduced daily + weekly variants alongside monthly. */
 export type PeriodicCadence = 'day' | 'week' | 'month';
 
+/**
+ * Narrative composition flavour. `executive` is the legacy default; the others
+ * re-shape the deterministic section composition (governance/investment/
+ * portfolio focus) without touching the deterministic-first contract.
+ */
+export type MonthlyReportNarrativeType = 'executive' | 'governance' | 'investment' | 'portfolio';
+
 /** Input to `generateMonthly`. */
 export interface MonthlyReportRequest {
   projectKey: string;
   /** Calendar month in `YYYY-MM` form. */
   monthIso: string;
   audience: MonthlyReportAudience;
+  /** Narrative composition; defaults to `executive` (legacy behaviour). */
+  narrativeType?: MonthlyReportNarrativeType;
   /** Optional author override (sigma_admin = `system` when unset). */
   authoredBy?: string | null;
 }
@@ -45,6 +56,8 @@ export interface PeriodicReportRequest {
    */
   periodKey: string;
   audience: MonthlyReportAudience;
+  /** Narrative composition; defaults to `executive` (legacy behaviour). */
+  narrativeType?: MonthlyReportNarrativeType;
   authoredBy?: string | null;
 }
 
@@ -105,6 +118,10 @@ export class MonthlyReportService {
     @InjectRepository(ConfidenceScore)
     private readonly confidences: Repository<ConfidenceScore>,
     @InjectRepository(BoQ) private readonly boqs: Repository<BoQ>,
+    @InjectRepository(InvestmentOpportunity)
+    private readonly opportunities: Repository<InvestmentOpportunity>,
+    @InjectRepository(FeasibilityAssessment)
+    private readonly assessments: Repository<FeasibilityAssessment>,
     private readonly snapshots: SnapshotService,
     private readonly claude: ClaudeService,
     private readonly sources: SourcesService,
@@ -122,6 +139,7 @@ export class MonthlyReportService {
       cadence: 'month',
       periodKey: req.monthIso,
       audience: req.audience,
+      narrativeType: req.narrativeType,
       authoredBy: req.authoredBy,
     });
   }
@@ -136,6 +154,7 @@ export class MonthlyReportService {
    */
   async generatePeriodic(req: PeriodicReportRequest): Promise<MonthlyReport> {
     const window = resolvePeriodWindow(req.cadence, req.periodKey);
+    const narrativeType: MonthlyReportNarrativeType = req.narrativeType ?? 'executive';
     const project = await this.resolveProject(req.projectKey);
     const snapshot = await this.snapshots.load(project.id);
 
@@ -146,6 +165,12 @@ export class MonthlyReportService {
       this.loadCurrentBoq(project.businessKey),
     ]);
 
+    // Narrative-type-specific deterministic blocks (loaded only when needed).
+    const investmentRows =
+      narrativeType === 'investment' ? await this.loadLatestFeasibility() : [];
+    const portfolioRows: PortfolioTotals[] =
+      narrativeType === 'portfolio' ? [await this.loadPortfolioTotals()] : [];
+
     const metrics = buildMetrics(
       snapshot,
       alertsInWindow,
@@ -154,17 +179,25 @@ export class MonthlyReportService {
       confidenceAverage,
       req.cadence,
       req.periodKey,
+      narrativeType,
     );
-    const facts = composeFacts(
-      snapshot,
-      alertsInWindow,
-      decisionsInWindow,
-      boq,
-      confidenceAverage,
-      req.cadence,
-      req.periodKey,
-      req.audience,
-    );
+    const facts =
+      composeFacts(
+        snapshot,
+        alertsInWindow,
+        decisionsInWindow,
+        boq,
+        confidenceAverage,
+        req.cadence,
+        req.periodKey,
+        req.audience,
+      ) +
+      composeNarrativeTypeSection(narrativeType, {
+        decisions: decisionsInWindow,
+        alerts: alertsInWindow,
+        investment: investmentRows,
+        portfolio: portfolioRows,
+      });
 
     let narrative = facts;
     let narrativeAr: string | null = facts;
@@ -405,6 +438,57 @@ export class MonthlyReportService {
     });
   }
 
+  /**
+   * Investment narrative input — the latest `FeasibilityAssessment` per
+   * `InvestmentOpportunity`, paired with its opportunity for titling. Read-only
+   * across the canonical Investment & Feasibility entities.
+   */
+  private async loadLatestFeasibility(): Promise<LatestFeasibility[]> {
+    const opportunities = await this.opportunities.find({ order: { createdAt: 'DESC' }, take: 50 });
+    if (opportunities.length === 0) return [];
+    const assessments = await this.assessments.find({
+      where: { opportunityId: In(opportunities.map((o) => o.id)) },
+      order: { createdAt: 'DESC' },
+    });
+    const latestByOpp = new Map<string, FeasibilityAssessment>();
+    for (const a of assessments) {
+      if (!latestByOpp.has(a.opportunityId)) latestByOpp.set(a.opportunityId, a);
+    }
+    return opportunities
+      .map((o) => ({ opportunity: o, assessment: latestByOpp.get(o.id) ?? null }))
+      .filter((row): row is LatestFeasibility => row.assessment !== null);
+  }
+
+  /**
+   * Portfolio narrative input — cross-project deterministic totals (BAC / EV /
+   * AC) and status counts over every current project. EV is the
+   * progress-weighted earned value (Σ actualPct × budgetedCost across current
+   * activities); AC is Σ actualCost; BAC is Σ budgetedCost.
+   */
+  private async loadPortfolioTotals(): Promise<PortfolioTotals> {
+    const projects = await this.projects.find({ where: { isCurrent: true } });
+    const byStatus: Record<string, number> = {};
+    let bac = 0;
+    let ev = 0;
+    let ac = 0;
+    for (const project of projects) {
+      const status = project.status ?? 'unknown';
+      byStatus[status] = (byStatus[status] ?? 0) + 1;
+      const snapshot = await this.snapshots.load(project.id);
+      for (const a of snapshot.activities) {
+        const budgeted = a.budgetedCost === null ? 0 : Number(a.budgetedCost);
+        const actual = a.actualCost === null ? 0 : Number(a.actualCost);
+        const pct = a.actualPctComplete ?? 0;
+        if (Number.isFinite(budgeted)) {
+          bac += budgeted;
+          ev += budgeted * pct;
+        }
+        if (Number.isFinite(actual)) ac += actual;
+      }
+    }
+    return { projectCount: projects.length, byStatus, bac, ev, ac };
+  }
+
   private async averageConfidenceFor(snapshot: ProjectSnapshot): Promise<number> {
     const runIds = new Set<string>();
     runIds.add(snapshot.project.ingestionRunId);
@@ -528,6 +612,102 @@ function cadenceLabelAr(cadence: PeriodicCadence): string {
     case 'month':
       return 'الشهري';
   }
+}
+
+/** Latest feasibility assessment paired with its opportunity (investment type). */
+interface LatestFeasibility {
+  opportunity: InvestmentOpportunity;
+  assessment: FeasibilityAssessment;
+}
+
+/** Cross-project deterministic totals (portfolio type). */
+interface PortfolioTotals {
+  projectCount: number;
+  byStatus: Record<string, number>;
+  bac: number;
+  ev: number;
+  ac: number;
+}
+
+/**
+ * Append a narrative-type-specific deterministic section to the facts block.
+ * `executive` adds nothing (legacy composition). The other three re-focus the
+ * deterministic facts the persona is grounded on:
+ *  - `governance`  — escalations + corrective actions + decision breakdown.
+ *  - `investment`  — latest feasibility recommendations per opportunity.
+ *  - `portfolio`   — cross-project BAC/EV/AC totals + status mix.
+ *
+ * Pure — no I/O. The caller pre-loads the rows and hands them in.
+ */
+function composeNarrativeTypeSection(
+  narrativeType: MonthlyReportNarrativeType,
+  data: {
+    decisions: GovernanceDecision[];
+    alerts: Alert[];
+    investment: LatestFeasibility[];
+    portfolio: PortfolioTotals[];
+  },
+): string {
+  const lines: string[] = [];
+  if (narrativeType === 'governance') {
+    lines.push('');
+    lines.push('### Narrative focus — GOVERNANCE');
+    const byLevel: Record<string, number> = {};
+    for (const d of data.decisions) byLevel[d.escalationLevel] = (byLevel[d.escalationLevel] ?? 0) + 1;
+    const escalated = data.decisions.filter((d) => d.escalationLevel === 'L3').length;
+    lines.push(
+      `- Decisions in window ${data.decisions.length}; by level ` +
+        `${Object.entries(byLevel).map(([k, v]) => `${k}:${v}`).join(', ') || 'none'}.`,
+    );
+    lines.push(`- Highest-tier (L3) escalations: ${escalated}.`);
+    const critical = data.alerts.filter((a) => a.severity === 'critical').length;
+    lines.push(`- Critical alerts driving corrective action: ${critical}.`);
+    for (const d of data.decisions.slice(0, 6)) {
+      lines.push(
+        `  - ${d.escalationLevel} · ${d.responsibleParty}` +
+          (d.fidicClause ? ` · FIDIC ${d.fidicClause}` : '') +
+          ` — ${d.rationale.slice(0, 160)}`,
+      );
+    }
+  } else if (narrativeType === 'investment') {
+    lines.push('');
+    lines.push('### Narrative focus — INVESTMENT & FEASIBILITY');
+    if (data.investment.length === 0) {
+      lines.push('- No investment opportunities with a feasibility assessment on file.');
+    } else {
+      for (const row of data.investment.slice(0, 10)) {
+        const r = row.assessment.results as Record<string, unknown>;
+        const npv = r?.npv ?? 'n/a';
+        const irr = r?.projectIrr ?? r?.equityIrr ?? 'n/a';
+        lines.push(
+          `- ${row.opportunity.code} "${row.opportunity.title}" (${row.opportunity.projectType}) — ` +
+            `recommendation ${row.assessment.recommendation} [${row.assessment.governanceStatus}], ` +
+            `risk ${row.assessment.riskRating}, NPV ${String(npv)}, IRR ${String(irr)}, ` +
+            `confidence ${(row.assessment.confidence * 100).toFixed(0)}%.`,
+        );
+      }
+    }
+  } else if (narrativeType === 'portfolio') {
+    lines.push('');
+    lines.push('### Narrative focus — PORTFOLIO');
+    const totals = data.portfolio[0];
+    if (!totals || totals.projectCount === 0) {
+      lines.push('- No current projects to aggregate.');
+    } else {
+      const cpi = totals.ac > 0 ? totals.ev / totals.ac : null;
+      lines.push(`- Projects in portfolio: ${totals.projectCount}.`);
+      lines.push(
+        `- BAC ${totals.bac.toFixed(0)}; EV ${totals.ev.toFixed(0)}; AC ${totals.ac.toFixed(0)}` +
+          (cpi !== null ? ` (CPI ${cpi.toFixed(2)}).` : '.'),
+      );
+      lines.push(
+        `- Status mix: ${
+          Object.entries(totals.byStatus).map(([k, v]) => `${k}:${v}`).join(', ') || 'n/a'
+        }.`,
+      );
+    }
+  }
+  return lines.length === 0 ? '' : '\n' + lines.join('\n');
 }
 
 /**
@@ -694,6 +874,7 @@ function buildMetrics(
   confidence: number,
   cadence: PeriodicCadence,
   periodKey: string,
+  narrativeType: MonthlyReportNarrativeType,
 ): Record<string, unknown> {
   const byCode: Record<string, number> = {};
   const bySeverity: Record<string, number> = {};
@@ -712,6 +893,7 @@ function buildMetrics(
   return {
     cadence,
     periodKey,
+    narrativeType,
     activityCount: snapshot.activities.length,
     alertCount: alerts.length,
     alertsByCode: byCode,

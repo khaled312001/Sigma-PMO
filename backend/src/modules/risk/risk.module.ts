@@ -6,6 +6,7 @@ import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { RiskAgentService } from './risk-agent.service';
 import { RiskController } from './risk.controller';
+import { RiskExtrasService } from './risk-extras.service';
 import { RiskScoringService } from './risk-scoring.service';
 
 /**
@@ -15,7 +16,7 @@ import { RiskScoringService } from './risk-scoring.service';
 @Module({
   imports: [AgentsModule, CanonicalModule, OutboxModule, AnalyticsModule],
   controllers: [RiskController],
-  providers: [RiskScoringService, RiskAgentService],
-  exports: [RiskAgentService, RiskScoringService],
+  providers: [RiskScoringService, RiskAgentService, RiskExtrasService],
+  exports: [RiskAgentService, RiskScoringService, RiskExtrasService],
 })
 export class RiskModule {}
