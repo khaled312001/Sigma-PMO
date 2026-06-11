@@ -27,7 +27,7 @@ interface ClaimRow {
 
 export default function ClaimsPageRoute() {
   return (
-    <AuthGate surface="Claims">
+    <AuthGate capability="canEvaluateRules" surface="Claims">
       <ClaimsPage />
     </AuthGate>
   );

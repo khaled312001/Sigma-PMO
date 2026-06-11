@@ -25,7 +25,7 @@ import { useMe } from '../../lib/me-context';
 
 export default function HierarchyPageRoute() {
   return (
-    <AuthGate surface="Governance hierarchy">
+    <AuthGate capability="canEvaluateRules" surface="Governance hierarchy">
       <HierarchyPage />
     </AuthGate>
   );

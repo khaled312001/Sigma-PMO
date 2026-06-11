@@ -38,52 +38,62 @@ interface NavLink {
   tag?: string;
 }
 
+// Capability-based visibility helpers. Each role sees a DIFFERENT sidebar:
+//  - read    : any authenticated reader (everyone) — shared operational surfaces.
+//  - govern  : the strategic-governance tier (canReadAll OR canEvaluateRules).
+//              Excludes the subcontractor, who gets a deliberately minimal slice.
+//  - cap(f)  : gate on a specific capability flag.
 const read = (me: MeResponse | null) => !me?.user || CAPABILITIES[me.user.role].canRead;
+const govern = (me: MeResponse | null) =>
+  !me?.user || CAPABILITIES[me.user.role].canReadAll || CAPABILITIES[me.user.role].canEvaluateRules;
+const cap = (flag: keyof (typeof CAPABILITIES)['sigma_admin']) =>
+  (me: MeResponse | null) => !me?.user || CAPABILITIES[me.user.role][flag];
 
-// ── Governance command (the destinations) ──
+// ── Governance command (the destinations) — strategic-governance tier only. ──
 const PORTFOLIO: NavLink[] = [
   { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
-  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, badge: 'new', visible: read },
-  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: read },
-  { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: read },
-  { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: read },
+  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, badge: 'new', visible: govern },
+  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: govern },
+  { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: govern },
+  { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: govern },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
 ];
 
 // ── The L0–L8 agent taxonomy: each layer's primary screen, in order. ──
 const AGENT_LAYERS: NavLink[] = [
   { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin',    icon: IconBook,     tag: 'L0', visible: read },
-  { href: '/input',     labelKey: 'nav.input',     surface: 'input',    icon: IconUpload,   tag: 'L1', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canIngest },
-  { href: '/review',    labelKey: 'nav.review',    surface: 'review',   icon: IconReview,   tag: 'L2', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
-  { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList,   tag: 'L3', visible: read },
-  { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, tag: 'L4', visible: read },
-  { href: '/risk',      labelKey: 'nav.risk',      surface: 'approval', icon: IconShield,   tag: 'L5', visible: read },
-  { href: '/claims',    labelKey: 'nav.claims',    surface: 'admin',    icon: IconEvidence, tag: 'L6', visible: read },
-  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, tag: 'L7', visible: read },
-  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, tag: 'L8', visible: read },
+  { href: '/input',     labelKey: 'nav.input',     surface: 'input',    icon: IconUpload,   tag: 'L1', visible: cap('canIngest') },
+  { href: '/review',    labelKey: 'nav.review',    surface: 'review',   icon: IconReview,   tag: 'L2', visible: cap('canEvaluateRules') },
+  { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList,   tag: 'L3', visible: govern },
+  { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, tag: 'L4', visible: govern },
+  { href: '/risk',      labelKey: 'nav.risk',      surface: 'approval', icon: IconShield,   tag: 'L5', visible: govern },
+  { href: '/claims',    labelKey: 'nav.claims',    surface: 'admin',    icon: IconEvidence, tag: 'L6', visible: govern },
+  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, tag: 'L7', visible: govern },
+  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, tag: 'L8', visible: govern },
 ];
 
 // ── Tools & evidence surfaces (operational depth behind the layers) ──
 const TOOLS: NavLink[] = [
   { href: '/repository', labelKey: 'nav.repository', surface: 'input', icon: IconDatabase, badge: 'new', visible: read },
   { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: read },
-  { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEvaluateRules },
+  { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: cap('canEvaluateRules') },
   { href: '/baselines', labelKey: 'nav.baselines', surface: 'planning', icon: IconActivity, visible: read },
-  { href: '/simulation', labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canSimulate },
+  { href: '/simulation', labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles, visible: cap('canSimulate') },
   { href: '/clashes', labelKey: 'nav.clashes', surface: 'review', icon: IconReview, visible: read },
   { href: '/drawings', labelKey: 'nav.drawings', surface: 'input', icon: IconUpload, visible: read },
-  { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: read },
+  { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: govern },
   { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: read },
-  { href: '/reports/monthly', labelKey: 'nav.reports', surface: 'evidence', icon: IconEvidence, visible: read },
-  { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, visible: read },
+  { href: '/reports/monthly', labelKey: 'nav.reports', surface: 'evidence', icon: IconEvidence, visible: govern },
+  { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, visible: govern },
 ];
 
+// ── Admin — privileged operations only. ──
 const ADMIN: NavLink[] = [
-  { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
-  { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canRead },
-  { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
-  { href: '/admin/settings', labelKey: 'nav.settings',         surface: 'admin', icon: IconShield, badge: 'new', visible: (me) => !me?.user || CAPABILITIES[me.user.role].canEditPolicy },
-  { href: '/audit',          labelKey: 'audit.title',          surface: 'admin', icon: IconHistory, visible: (me) => !me?.user || CAPABILITIES[me.user.role].canReadAll },
+  { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
+  { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: cap('canEditPersonas') },
+  { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: cap('canReadAll') },
+  { href: '/admin/settings', labelKey: 'nav.settings',         surface: 'admin', icon: IconShield, badge: 'new', visible: cap('canEditPolicy') },
+  { href: '/audit',          labelKey: 'audit.title',          surface: 'admin', icon: IconHistory, visible: cap('canReadAll') },
 ];
 
 // Surface accent (a thin rail on the start edge + the active glow color).

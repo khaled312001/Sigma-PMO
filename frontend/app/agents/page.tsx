@@ -27,7 +27,7 @@ interface Execution {
 
 export default function AgentsRoute() {
   return (
-    <AuthGate surface="Agents">
+    <AuthGate capability="canEvaluateRules" surface="Agents">
       <AgentsPage />
     </AuthGate>
   );

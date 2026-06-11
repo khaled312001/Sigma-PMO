@@ -24,7 +24,7 @@ interface RiskRow {
 
 export default function RiskPageRoute() {
   return (
-    <AuthGate surface="Risk">
+    <AuthGate capability="canEvaluateRules" surface="Risk">
       <RiskPage />
     </AuthGate>
   );

@@ -34,7 +34,7 @@ const STATUS_ACCENT: Record<string, string> = { green: '#10b981', yellow: '#fbbf
 
 export default function GovernanceCommandRoute() {
   return (
-    <AuthGate surface="Governance command">
+    <AuthGate capability="canEvaluateRules" surface="Governance command">
       <GovernanceCommand />
     </AuthGate>
   );

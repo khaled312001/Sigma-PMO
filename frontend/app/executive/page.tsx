@@ -23,7 +23,7 @@ interface ExecutivePack { nodeBusinessKey: string; kpis: Kpis; headline: string 
 
 export default function ExecutiveRoute() {
   return (
-    <AuthGate surface="Executive">
+    <AuthGate capability="canEvaluateRules" surface="Executive">
       <ExecutivePage />
     </AuthGate>
   );

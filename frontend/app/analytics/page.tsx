@@ -29,7 +29,7 @@ interface AnalyticsResult { nodeBusinessKey: string; evm: EvmResult; productivit
 
 export default function AnalyticsPageRoute() {
   return (
-    <AuthGate surface="Analytics">
+    <AuthGate capability="canEvaluateRules" surface="Analytics">
       <AnalyticsPage />
     </AuthGate>
   );
