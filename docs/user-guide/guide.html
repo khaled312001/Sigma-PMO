@@ -436,8 +436,30 @@
 <div class="blk note">بدون مفتاح Anthropic مُهيأ، يتحول المستند لوضع <b>الإدخال اليدوي</b> بنفس نموذج الاعتماد — لا يتعطل المسار.</div>
 <div class="blk who"><b class="tag">من يراها</b>Admin · Reviewer · Client · Consultant (صلاحية <span class="ltr">canRunFeasibility</span>). بيانات الاستثمار محجوبة عن المقاول ومقاول الباطن.</div>
 
-<!-- ════════════════ 11. AGENT LAYERS ════════════════ -->
-<h2><span class="no">11</span>طبقات الوكلاء L0 → L8 صفحةً صفحة</h2>
+<!-- ════════════════ 11. QS + PROCUREMENT + CLASSIFICATION ════════════════ -->
+<h2><span class="no">11</span>حصر الكميات والتكلفة والمشتريات (Quantity Survey &amp; Procurement Intelligence)</h2>
+<p>طبقتان استراتيجيتان تُكملان دورة القرار من الفكرة حتى التسليم، مسجّلتان كوكيلَي امتداد (<span class="ltr">ext.quantity_survey</span> و <span class="ltr">ext.procurement</span>) ضمن سلسلة الحوكمة الممتدة:</p>
+<div class="blk sys"><b class="tag">سلسلة الحوكمة</b><span class="ltr" style="font-weight:700">Investment → Quantity Survey → Procurement → Portfolio → Program → Project → Risk → Claims → Executive → Governance Intelligence</span> — ومسار العمل الكامل: <span class="ltr">Concept/Sketch → Drawings → BIM → Quantity Extraction → Cost Classification → Cost Planning → BOQ → Procurement → Feasibility → Financial Modelling → Governance</span>.</div>
+
+<h3>إطار التصنيف العالمي للتكلفة — Global Cost Classification Framework <span class="route">/quantity-survey</span></h3>
+<figure><img src="shots/admin-quantity-survey-classification.png" alt="Cost Classification Framework"><figcaption>مصفوفة التصنيف الموحّدة — 20 عنصراً عبر NRM / UniFormat / MasterFormat / CESMM</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>محرّك تصنيف وربط <b>خاص بـ Sigma</b> (وليس قاعدة بيانات تجارية مثل RSMeans). يربط كل كمية مستخرجة بأحد المعايير الدولية — <b>NRM · UniFormat · MasterFormat · CESMM</b> — بحيث ينساب نفس هيكل العناصر عبر دراسات الجدوى وتخطيط التكلفة وحصر الكميات وإعداد الـ BOQ وتخطيط المشتريات وحوكمة التكلفة وضبط المشروع.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>تبويب <b>Classification Framework</b> يعرض المصفوفة الكاملة (كل عنصر برمزه في المعايير الأربعة + نسبة مساهمته في التكلفة). الـ QS engine يصنّف الكميات المستخرجة آلياً للمعيار المختار ويولّد المخرجات المهيكلة: <span class="ltr">Conceptual Cost Plans, Cost Breakdown Structures, BOQs, Procurement &amp; Tender Packages, Cost Benchmarks, Feasibility Cost Models</span>. المعمارية مستقلة الآن، وقواعد البيانات الخارجية تبقى امتداداً مستقبلياً نظيفاً.</div>
+
+<h3>حصر الكميات والتكلفة — Quantity Survey Intelligence</h3>
+<figure><img src="shots/admin-quantity-survey.png" alt="Quantity Survey"><figcaption>تقديرات تكلفة مصنّفة مرحلةً بمرحلة + حوكمة الكميات</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>حوكمة كاملة للكميات والتكلفة من المرحلة المفاهيمية حتى الحساب الختامي: <b>ما قبل التعاقد</b> (تقدير مفاهيمي، ميزانية، تخطيط تكلفة، benchmarking، هندسة قيمة)، <b>مرحلة المناقصة</b> (توليد BOQ من الـ BIM، تحقّق من الـ BOQ، تحليل العطاءات ومقارنتها، تحليل الأسعار)، <b>ما بعد التعاقد</b> (الحصر، المستخلصات المرحلية، التغييرات، التنبؤ بالتكلفة، الحساب الختامي).</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>أنشئ تقديراً مصنّفاً (مساحة × المرجع المعياري لـ Sigma، موزّع على عناصر التصنيف) — كل بند يحمل رمزه في المعيار. زر <b>Run QS governance</b> يشغّل وكيل <span class="ltr">ext.quantity_survey</span> الذي يقارن المصادر ويولّد findings: <span class="ltr">quantity-variance (BOQ vs BIM), cost-variance, over-measurement, duplicate-quantity, quantity-to-cost mismatch</span> — حتمية ومدقّقة في سجل الوكلاء.</div>
+
+<h3>المشتريات — Procurement Intelligence <span class="route">/procurement</span></h3>
+<figure><img src="shots/admin-procurement.png" alt="Procurement"><figcaption>حزم المشتريات + سجل المورّدين + كميات BIM/مُشترى/مُركّب</figcaption></figure>
+<figure><img src="shots/admin-procurement-governance.png" alt="Procurement governance"><figcaption>حوكمة المشتريات — التحقق عبر المصادر يولّد findings فعلية مع توصيات</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>حوكمة المشتريات وذكاء سلسلة الإمداد: <b>التخطيط</b> (جداول المشتريات، تتبّع الأصناف طويلة التوريد، تخطيط المواد من الـ BIM)، <b>ذكاء المورّدين</b> (تأهيل/تقييم/أداء/مخاطر بدرجات حتمية)، <b>حوكمة الترسية</b> (تقييم RFQ فني وتجاري، مقارنة عطاءات، توصية ترسية موزونة)، و<b>تتبّع التسليم</b>.</div>
+<div class="blk how"><b class="tag">طريقة الاستخدام</b>أضف حزمة مشتريات تحمل كميات <span class="ltr">BIM / Procured / Installed</span> وتواريخ التسليم، وأضف مورّدين (تُحسب درجاتهم تلقائياً). زر <b>Run procurement governance</b> يشغّل وكيل <span class="ltr">ext.procurement</span> الذي يقارن: <span class="ltr">BIM vs procured vs installed</span>، المخطط مقابل الفعلي للتسليم، تعرّض الأصناف طويلة التوريد، ومخاطر المورّد — ويولّد findings بتوصية تصحيحية لكل انحراف.</div>
+<div class="blk who"><b class="tag">من يراها</b>QS: طبقة حوكمة التكلفة (<span class="ltr">canRunQuantitySurvey</span>). Procurement: طبقة المشتريات (<span class="ltr">canRunProcurement</span>) — وكلاهما قابل للضبط لحظياً من <span class="route">/admin/roles</span>.</div>
+
+<!-- ════════════════ 12. AGENT LAYERS ════════════════ -->
+<h2><span class="no">12</span>طبقات الوكلاء L0 → L8 صفحةً صفحة</h2>
 
 <h3>L0 · المعرفة والقواعد <span class="route">/knowledge</span></h3>
 <figure><img src="shots/admin-knowledge.png" alt="Knowledge"><figcaption>مكتبة Sigma: القواعد، المصادر، الأطر، والدروس المستفادة</figcaption></figure>
@@ -482,7 +504,7 @@
 <p class="footer-note">طبقتا L7 وL8 شُرحتا في القسم 9 (Executive وCommand Center) — هما نفس الصفحتين ضمن تبويب طبقات الوكلاء.</p>
 
 <!-- ════════════════ 12. TOOLS ════════════════ -->
-<h2><span class="no">12</span>الأدوات والأدلة (Tools &amp; Evidence)</h2>
+<h2><span class="no">13</span>الأدوات والأدلة (Tools &amp; Evidence)</h2>
 
 <h3>مستودع الوثائق <span class="route">/repository</span></h3>
 <figure><img src="shots/admin-repository.png" alt="Repository"><figcaption>سجلات المشروع بكل أنواعها مع الترشيح بالنوع والحالة</figcaption></figure>
@@ -522,7 +544,7 @@
 <div class="blk sys"><b class="tag">أنواع السرد (Narrative types)</b>يُولَّد التقرير بزاوية سرد تناسب جمهوره: <b>تنفيذي (Executive)</b> لمجلس الإدارة، <b>حوكمي (Governance)</b> لمجلس الحوكمة، <b>استثماري (Investment)</b> للمستثمرين والمموّلين، و<b>محفظة (Portfolio)</b> للنظرة العابرة للمشاريع — نفس البيانات الحتمية بصياغة موجَّهة لكل قارئ.</div>
 
 <!-- ════════════════ 13. ADMIN ════════════════ -->
-<h2><span class="no">13</span>صفحات الإدارة (Admin)</h2>
+<h2><span class="no">14</span>صفحات الإدارة (Admin)</h2>
 
 <h3>صلاحيات الأدوار <span class="route">/admin/roles</span></h3>
 <figure><img src="shots/admin-admin-roles.png" alt="Role permissions"><figcaption>مصفوفة الصلاحيات: 20 صلاحية × 6 أدوار قابلة للتبديل لحظياً</figcaption></figure>
@@ -553,7 +575,7 @@
 <div class="blk goal"><b class="tag">الهدف</b><b>Settings</b>: مفتاح الذكاء الاصطناعي يُحفظ مشفّراً في قاعدة البيانات ويسري فوراً. <b>Audit</b>: تتبع زمني للعمليات (استيراد، قرارات، مراجعات…) لأغراض الحوكمة والتسليم.</div>
 
 <!-- ════════════════ 14. ROLES ════════════════ -->
-<h2><span class="no">14</span>الأدوار الموسّعة — ماذا يرى كل مستخدم</h2>
+<h2><span class="no">15</span>الأدوار الموسّعة — ماذا يرى كل مستخدم</h2>
 <p>لكل دور <b>قائمة جانبية وصلاحيات مختلفة فعلياً</b> — ليس إخفاءً شكلياً: الخادم يرفض أي طلب خارج صلاحية الدور حتى لو طُلب مباشرة.</p>
 
 <h3>تصنيف أصحاب المصلحة الموسّع (Stakeholder Taxonomy)</h3>
@@ -602,7 +624,7 @@
 <div class="blk who"><b class="tag">ميثاق الدور</b>أضيق نطاق: يرفع تقارير التقدم <b>لأنشطته المسندة فقط</b> (activityScope) ويحاكي عليها، ولا يرى الوضع المالي العام للمشروع ولا صفحات الحوكمة — وأي مسار خارج نطاقه يقابله حاجز الصلاحيات أعلاه.</div>
 
 <!-- ════════════════ 15. TECHNICAL APPENDIX ════════════════ -->
-<h2><span class="no">15</span>الملحق التقني (Technical Appendix)</h2>
+<h2><span class="no">16</span>الملحق التقني (Technical Appendix)</h2>
 <p>هذا القسم يجمع الآليات التقنية التي نُقلت من الأقسام التجارية حفاظاً على تركيزها — موجَّه لفِرق التشغيل والتكامل.</p>
 
 <h3>المصادقة وأمن الجلسات (Authentication &amp; Sessions)</h3>
