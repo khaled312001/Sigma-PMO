@@ -61,6 +61,7 @@ const ADMIN_ROUTES = [
   ['reports-monthly', '/reports/monthly'],
   ['comparison', '/comparison'],
   ['admin-roles', '/admin/roles'],
+  ['admin-governance', '/admin/governance'],
   ['admin-policy', '/admin/policy'],
   ['admin-personas', '/admin/personas'],
   ['admin-users', '/admin/users'],
