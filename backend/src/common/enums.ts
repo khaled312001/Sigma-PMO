@@ -102,6 +102,15 @@ export enum AgentLayer {
    * intake. Plugs in through the extension path like every EXT_* agent.
    */
   EXT_INVESTMENT = 'ext_investment',
+  /**
+   * Quantity Survey Intelligence (Mr. Ayham, 2026-06-12): complete
+   * concept-to-final-account cost & quantity governance, the BIM → Quantity →
+   * Cost → Governance workflow, and the Global Cost Classification Framework
+   * (NRM / UniFormat / MasterFormat / CESMM). EXT_PROCUREMENT (above) is the
+   * sibling Procurement Intelligence agent. Both slot into the extended
+   * governance chain: Investment → Quantity Survey → Procurement → Portfolio…
+   */
+  EXT_QUANTITY_SURVEY = 'ext_quantity_survey',
 }
 
 /** The four governance levels (Enterprise → Portfolio → Program → Project). */

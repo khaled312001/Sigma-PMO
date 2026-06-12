@@ -60,6 +60,8 @@ const PORTFOLIO: NavLink[] = [
   { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: govern },
   { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: govern },
   { href: '/feasibility', labelKey: 'nav.feasibility', surface: 'approval', icon: IconActivity, badge: 'new', tag: 'INV', visible: cap('canRunFeasibility') },
+  { href: '/quantity-survey', labelKey: 'nav.quantitySurvey', surface: 'planning', icon: IconList, badge: 'new', tag: 'QS', visible: cap('canRunQuantitySurvey') },
+  { href: '/procurement', labelKey: 'nav.procurement', surface: 'input', icon: IconDatabase, badge: 'new', tag: 'PRC', visible: cap('canRunProcurement') },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
 ];
 

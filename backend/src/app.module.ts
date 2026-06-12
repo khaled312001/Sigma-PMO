@@ -15,6 +15,8 @@ import { DrawingsModule } from './modules/drawings/drawings.module';
 import { EsgModule } from './modules/esg/esg.module';
 import { ExecutiveModule } from './modules/executive/executive.module';
 import { FeasibilityModule } from './modules/feasibility/feasibility.module';
+import { QuantitySurveyModule } from './modules/quantity-survey/quantity-survey.module';
+import { ProcurementModule } from './modules/procurement/procurement.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -152,6 +154,17 @@ import { SummaryModule } from './modules/summary/summary.module';
     // sketch intake. Registers as the `ext.investment` extension agent —
     // the second production proof of the zero-structural-change guarantee.
     FeasibilityModule,
+    // Quantity Survey Intelligence (2026-06-12): the Global Cost Classification
+    // Framework (NRM/UniFormat/MasterFormat/CESMM), classified cost estimation,
+    // BOQ intelligence, measurement & final account, and the QS governance
+    // layer — registers the `ext.quantity_survey` agent.
+    QuantitySurveyModule,
+    // Procurement Intelligence (2026-06-12): planning & long-lead tracking,
+    // vendor intelligence, RFQ/bid governance, delivery tracking, and the
+    // cross-source supply-chain validation — registers the `ext.procurement`
+    // agent. Together they extend the governance chain: Investment → Quantity
+    // Survey → Procurement → Portfolio → … → Governance Intelligence.
+    ProcurementModule,
   ],
   controllers: [HealthController],
 })

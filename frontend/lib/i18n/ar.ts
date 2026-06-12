@@ -35,6 +35,8 @@ export const ar: Dictionary = {
     executive: 'لوحة الإدارة التنفيذية',
     agents: 'سجل الوكلاء',
     feasibility: 'الاستثمار ودراسات الجدوى',
+    quantitySurvey: 'حصر الكميات والتكلفة',
+    procurement: 'المشتريات',
     commandGroup: 'قيادة الحوكمة',
     agentLayers: 'طبقات الوكلاء · L0–L8',
     tools: 'الأدوات والأدلة',

@@ -10,6 +10,7 @@ import { ClashItem } from './clash-item.entity';
 import { ConceptDocument } from './concept-document.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { CorrectiveAction } from './corrective-action.entity';
+import { CostEstimate } from './cost-estimate.entity';
 import { DecisionReview } from './decision-review.entity';
 import { DrawingPackage } from './drawing-package.entity';
 import { Enterprise } from './enterprise.entity';
@@ -26,10 +27,13 @@ import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
 import { Portfolio } from './portfolio.entity';
 import { Program } from './program.entity';
+import { ProcurementFinding } from './procurement-finding.entity';
+import { ProcurementPackage } from './procurement-package.entity';
 import { Project } from './project.entity';
 import { ProjectMemory } from './project-memory.entity';
 import { ProjectRecord } from './project-record.entity';
 import { ProjectPolicyAddon } from './project-policy-addon.entity';
+import { QsFinding } from './qs-finding.entity';
 import { Report } from './report.entity';
 import { Resource } from './resource.entity';
 import { ResourceAssignment } from './resource-assignment.entity';
@@ -62,6 +66,7 @@ import { OutputComparison } from './output-comparison.entity';
 import { SourceFile } from './source-file.entity';
 import { SystemSetting } from './system-setting.entity';
 import { User } from './user.entity';
+import { Vendor } from './vendor.entity';
 
 export {
   Activity,
@@ -76,6 +81,7 @@ export {
   ConceptDocument,
   ConfidenceScore,
   CorrectiveAction,
+  CostEstimate,
   DecisionReview,
   DrawingPackage,
   Enterprise,
@@ -95,11 +101,14 @@ export {
   OutputComparison,
   Persona,
   Portfolio,
+  ProcurementFinding,
+  ProcurementPackage,
   Program,
   Project,
   ProjectMemory,
   ProjectPolicyAddon,
   ProjectRecord,
+  QsFinding,
   Report,
   Resource,
   ResourceAssignment,
@@ -111,6 +120,7 @@ export {
   SourceFile,
   SystemSetting,
   User,
+  Vendor,
 };
 
 /** All canonical ORM entities, for TypeOrmModule.forFeature registration. */
@@ -180,4 +190,12 @@ export const CANONICAL_ENTITIES = [
   FeasibilityAssessment,
   FeasibilityStudySection,
   ConceptDocument,
+  // Quantity Survey Intelligence + Procurement Intelligence (2026-06-12):
+  // classified cost estimates, QS governance findings, the vendor registry,
+  // procurement packages, and procurement governance findings.
+  CostEstimate,
+  QsFinding,
+  Vendor,
+  ProcurementPackage,
+  ProcurementFinding,
 ];

@@ -312,6 +312,102 @@ export interface FeasibilityPackage {
   sections: StudySectionRecord[];
 }
 
+// ---- Quantity Survey Intelligence + Procurement Intelligence (2026-06-12) ----
+
+export type ClassificationStandard = 'NRM' | 'UNIFORMAT' | 'MASTERFORMAT' | 'CESMM';
+
+export interface ClassificationInfo {
+  version: string;
+  standards: Array<{ key: ClassificationStandard; label: string; description: string }>;
+  matrix: Array<{ element: string; label: string; unit: string; costShare: number; codes: Record<ClassificationStandard, string> }>;
+}
+
+export interface CostEstimateRecord {
+  id: string;
+  createdAt: string;
+  projectBusinessKey: string;
+  stage: string;
+  title: string;
+  standard: string;
+  method: string;
+  currency: string;
+  areaSqm: string | null;
+  totalAmount: string;
+  ratePerSqm: string | null;
+  elements: Array<{ element: string; label: string; code: string; standard: string; unit: string; quantity: number | null; rate: number | null; amount: number; sharePct: number; source: string }>;
+  benchmark: { valueEngineering?: Array<{ element: string; sharePct: number; note: string }> } & Record<string, unknown> | null;
+  confidence: number;
+  version: number;
+  createdBy: string | null;
+}
+
+export interface QsFindingRecord {
+  id: string;
+  createdAt: string;
+  projectBusinessKey: string;
+  findingType: string;
+  severity: 'info' | 'warning' | 'critical' | string;
+  title: string;
+  description: string;
+  refs: Record<string, unknown>;
+  quantum: string | null;
+  status: string;
+}
+
+export interface VendorRecord {
+  id: string;
+  businessKey: string;
+  name: string;
+  category: string;
+  country: string | null;
+  qualificationScore: number;
+  evaluationScore: number;
+  performanceScore: number;
+  riskScore: number;
+  status: 'qualified' | 'provisional' | 'disqualified' | string;
+  details: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ProcurementPackageRecord {
+  id: string;
+  createdAt: string;
+  projectBusinessKey: string;
+  businessKey: string;
+  title: string;
+  category: string;
+  element: string | null;
+  unit: string | null;
+  status: string;
+  strategy: string | null;
+  longLead: boolean;
+  leadTimeDays: number | null;
+  requiredOnSiteDate: string | null;
+  plannedDeliveryDate: string | null;
+  actualDeliveryDate: string | null;
+  bimQuantity: string | null;
+  procuredQuantity: string | null;
+  installedQuantity: string | null;
+  awardedVendorBusinessKey: string | null;
+  estimatedCost: string | null;
+  awardedCost: string | null;
+  currency: string;
+  details: Record<string, unknown> | null;
+}
+
+export interface ProcurementFindingRecord {
+  id: string;
+  createdAt: string;
+  projectBusinessKey: string;
+  findingType: string;
+  severity: 'info' | 'warning' | 'critical' | string;
+  title: string;
+  description: string;
+  refs: Record<string, unknown>;
+  recommendation: string | null;
+  status: string;
+}
+
 /**
  * Sandbox Scenario record (ADR-0010 §5). `status` is `'open' | 'committed' |
  * 'discarded'`. The `baselineSnapshot` is empty in Wave 1 — copy-on-write
