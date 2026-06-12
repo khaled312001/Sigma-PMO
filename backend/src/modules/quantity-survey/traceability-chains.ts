@@ -19,14 +19,14 @@ export const QUANTITY_STAGES = [
   'bim', 'boq', 'tender', 'procured', 'delivered', 'installed', 'claimed', 'certified', 'paid',
 ] as const;
 
-/** The cost governance chain — 7 stages, Budget → … → Final. */
+/** The cost governance chain — Budget → Estimate → … → Final (Mr. Ayham). */
 export const COST_STAGES = [
-  'budget', 'tender', 'awarded', 'procurement', 'actual', 'forecast', 'final',
+  'budget', 'estimate', 'tender', 'awarded', 'procurement', 'actual', 'forecast', 'final',
 ] as const;
 
-/** The revenue governance chain — 7 stages, Forecast → … → Final Revenue. */
+/** The revenue governance chain — Forecast → Business Case → Approved Plan → … → Final. */
 export const REVENUE_STAGES = [
-  'rev_forecast', 'business_case', 'funding_model', 'actual_revenue', 'collections', 'rev_reforecast', 'rev_final',
+  'rev_forecast', 'business_case', 'approved_plan', 'actual_revenue', 'collections', 'rev_reforecast', 'rev_final',
 ] as const;
 
 /** The cash-flow governance chain — Forecast → Actual → Variance → Reforecast. */
@@ -45,8 +45,10 @@ export const STAGE_LABELS: Record<string, string> = {
   // cost
   budget: 'Budget Cost', awarded: 'Awarded Cost', procurement: 'Procurement Cost',
   actual: 'Actual Cost', forecast: 'Forecast Cost', final: 'Final Cost',
+  // cost (estimate added)
+  estimate: 'Estimate Cost',
   // revenue
-  rev_forecast: 'Revenue Forecast', business_case: 'Approved Business Case', funding_model: 'Funding Model',
+  rev_forecast: 'Revenue Forecast', business_case: 'Business Case', approved_plan: 'Approved Plan', funding_model: 'Funding Model',
   actual_revenue: 'Actual Revenue', collections: 'Collections', rev_reforecast: 'Forecast Revenue', rev_final: 'Final Revenue',
   // cashflow
   cf_forecast: 'Cash Flow Forecast', cf_actual: 'Actual Cash Flow', cf_variance: 'Variance Analysis',
@@ -63,7 +65,8 @@ export const STAGE_LABELS_AR: Record<string, string> = {
   budget: 'التكلفة التقديرية (الميزانية)', awarded: 'تكلفة الترسية', procurement: 'تكلفة التوريد',
   actual: 'التكلفة الفعلية', forecast: 'التكلفة المتوقعة', final: 'التكلفة النهائية',
   // revenue
-  rev_forecast: 'الإيراد المتوقع', business_case: 'دراسة الجدوى المعتمدة', funding_model: 'نموذج التمويل',
+  estimate: 'التكلفة التقديرية',
+  rev_forecast: 'الإيراد المتوقع', business_case: 'دراسة الجدوى', approved_plan: 'الخطة المعتمدة', funding_model: 'نموذج التمويل',
   actual_revenue: 'الإيراد الفعلي', collections: 'التحصيلات', rev_reforecast: 'إعادة توقّع الإيراد', rev_final: 'الإيراد النهائي',
   // cashflow
   cf_forecast: 'التدفق النقدي المتوقع', cf_actual: 'التدفق النقدي الفعلي', cf_variance: 'تحليل الانحراف',

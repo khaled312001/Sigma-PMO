@@ -7,6 +7,7 @@ import { OutboxModule } from '../outbox/outbox.module';
 import { SigmaGovernanceModule } from '../sigma-governance/sigma-governance.module';
 import { ExecutiveAgentService } from './executive-agent.service';
 import { ExecutiveKpiService } from './executive-kpi.service';
+import { ExecutiveScoresService } from './executive-scores.service';
 import { ExecutiveController } from './executive.controller';
 
 /**
@@ -17,7 +18,7 @@ import { ExecutiveController } from './executive.controller';
 @Module({
   imports: [AgentsModule, CanonicalModule, OutboxModule, AnalyticsModule, SigmaGovernanceModule],
   controllers: [ExecutiveController],
-  providers: [ExecutiveAgentService, ExecutiveKpiService],
-  exports: [ExecutiveAgentService, ExecutiveKpiService],
+  providers: [ExecutiveAgentService, ExecutiveKpiService, ExecutiveScoresService],
+  exports: [ExecutiveAgentService, ExecutiveKpiService, ExecutiveScoresService],
 })
 export class ExecutiveModule {}

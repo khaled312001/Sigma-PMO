@@ -13,11 +13,8 @@ import { Repository } from 'typeorm';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { AgentExecution } from '../canonical/entities';
-import {
-  AgentConfig,
-  AgentConfigService,
-  ALLOWED_MODEL_TIERS,
-} from './agent-config.service';
+import { AgentConfig, AgentConfigService, ALLOWED_MODEL_TIERS } from './agent-config.service';
+import { AgentHealthReport, AgentHealthService } from './agent-health.service';
 import type { AgentDescriptor, AgentRunContext } from './agent-contract.interface';
 import { AgentOrchestrator } from './agent-orchestrator.service';
 import { AgentRegistry } from './agent.registry';
@@ -44,6 +41,7 @@ export class AgentsController {
     private readonly registry: AgentRegistry,
     private readonly orchestrator: AgentOrchestrator,
     private readonly agentConfig: AgentConfigService,
+    private readonly health: AgentHealthService,
     @InjectRepository(AgentExecution)
     private readonly executions: Repository<AgentExecution>,
   ) {}
@@ -70,6 +68,17 @@ export class AgentsController {
       agents: await this.enrich(this.registry.list()),
       allowedModelTiers: ALLOWED_MODEL_TIERS,
     };
+  }
+
+  /**
+   * Registry-wide agent health from the `AgentExecution` audit trail: per-agent
+   * success rate, mean confidence, last status, and a recency-weighted
+   * governance-impact score. Read-only (`canRead`); fully deterministic.
+   */
+  @Get('health')
+  @RequiresCapability('canRead')
+  agentHealth(): Promise<AgentHealthReport> {
+    return this.health.report();
   }
 
   /**

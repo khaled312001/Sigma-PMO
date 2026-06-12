@@ -59,10 +59,13 @@ const PORTFOLIO: NavLink[] = [
   { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: govern },
   { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: govern },
   { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: govern },
+  { href: '/opportunity', labelKey: 'nav.opportunity', surface: 'insights', icon: IconSparkles, badge: 'new', tag: 'OPP', visible: cap('canRunOpportunity') },
   { href: '/feasibility', labelKey: 'nav.feasibility', surface: 'approval', icon: IconActivity, badge: 'new', tag: 'INV', visible: cap('canRunFeasibility') },
   { href: '/quantity-survey', labelKey: 'nav.quantitySurvey', surface: 'planning', icon: IconList, badge: 'new', tag: 'QS', visible: cap('canRunQuantitySurvey') },
   { href: '/procurement', labelKey: 'nav.procurement', surface: 'input', icon: IconDatabase, badge: 'new', tag: 'PRC', visible: cap('canRunProcurement') },
   { href: '/revenue', labelKey: 'nav.revenue', surface: 'evidence', icon: IconActivity, badge: 'new', tag: 'REV', visible: cap('canRunRevenueGovernance') },
+  { href: '/funding', labelKey: 'nav.funding', surface: 'approval', icon: IconShield, badge: 'new', tag: 'FND', visible: cap('canRunFunding') },
+  { href: '/predictive', labelKey: 'nav.predictive', surface: 'insights', icon: IconActivity, badge: 'new', tag: 'PRD', visible: cap('canRunPredictive') },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
 ];
 

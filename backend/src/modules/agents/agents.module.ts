@@ -4,6 +4,7 @@ import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { SettingsModule } from '../settings/settings.module';
 import { AgentConfigService } from './agent-config.service';
+import { AgentHealthService } from './agent-health.service';
 import { AgentOrchestrator } from './agent-orchestrator.service';
 import { AgentRegistry } from './agent.registry';
 import { AgentsController } from './agents.controller';
@@ -20,7 +21,7 @@ import { AgentsController } from './agents.controller';
 @Module({
   imports: [CanonicalModule, OutboxModule, SettingsModule],
   controllers: [AgentsController],
-  providers: [AgentRegistry, AgentOrchestrator, AgentConfigService],
-  exports: [AgentRegistry, AgentOrchestrator, AgentConfigService],
+  providers: [AgentRegistry, AgentOrchestrator, AgentConfigService, AgentHealthService],
+  exports: [AgentRegistry, AgentOrchestrator, AgentConfigService, AgentHealthService],
 })
 export class AgentsModule {}

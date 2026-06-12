@@ -17,12 +17,13 @@ describe('traceability chains', () => {
     expect(stageIndex('quantity', 'paid')).toBe(8);
   });
 
-  it('cost chain is Budget → … → Final (7 stages)', () => {
-    expect([...COST_STAGES]).toEqual(['budget', 'tender', 'awarded', 'procurement', 'actual', 'forecast', 'final']);
+  it('cost chain is Budget → Estimate → … → Final (8 stages)', () => {
+    expect([...COST_STAGES]).toEqual(['budget', 'estimate', 'tender', 'awarded', 'procurement', 'actual', 'forecast', 'final']);
   });
 
   it('revenue + cashflow chains exist (Investment Governance)', () => {
     expect(REVENUE_STAGES[0]).toBe('rev_forecast');
+    expect(REVENUE_STAGES).toContain('approved_plan');
     expect(REVENUE_STAGES[REVENUE_STAGES.length - 1]).toBe('rev_final');
     expect(CASHFLOW_STAGES).toContain('cf_variance');
     expect(stagesFor('revenue').length).toBe(7);

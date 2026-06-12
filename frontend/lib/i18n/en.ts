@@ -36,6 +36,9 @@ export const en: Dictionary = {
     quantitySurvey: 'Quantity Survey',
     procurement: 'Procurement',
     revenue: 'Revenue Governance',
+    opportunity: 'Opportunity',
+    funding: 'Funding',
+    predictive: 'Predictive',
     commandGroup: 'Governance Command',
     agentLayers: 'Agent Layers · L0–L8',
     tools: 'Tools & Evidence',
@@ -70,6 +73,9 @@ export const en: Dictionary = {
     lender: 'Lender',
     pmo: 'PMO',
     governance_board: 'Governance Board',
+    bank: 'Bank',
+    government_regulator: 'Government Regulator',
+    asset_manager: 'Asset Manager',
   },
   common: {
     loading: 'Loading…',
@@ -513,6 +519,9 @@ export interface Dictionary {
     quantitySurvey: string;
     procurement: string;
     revenue: string;
+    opportunity: string;
+    funding: string;
+    predictive: string;
     commandGroup: string;
     agentLayers: string;
     tools: string;
@@ -523,7 +532,7 @@ export interface Dictionary {
     accountMenu: string; openMenu: string; closeMenu: string; collapseMenu: string; expandMenu: string;
     project: string; bootstrapMode: string;
   };
-  roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string; subcontractor: string; owner: string; operator: string; investor: string; lender: string; pmo: string; governance_board: string };
+  roles: { sigma_admin: string; sigma_reviewer: string; client: string; consultant: string; contractor: string; subcontractor: string; owner: string; operator: string; investor: string; lender: string; pmo: string; governance_board: string; bank: string; government_regulator: string; asset_manager: string };
   common: {
     loading: string; loadingWorkspace: string;
     save: string; cancel: string; confirm: string; refresh: string;

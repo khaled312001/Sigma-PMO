@@ -8,6 +8,7 @@ import {
   PortfolioKpis,
   StrategicKpis,
 } from './executive-kpi.service';
+import { ExecutiveScores, ExecutiveScoresService } from './executive-scores.service';
 
 /**
  * `/executive` — the L7 Executive Intelligence surface (strategic KPIs +
@@ -18,6 +19,7 @@ export class ExecutiveController {
   constructor(
     private readonly executive: ExecutiveAgentService,
     private readonly kpis: ExecutiveKpiService,
+    private readonly scores: ExecutiveScoresService,
   ) {}
 
   @Get('overview')
@@ -48,5 +50,17 @@ export class ExecutiveController {
   strategic(@Query('projectKey') projectKey?: string): Promise<StrategicKpis> {
     if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
     return this.kpis.computeStrategic(projectKey);
+  }
+
+  /**
+   * Enterprise governance score-card — six deterministic 0–100 scores across the
+   * full investment lifecycle (enterprise governance, investment governance,
+   * portfolio, opportunity pipeline, bankability, funding health). Enterprise-
+   * wide (no projectKey); gated on `canReadAll`.
+   */
+  @Get('scores')
+  @RequiresCapability('canReadAll')
+  scoreCard(): Promise<ExecutiveScores> {
+    return this.scores.compute();
   }
 }

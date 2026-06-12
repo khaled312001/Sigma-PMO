@@ -119,11 +119,26 @@ export enum AgentLayer {
    * Governance: Investment → Quantity Survey → Procurement → Revenue → Portfolio…
    */
   EXT_REVENUE_GOVERNANCE = 'ext_revenue_governance',
+  /**
+   * Required-architecture agents (Mr. Ayham, 2026-06-12 "active scope"):
+   *  - Opportunity Intelligence: pre-feasibility opportunity screening.
+   *  - Funding Governance: loan facilities, DSCR, covenants, drawdown, refi risk.
+   *  - Predictive Governance: forecast cost/schedule/revenue/procurement/funding risk.
+   */
+  EXT_OPPORTUNITY = 'ext_opportunity',
+  EXT_FUNDING = 'ext_funding',
+  EXT_PREDICTIVE = 'ext_predictive',
 }
 
-/** The four governance levels (Enterprise → Portfolio → Program → Project). */
+/**
+ * Governance levels. Mr. Ayham (2026-06-12) made Investment Governance a
+ * first-class layer: Enterprise → Investment Portfolio → Portfolio → Program →
+ * Project. INVESTMENT_PORTFOLIO is additive (existing nodes/rollups are
+ * unaffected; it slots between Enterprise and Portfolio when used).
+ */
 export enum HierarchyLevel {
   ENTERPRISE = 'enterprise',
+  INVESTMENT_PORTFOLIO = 'investment_portfolio',
   PORTFOLIO = 'portfolio',
   PROGRAM = 'program',
   PROJECT = 'project',

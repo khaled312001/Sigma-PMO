@@ -17,6 +17,7 @@ import { Enterprise } from './enterprise.entity';
 import { ExecutiveSummary } from './executive-summary.entity';
 import { FeasibilityAssessment } from './feasibility-assessment.entity';
 import { FeasibilityStudySection } from './feasibility-study-section.entity';
+import { FundingFacility } from './funding-facility.entity';
 import { GovernanceDecision } from './governance-decision.entity';
 import { GovernancePolicy } from './governance-policy.entity';
 import { GovernanceStatusSnapshot } from './governance-status-snapshot.entity';
@@ -24,6 +25,7 @@ import { IngestionRun } from './ingestion-run.entity';
 import { InvestmentOpportunity } from './investment-opportunity.entity';
 import { LessonsLearned } from './lessons-learned.entity';
 import { LifecycleLedgerEntry } from './lifecycle-ledger.entity';
+import { OpportunityScreening } from './opportunity-screening.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
 import { Portfolio } from './portfolio.entity';
@@ -89,6 +91,7 @@ export {
   ExecutiveSummary,
   FeasibilityAssessment,
   FeasibilityStudySection,
+  FundingFacility,
   GovernanceDecision,
   GovernancePolicy,
   GovernanceStatusSnapshot,
@@ -96,6 +99,7 @@ export {
   InvestmentOpportunity,
   LessonsLearned,
   LifecycleLedgerEntry,
+  OpportunityScreening,
   Letter,
   MonthlyReport,
   OrgChartReview,
@@ -203,4 +207,8 @@ export const CANONICAL_ENTITIES = [
   // Quantity + Cost Governance traceability ledger (2026-06-12 follow-up):
   // append-only lifecycle chain BIM→…→Paid / Budget→…→Final with provenance.
   LifecycleLedgerEntry,
+  // Active-scope additions (2026-06-12): pre-feasibility opportunity screening
+  // + funding facilities (DSCR/covenants/drawdown).
+  OpportunityScreening,
+  FundingFacility,
 ];

@@ -18,6 +18,9 @@ import { FeasibilityModule } from './modules/feasibility/feasibility.module';
 import { QuantitySurveyModule } from './modules/quantity-survey/quantity-survey.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
 import { RevenueModule } from './modules/revenue/revenue.module';
+import { OpportunityModule } from './modules/opportunity/opportunity.module';
+import { FundingModule } from './modules/funding/funding.module';
+import { PredictiveModule } from './modules/predictive/predictive.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -171,6 +174,14 @@ import { SummaryModule } from './modules/summary/summary.module';
     // via the `ext.revenue_governance` agent. Completes the move from Project to
     // Investment Governance (… → Procurement → Revenue → Portfolio → …).
     RevenueModule,
+    // Active-scope required architecture (2026-06-12): Opportunity Intelligence
+    // (pre-feasibility screening + Market Intelligence, `ext.opportunity`),
+    // Funding Governance (facilities/DSCR/covenants, `ext.funding`), and the
+    // Predictive Governance layer (forecast cost/schedule/revenue/procurement/
+    // funding risk, `ext.predictive`).
+    OpportunityModule,
+    FundingModule,
+    PredictiveModule,
   ],
   controllers: [HealthController],
 })

@@ -49,6 +49,9 @@ const ROLE_ACCOUNTS: { role: Role; email: string; password: string }[] = [
   { role: 'lender', email: 'lender@sigma.ae', password: 'LenderSigma#2026' },
   { role: 'pmo', email: 'pmo@sigma.ae', password: 'PmoSigma#2026' },
   { role: 'governance_board', email: 'board@sigma.ae', password: 'BoardSigma#2026' },
+  { role: 'bank', email: 'bank@sigma.ae', password: 'BankSigma#2026' },
+  { role: 'government_regulator', email: 'regulator@sigma.ae', password: 'RegulatorSigma#2026' },
+  { role: 'asset_manager', email: 'assetmgr@sigma.ae', password: 'AssetMgrSigma#2026' },
 ];
 
 export default function AuthPage() {

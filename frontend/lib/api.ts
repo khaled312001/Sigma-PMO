@@ -42,7 +42,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export type Role =
   | 'sigma_admin' | 'sigma_reviewer' | 'client' | 'consultant' | 'contractor' | 'subcontractor'
   // Expanded taxonomy (2026-06-12): the full capital-project ecosystem.
-  | 'owner' | 'operator' | 'investor' | 'lender' | 'pmo' | 'governance_board';
+  | 'owner' | 'operator' | 'investor' | 'lender' | 'pmo' | 'governance_board'
+  // Stakeholder expansion (2026-06-12 active scope).
+  | 'bank' | 'government_regulator' | 'asset_manager';
 
 export interface MeResponse {
   authenticated: boolean;

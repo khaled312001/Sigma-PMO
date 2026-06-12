@@ -27,6 +27,10 @@ const TARGETS: Target[] = [
   { email: 'lender@sigma.ae',     password: 'LenderSigma#2026',     role: 'lender',           displayName: 'Financing Bank' },
   { email: 'pmo@sigma.ae',        password: 'PmoSigma#2026',        role: 'pmo',              displayName: 'PMO Office' },
   { email: 'board@sigma.ae',      password: 'BoardSigma#2026',      role: 'governance_board', displayName: 'Governance Board' },
+  // Stakeholder expansion (2026-06-12 active scope).
+  { email: 'bank@sigma.ae',       password: 'BankSigma#2026',       role: 'bank',                displayName: 'Financing Bank' },
+  { email: 'regulator@sigma.ae',  password: 'RegulatorSigma#2026',  role: 'government_regulator', displayName: 'Government Regulator' },
+  { email: 'assetmgr@sigma.ae',   password: 'AssetMgrSigma#2026',   role: 'asset_manager',       displayName: 'Asset Manager' },
 ];
 
 async function main(): Promise<void> {
