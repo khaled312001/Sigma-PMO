@@ -111,6 +111,14 @@ export enum AgentLayer {
    * governance chain: Investment → Quantity Survey → Procurement → Portfolio…
    */
   EXT_QUANTITY_SURVEY = 'ext_quantity_survey',
+  /**
+   * Revenue Governance (Mr. Ayham, 2026-06-12 follow-up): governs what is
+   * EARNED — the revenue + cash-flow lifecycle chains (Forecast → Business Case
+   * → Funding → Actual → Collections → Final), their variances, and the impact
+   * on NPV/IRR/Payback. Completes the move from Project to Investment
+   * Governance: Investment → Quantity Survey → Procurement → Revenue → Portfolio…
+   */
+  EXT_REVENUE_GOVERNANCE = 'ext_revenue_governance',
 }
 
 /** The four governance levels (Enterprise → Portfolio → Program → Project). */

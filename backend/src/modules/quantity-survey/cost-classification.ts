@@ -19,12 +19,37 @@ export const CLASSIFICATION_FRAMEWORK_VERSION = 'sigma-cost-classification-v1';
 
 export type ClassificationStandard = 'NRM' | 'UNIFORMAT' | 'MASTERFORMAT' | 'CESMM';
 
-export const CLASSIFICATION_STANDARDS: Array<{ key: ClassificationStandard; label: string; description: string }> = [
-  { key: 'NRM', label: 'NRM (New Rules of Measurement)', description: 'RICS elemental cost planning + measurement (NRM1/NRM2).' },
-  { key: 'UNIFORMAT', label: 'UniFormat', description: 'ASTM/CSI elemental classification (system-based).' },
-  { key: 'MASTERFORMAT', label: 'MasterFormat', description: 'CSI work-results classification (trade/work sections).' },
-  { key: 'CESMM', label: 'CESMM (Civil Engineering SMM)', description: 'ICE civil-engineering method of measurement classes.' },
+export const CLASSIFICATION_STANDARDS: Array<{ key: ClassificationStandard; label: string; labelAr: string; description: string; descriptionAr: string }> = [
+  { key: 'NRM', label: 'NRM (New Rules of Measurement)', labelAr: 'قواعد القياس الحديثة (NRM)', description: 'RICS elemental cost planning + measurement (NRM1/NRM2).', descriptionAr: 'تخطيط وقياس التكلفة العنصري وفق RICS (NRM1/NRM2).' },
+  { key: 'UNIFORMAT', label: 'UniFormat', labelAr: 'يونيفورمات (UniFormat)', description: 'ASTM/CSI elemental classification (system-based).', descriptionAr: 'تصنيف عنصري قائم على الأنظمة (ASTM/CSI).' },
+  { key: 'MASTERFORMAT', label: 'MasterFormat', labelAr: 'ماستر فورمات (MasterFormat)', description: 'CSI work-results classification (trade/work sections).', descriptionAr: 'تصنيف وفق بنود الأعمال والتخصصات (CSI).' },
+  { key: 'CESMM', label: 'CESMM (Civil Engineering SMM)', labelAr: 'طريقة قياس الأعمال المدنية (CESMM)', description: 'ICE civil-engineering method of measurement classes.', descriptionAr: 'فئات قياس الأعمال الهندسية المدنية (ICE).' },
 ];
+
+/** Domain-appropriate Arabic labels for the canonical QS elements. */
+export const ELEMENT_LABELS_AR: Record<CanonicalElement, string> = {
+  preliminaries: 'الأعمال التمهيدية والمصاريف العامة',
+  substructure: 'أعمال ما تحت الأرض (الأساسات)',
+  frame: 'الهيكل الإنشائي',
+  upper_floors: 'الأسقف العلوية',
+  roof: 'السطح والتغطية',
+  stairs: 'السلالم والمنحدرات',
+  external_walls: 'الجدران الخارجية والواجهات',
+  windows_external_doors: 'النوافذ والأبواب الخارجية',
+  internal_walls_partitions: 'الجدران الداخلية والقواطع',
+  internal_doors: 'الأبواب الداخلية',
+  wall_finishes: 'تشطيبات الجدران',
+  floor_finishes: 'تشطيبات الأرضيات',
+  ceiling_finishes: 'تشطيبات الأسقف',
+  fittings_furnishings: 'التجهيزات والأثاث والمعدات',
+  sanitary: 'التركيبات الصحية',
+  services_mechanical: 'الأعمال الميكانيكية (تكييف/سباكة)',
+  services_electrical: 'الأعمال الكهربائية',
+  services_protective: 'أعمال الحماية والإطفاء',
+  external_works: 'الأعمال الخارجية والموقع العام',
+  drainage: 'الصرف والأعمال تحت الأرضية',
+  other: 'أخرى / غير مصنّف',
+};
 
 /** The canonical Sigma elements — the standard-agnostic hub of the framework. */
 export type CanonicalElement =
@@ -139,6 +164,7 @@ const BY_ELEMENT = new Map<CanonicalElement, ElementDef>(ELEMENT_LIBRARY.map((e)
 export interface Classification {
   element: CanonicalElement;
   label: string;
+  labelAr: string;
   standard: ClassificationStandard;
   code: string;
   unit: string;
@@ -164,6 +190,7 @@ export function classifyElement(label: string, standard: ClassificationStandard 
   return {
     element: def.element,
     label: def.label,
+    labelAr: ELEMENT_LABELS_AR[def.element],
     standard,
     code: def.codes[standard],
     unit: def.unit,
@@ -181,12 +208,13 @@ export function codesForElement(element: CanonicalElement): Record<Classificatio
 export function classificationMatrix(): Array<{
   element: CanonicalElement;
   label: string;
+  labelAr: string;
   unit: string;
   costShare: number;
   codes: Record<ClassificationStandard, string>;
 }> {
   return ELEMENT_LIBRARY.map(({ element, label, unit, costShare, codes }) => ({
-    element, label, unit, costShare, codes,
+    element, label, labelAr: ELEMENT_LABELS_AR[element], unit, costShare, codes,
   }));
 }
 

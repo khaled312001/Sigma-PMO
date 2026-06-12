@@ -23,6 +23,7 @@ import { GovernanceStatusSnapshot } from './governance-status-snapshot.entity';
 import { IngestionRun } from './ingestion-run.entity';
 import { InvestmentOpportunity } from './investment-opportunity.entity';
 import { LessonsLearned } from './lessons-learned.entity';
+import { LifecycleLedgerEntry } from './lifecycle-ledger.entity';
 import { MonthlyReport } from './monthly-report.entity';
 import { Persona } from './persona.entity';
 import { Portfolio } from './portfolio.entity';
@@ -94,6 +95,7 @@ export {
   IngestionRun,
   InvestmentOpportunity,
   LessonsLearned,
+  LifecycleLedgerEntry,
   Letter,
   MonthlyReport,
   OrgChartReview,
@@ -198,4 +200,7 @@ export const CANONICAL_ENTITIES = [
   Vendor,
   ProcurementPackage,
   ProcurementFinding,
+  // Quantity + Cost Governance traceability ledger (2026-06-12 follow-up):
+  // append-only lifecycle chain BIM→…→Paid / Budget→…→Final with provenance.
+  LifecycleLedgerEntry,
 ];

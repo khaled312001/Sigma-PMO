@@ -13,13 +13,15 @@ import { AgentRegistry } from '../agents/agent.registry';
 import { BaseAgentService } from '../agents/base-agent.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { QsGovernanceService } from './qs-governance.service';
+import { TraceabilityService } from './traceability.service';
 
 /**
  * QuantitySurveyAgentService — the `ext.quantity_survey` extension agent. Runs
- * the QS Governance Layer (cross-source quantity/cost validation) under the
- * full Agent Contract: every run is an audited AgentExecution carrying the
- * confidence, governance status and an Outbox event. Plugs in with zero edits
- * to L0–L8 — the third production proof of the extensibility guarantee.
+ * the QS Governance Layer (cross-source quantity/cost validation) AND the
+ * Quantity/Cost Governance traceability validation (chain-variance findings)
+ * under the full Agent Contract: every run is an audited AgentExecution
+ * carrying the confidence, governance status and an Outbox event. Plugs in
+ * with zero edits to L0–L8 — the third production proof of extensibility.
  */
 @Injectable()
 export class QuantitySurveyAgentService extends BaseAgentService implements OnModuleInit {
@@ -28,6 +30,7 @@ export class QuantitySurveyAgentService extends BaseAgentService implements OnMo
     @InjectRepository(ConfidenceScore) confidences: Repository<ConfidenceScore>,
     outbox: OutboxService,
     private readonly governance: QsGovernanceService,
+    private readonly traceability: TraceabilityService,
     private readonly registry: AgentRegistry,
   ) {
     super({ executions, confidences, outbox });
@@ -56,21 +59,29 @@ export class QuantitySurveyAgentService extends BaseAgentService implements OnMo
     const projectKey = ctx.nodeBusinessKey ?? ctx.projectKey;
     if (!projectKey) throw new Error('projectKey/nodeBusinessKey is required for ext.quantity_survey');
 
+    // Cross-source quantity/cost validation + the lifecycle-chain traceability
+    // validation (BIM→…→Paid / Budget→…→Final) in one governance run.
     const result = await this.governance.validate(projectKey);
-    const critical = result.findings.filter((f) => f.severity === 'critical').length;
-    const warning = result.findings.filter((f) => f.severity === 'warning').length;
+    const trace = await this.traceability.validate(projectKey, ['quantity', 'cost']);
+    const all = [...result.findings, ...trace.findings];
+    const critical = all.filter((f) => f.severity === 'critical').length;
+    const warning = all.filter((f) => f.severity === 'warning').length;
     const status =
       critical > 0 ? GovernanceStatus.ORANGE : warning > 0 ? GovernanceStatus.YELLOW : GovernanceStatus.GREEN;
 
     return {
-      outputRefs: { projectKey, findingCount: result.findings.length, byType: result.counts, critical, warning },
-      confidence: { overall: 0.8, breakdown: { basis: 'cross-source-deterministic', classification: 'sigma-cost-classification-v1' } },
+      outputRefs: {
+        projectKey, findingCount: all.length, byType: result.counts,
+        crossSource: result.findings.length, chainVariance: trace.findings.length,
+        subjectsTracked: trace.subjectsChecked, critical, warning,
+      },
+      confidence: { overall: 0.8, breakdown: { basis: 'cross-source + lifecycle-traceability deterministic', classification: 'sigma-cost-classification-v1' } },
       governanceStatus: status,
       escalationLevel: critical > 0 ? 'L2' : null,
       outboxEvents: [
-        { eventType: 'agent.ext.quantity_survey.validated', payload: { projectKey, findingCount: result.findings.length, critical } },
+        { eventType: 'agent.ext.quantity_survey.validated', payload: { projectKey, findingCount: all.length, critical, chainVariance: trace.findings.length } },
       ],
-      summary: `QS governance for ${projectKey}: ${result.findings.length} finding(s) (${critical} critical, ${warning} warning).`,
+      summary: `QS governance for ${projectKey}: ${all.length} finding(s) (${critical} critical, ${warning} warning; ${trace.findings.length} chain-variance across ${trace.subjectsChecked} subjects).`,
     };
   }
 }

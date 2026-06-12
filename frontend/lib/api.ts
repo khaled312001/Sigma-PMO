@@ -408,6 +408,61 @@ export interface ProcurementFindingRecord {
   status: string;
 }
 
+// ---- Traceability + Revenue Governance + AI analysis (2026-06-12 follow-ups) --
+
+export type LedgerDimension = 'quantity' | 'cost' | 'revenue' | 'cashflow';
+
+export interface ChainStage {
+  stage: string;
+  label: string;
+  recorded: boolean;
+  value: number | null;
+  unit: string | null;
+  currency: string | null;
+  originType: string | null;
+  originRef: string | null;
+  changeReason: string | null;
+  approvedBy: string | null;
+  evidenceCount: number;
+  historyDepth: number;
+  recordedAt: string | null;
+  variancePctFromPrev: number | null;
+  varianceFromStage: string | null;
+}
+
+export interface ChainResponse {
+  projectKey: string;
+  dimension: LedgerDimension;
+  subjectKey: string;
+  subjectLabel: string;
+  stages: ChainStage[];
+}
+
+export interface ChainsInfo {
+  [dimension: string]: { stages: string[]; labels: Record<string, string>; labelsAr: Record<string, string> };
+}
+
+export interface RevenueImpact {
+  projectKey: string;
+  revenue: { forecast: number | null; latest: number | null; latestStage: string | null; ratio: number | null };
+  base: { npv: number | null; projectIrr: number | null; paybackYears: number | null } | null;
+  adjusted: { npv: number | null; projectIrr: number | null; paybackYears: number | null } | null;
+  impact: { deltaNpv: number | null; deltaIrrPct: number | null; deltaPaybackYears: number | null } | null;
+  recommendation: string;
+  basis: string;
+}
+
+export interface AiAnalysisResult {
+  enabled: boolean;
+  domain: string;
+  language: 'en' | 'ar';
+  narrative: string;
+  citations: string[];
+  sources: Array<{ id: string; title: string; author: string; reference: string; url?: string; cited: boolean }>;
+  model: string | null;
+  disclaimer: string;
+}
+
 /**
  * Sandbox Scenario record (ADR-0010 §5). `status` is `'open' | 'committed' |
  * 'discarded'`. The `baselineSnapshot` is empty in Wave 1 — copy-on-write

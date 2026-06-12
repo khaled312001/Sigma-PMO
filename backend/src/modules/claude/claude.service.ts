@@ -353,6 +353,47 @@ export class ClaudeService implements OnModuleInit {
   }
 
   /**
+   * Persona-less text completion — a system prompt + a user message, no persona
+   * resolution. Added for the cross-module AI analysis layer (Quantity Survey /
+   * Procurement / Revenue governance narration). The caller owns the system
+   * prompt and injects the real domain references; we harvest `[SOURCE: id]`
+   * citations from the response so grounding can be verified. Advisory only —
+   * every output sits behind the human-approval discipline.
+   */
+  async callText(params: {
+    system: string;
+    prompt: string;
+    maxTokens?: number;
+    temperature?: number;
+    modelTier?: string;
+  }): Promise<{ content: string; citations: string[]; tokensIn: number; tokensOut: number; model: string }> {
+    this.assertEnabled();
+    const client = this.getClient();
+    const model = params.modelTier
+      ? TIER_TO_MODEL[params.modelTier] ?? this.config.defaultModel
+      : TIER_TO_MODEL['claude-sonnet'] ?? this.config.defaultModel;
+    const response = await client.messages.create({
+      model,
+      max_tokens: params.maxTokens ?? this.config.maxTokens,
+      temperature: params.temperature ?? 0.3,
+      system: [{ type: 'text', text: params.system, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: params.prompt }],
+      metadata: { user_id: 'ai-analysis:governance' },
+    });
+    const content = (response.content ?? [])
+      .filter((b) => b.type === 'text' && typeof b.text === 'string')
+      .map((b) => b.text ?? '')
+      .join('');
+    return {
+      content,
+      citations: this.extractCitations(content),
+      tokensIn: response.usage?.input_tokens ?? 0,
+      tokensOut: response.usage?.output_tokens ?? 0,
+      model,
+    };
+  }
+
+  /**
    * Public helper used by callers that assemble streamed text and need to
    * harvest citations from the final string. Exposed (not private) so e.g.
    * the FIDIC LetterDrafter can run the same regex after combining a

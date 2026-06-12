@@ -37,6 +37,7 @@ export const ar: Dictionary = {
     feasibility: 'الاستثمار ودراسات الجدوى',
     quantitySurvey: 'حصر الكميات والتكلفة',
     procurement: 'المشتريات',
+    revenue: 'حوكمة الإيرادات',
     commandGroup: 'قيادة الحوكمة',
     agentLayers: 'طبقات الوكلاء · L0–L8',
     tools: 'الأدوات والأدلة',

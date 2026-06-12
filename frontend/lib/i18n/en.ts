@@ -35,6 +35,7 @@ export const en: Dictionary = {
     feasibility: 'Investment & Feasibility',
     quantitySurvey: 'Quantity Survey',
     procurement: 'Procurement',
+    revenue: 'Revenue Governance',
     commandGroup: 'Governance Command',
     agentLayers: 'Agent Layers · L0–L8',
     tools: 'Tools & Evidence',
@@ -511,6 +512,7 @@ export interface Dictionary {
     feasibility: string;
     quantitySurvey: string;
     procurement: string;
+    revenue: string;
     commandGroup: string;
     agentLayers: string;
     tools: string;

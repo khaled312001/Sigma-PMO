@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { AiAnalysisPanel } from '../../components/AiAnalysisPanel';
 import { AuthGate } from '../../components/AuthGate';
 import { GovernanceStatusBadge } from '../../components/GovernanceStatusBadge';
 import { useToast } from '../../components/ToastProvider';
@@ -79,6 +80,8 @@ function ProcurementPage() {
       {tab === 'packages' && <PackagesTab projectKey={projectKey} packages={packages} onChange={refresh} />}
       {tab === 'vendors' && <VendorsTab vendors={vendors} onChange={refresh} />}
       {tab === 'governance' && <GovernanceTab findings={findings} onChange={refresh} />}
+
+      <AiAnalysisPanel endpoint="/procurement/ai-analysis" body={{ projectKey }} />
     </div>
   );
 }

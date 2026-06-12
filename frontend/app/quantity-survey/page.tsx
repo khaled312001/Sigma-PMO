@@ -2,17 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { AiAnalysisPanel } from '../../components/AiAnalysisPanel';
 import { AuthGate } from '../../components/AuthGate';
 import { DonutChart, CHART_PALETTE } from '../../components/Charts';
 import { GovernanceStatusBadge } from '../../components/GovernanceStatusBadge';
 import { IconSparkles } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
+import { useI18n } from '../../lib/i18n';
 import { useCurrentProjectKey } from '../../lib/project-context';
 import {
   api,
+  ChainResponse,
+  ChainsInfo,
   ClassificationInfo,
   ClassificationStandard,
   CostEstimateRecord,
+  LedgerDimension,
   QsFindingRecord,
 } from '../../lib/api';
 import { Button, Card, EmptyState, PageHeader, Pill, SeverityBadge } from '../../components/ui';
@@ -25,7 +30,7 @@ export default function QuantitySurveyRoute() {
   );
 }
 
-type Tab = 'estimates' | 'classification' | 'governance';
+type Tab = 'estimates' | 'classification' | 'traceability' | 'governance';
 
 const PROJECT_TYPES = ['residential', 'commercial_office', 'retail', 'hospitality', 'industrial', 'logistics', 'healthcare', 'education', 'mixed_use'];
 const STANDARDS: ClassificationStandard[] = ['NRM', 'UNIFORMAT', 'MASTERFORMAT', 'CESMM'];
@@ -80,7 +85,7 @@ function QuantitySurveyPage() {
       />
 
       <nav className="flex flex-wrap gap-2" role="tablist">
-        {([['estimates', `Cost Estimates${estimates.length ? ` (${estimates.length})` : ''}`], ['classification', 'Classification Framework'], ['governance', `Governance${findings.length ? ` (${findings.length})` : ''}`]] as Array<[Tab, string]>).map(([k, label]) => (
+        {([['estimates', `Cost Estimates${estimates.length ? ` (${estimates.length})` : ''}`], ['classification', 'Classification Framework'], ['traceability', 'Traceability'], ['governance', `Governance${findings.length ? ` (${findings.length})` : ''}`]] as Array<[Tab, string]>).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
             className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${tab === k ? 'border-sky-500/60 bg-sky-500/15 text-sky-100' : 'border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100'}`}>
             {label}
@@ -90,7 +95,60 @@ function QuantitySurveyPage() {
 
       {tab === 'estimates' && <EstimatesTab projectKey={projectKey} estimates={estimates} onChange={refresh} />}
       {tab === 'classification' && <ClassificationTab info={classification} />}
+      {tab === 'traceability' && <TraceabilityTab projectKey={projectKey} />}
       {tab === 'governance' && <GovernanceTab findings={findings} onChange={refresh} />}
+
+      <AiAnalysisPanel endpoint="/quantity-survey/ai-analysis" body={{ projectKey }} />
+    </div>
+  );
+}
+
+// ── Traceability: quantity + cost lifecycle chains ──
+function TraceabilityTab({ projectKey }: { projectKey: string }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
+  const toast = useToast();
+  const [chains, setChains] = useState<ChainsInfo | null>(null);
+  const [dimension, setDimension] = useState<LedgerDimension>('quantity');
+  const [subjectKey, setSubjectKey] = useState('element:frame');
+  const [chain, setChain] = useState<ChainResponse | null>(null);
+
+  useEffect(() => { api<ChainsInfo>('/quantity-survey/traceability/chains').then(setChains).catch(() => {}); }, []);
+  const load = useCallback(async () => {
+    try { setChain(await api<ChainResponse>(`/quantity-survey/traceability/chain?projectKey=${encodeURIComponent(projectKey)}&dimension=${dimension}&subjectKey=${encodeURIComponent(subjectKey)}`)); }
+    catch (e) { toast.error('Failed', (e as Error).message); }
+  }, [projectKey, dimension, subjectKey, toast]);
+  useEffect(() => { void load(); }, [load]);
+
+  const labelFor = (stage: string) => (ar ? chains?.[dimension]?.labelsAr?.[stage] : chains?.[dimension]?.labels?.[stage]) ?? stage;
+  const field = 'rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-100';
+
+  return (
+    <div className="space-y-4">
+      <Card title={ar ? 'سلسلة التتبّع (كمية / تكلفة)' : 'Lifecycle traceability chain (quantity / cost)'} hint={ar ? 'BIM → BOQ → … → مدفوع / ميزانية → … → نهائي — من أين جاء الرقم؟ كيف ولماذا تغيّر؟ من اعتمده؟' : 'BIM → BOQ → … → Paid / Budget → … → Final — origin, change, approver, evidence at every hop.'}>
+        <div className="mb-3 flex flex-wrap items-end gap-2">
+          <label className="text-xs text-slate-400">{ar ? 'البُعد' : 'Dimension'}<select className={`mt-1 block ${field}`} value={dimension} onChange={(e) => setDimension(e.target.value as LedgerDimension)}><option value="quantity">{ar ? 'كمية' : 'quantity'}</option><option value="cost">{ar ? 'تكلفة' : 'cost'}</option></select></label>
+          <label className="text-xs text-slate-400">{ar ? 'الموضوع' : 'Subject'}<input className={`mt-1 block ${field}`} value={subjectKey} onChange={(e) => setSubjectKey(e.target.value)} /></label>
+          <Button variant="ghost" size="sm" onClick={load}>{ar ? 'عرض' : 'Load'}</Button>
+        </div>
+        {!chain || chain.stages.every((s) => !s.recorded) ? (
+          <EmptyState title={ar ? 'لا توجد سلسلة مسجّلة' : 'No chain recorded'} description={ar ? 'سجّل قيم المراحل عبر الـ API أو حوكمة الإيراد لرؤية التتبّع الكامل.' : 'Record stage values (API or the revenue surface) to see the full chain.'} />
+        ) : (
+          <div className="space-y-1.5">
+            {chain.stages.map((s) => (
+              <div key={s.stage} className={`flex flex-wrap items-center gap-3 rounded-lg border px-3 py-1.5 ${s.recorded ? 'border-slate-700/70 bg-slate-900/60' : 'border-dashed border-slate-800 opacity-60'}`}>
+                <span className="w-40 text-sm text-slate-100">{labelFor(s.stage)}</span>
+                {s.recorded ? (<>
+                  <span className="font-mono text-sm tabular-nums text-emerald-300" dir="ltr">{s.value?.toLocaleString()} {s.unit ?? ''}</span>
+                  {s.variancePctFromPrev !== null && <Pill tone={Math.abs(s.variancePctFromPrev) < 0.05 ? 'slate' : 'rose'}>{(s.variancePctFromPrev * 100).toFixed(1)}%</Pill>}
+                  {s.originType && <span className="text-[11px] text-slate-400">{ar ? 'المصدر' : 'origin'}: {s.originType}</span>}
+                  {s.approvedBy && <span className="text-[11px] text-slate-400">{ar ? 'اعتمده' : 'by'}: {s.approvedBy}</span>}
+                </>) : <span className="text-xs text-slate-500">{ar ? 'غير مسجّل' : 'not recorded'}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

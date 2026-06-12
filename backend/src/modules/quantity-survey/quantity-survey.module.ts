@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AgentsModule } from '../agents/agents.module';
+import { AiAnalysisModule } from '../ai-analysis/ai-analysis.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { BoqIntelligenceService } from './boq-intelligence.service';
@@ -10,6 +11,7 @@ import { QsGovernanceService } from './qs-governance.service';
 import { QuantitySurveyAgentService } from './quantity-survey-agent.service';
 import { QuantitySurveyController } from './quantity-survey.controller';
 import { QuantitySurveyService } from './quantity-survey.service';
+import { TraceabilityService } from './traceability.service';
 
 /**
  * QuantitySurveyModule — Quantity Survey Intelligence (Mr. Ayham, 2026-06-12):
@@ -19,7 +21,7 @@ import { QuantitySurveyService } from './quantity-survey.service';
  * in AppModule is the entire structural cost (zero edits to L0–L8).
  */
 @Module({
-  imports: [AgentsModule, CanonicalModule, OutboxModule],
+  imports: [AgentsModule, AiAnalysisModule, CanonicalModule, OutboxModule],
   controllers: [QuantitySurveyController],
   providers: [
     CostEstimationService,
@@ -27,8 +29,9 @@ import { QuantitySurveyService } from './quantity-survey.service';
     MeasurementService,
     QsGovernanceService,
     QuantitySurveyService,
+    TraceabilityService,
     QuantitySurveyAgentService,
   ],
-  exports: [CostEstimationService, QsGovernanceService, QuantitySurveyService],
+  exports: [CostEstimationService, QsGovernanceService, QuantitySurveyService, TraceabilityService],
 })
 export class QuantitySurveyModule {}

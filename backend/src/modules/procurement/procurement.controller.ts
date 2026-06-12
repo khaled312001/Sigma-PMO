@@ -19,6 +19,7 @@ import {
   User,
   Vendor,
 } from '../canonical/entities';
+import { AiAnalysisService } from '../ai-analysis/ai-analysis.service';
 import { ProcurementAgentService } from './procurement-agent.service';
 import { ProcurementGovernanceService, Bid } from './procurement-governance.service';
 import { ProcurementPlanningService } from './procurement-planning.service';
@@ -38,8 +39,35 @@ export class ProcurementController {
     private readonly vendors: VendorIntelligenceService,
     private readonly governance: ProcurementGovernanceService,
     private readonly validation: ProcurementValidationService,
+    private readonly aiAnalysis: AiAnalysisService,
     private readonly agent: ProcurementAgentService,
   ) {}
+
+  /** AI analysis of the project's procurement position, grounded in real
+   *  procurement references (CIPS, ISO 44001/31000, FIDIC). Advisory; graceful
+   *  fallback when no Claude key is configured. */
+  @Post('ai-analysis')
+  @HttpCode(200)
+  @RequiresCapability('canRunProcurement')
+  async aiAnalysisRun(@Body() body: { projectKey: string; language?: 'en' | 'ar' }): Promise<unknown> {
+    if (!body?.projectKey) throw new BadRequestException('projectKey is required');
+    const [packages, findings, trend] = await Promise.all([
+      this.planning.list(body.projectKey),
+      this.validation.list(body.projectKey),
+      this.governance.costTrend(body.projectKey),
+    ]);
+    return this.aiAnalysis.analyse({
+      domain: 'procurement',
+      title: `Procurement governance — ${body.projectKey}`,
+      language: body.language,
+      context: {
+        packages: packages.length,
+        longLead: packages.filter((p) => p.longLead).length,
+        findings: findings.map((f) => ({ type: f.findingType, severity: f.severity, title: f.title })),
+        costTrend: { totalEstimated: trend.totalEstimated, totalAwarded: trend.totalAwarded, awardedVsEstimatedPct: trend.awardedVsEstimatedPct },
+      },
+    });
+  }
 
   // ── Planning & packages ──
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AgentsModule } from '../agents/agents.module';
+import { AiAnalysisModule } from '../ai-analysis/ai-analysis.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { ProcurementAgentService } from './procurement-agent.service';
@@ -17,7 +18,7 @@ import { VendorIntelligenceService } from './vendor-intelligence.service';
  * layer. Registers the `ext.procurement` extension agent (zero edits to L0–L8).
  */
 @Module({
-  imports: [AgentsModule, CanonicalModule, OutboxModule],
+  imports: [AgentsModule, AiAnalysisModule, CanonicalModule, OutboxModule],
   controllers: [ProcurementController],
   providers: [
     VendorIntelligenceService,

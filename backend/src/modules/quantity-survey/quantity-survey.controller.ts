@@ -14,6 +14,7 @@ import { RequiresCapability } from '../auth/require-capability.decorator';
 import {
   AgentExecution,
   CostEstimate,
+  LifecycleLedgerEntry,
   QsFinding,
   User,
 } from '../canonical/entities';
@@ -29,6 +30,11 @@ import { MeasurementService } from './measurement.service';
 import { QsGovernanceService } from './qs-governance.service';
 import { QuantitySurveyAgentService } from './quantity-survey-agent.service';
 import { QuantitySurveyService } from './quantity-survey.service';
+import { AiAnalysisService } from '../ai-analysis/ai-analysis.service';
+import { TraceabilityService } from './traceability.service';
+import type { RecordInput } from './traceability.service';
+import { QUANTITY_STAGES, COST_STAGES, STAGE_LABELS, STAGE_LABELS_AR } from './traceability-chains';
+import type { LedgerDimension } from './traceability-chains';
 
 /**
  * `/quantity-survey` — Quantity Survey Intelligence (Mr. Ayham, 2026-06-12):
@@ -44,8 +50,38 @@ export class QuantitySurveyController {
     private readonly boq: BoqIntelligenceService,
     private readonly measurement: MeasurementService,
     private readonly governance: QsGovernanceService,
+    private readonly traceability: TraceabilityService,
+    private readonly aiAnalysis: AiAnalysisService,
     private readonly agent: QuantitySurveyAgentService,
   ) {}
+
+  /**
+   * AI analysis (Claude) of the project's QS position, grounded in the real
+   * cost/QS reference library (NRM, CESMM, RICS Cost Prediction…). Advisory;
+   * deterministic figures are computed elsewhere. Graceful when no key set.
+   */
+  @Post('ai-analysis')
+  @HttpCode(200)
+  @RequiresCapability('canRunQuantitySurvey')
+  async aiAnalysisRun(@Body() body: { projectKey: string; language?: 'en' | 'ar' }): Promise<unknown> {
+    if (!body?.projectKey) throw new BadRequestException('projectKey is required');
+    const [estimates, findings, subjects] = await Promise.all([
+      this.qs.list(body.projectKey),
+      this.governance.list(body.projectKey),
+      this.traceability.subjects(body.projectKey, 'quantity'),
+    ]);
+    const latest = estimates[0];
+    return this.aiAnalysis.analyse({
+      domain: 'quantity-survey',
+      title: `Quantity Survey governance — ${body.projectKey}`,
+      language: body.language,
+      context: {
+        latestEstimate: latest ? { stage: latest.stage, standard: latest.standard, total: latest.totalAmount, ratePerSqm: latest.ratePerSqm, currency: latest.currency } : null,
+        findings: findings.map((f) => ({ type: f.findingType, severity: f.severity, title: f.title, quantum: f.quantum })),
+        quantitySubjectsTracked: subjects.length,
+      },
+    });
+  }
 
   // ── Global Cost Classification Framework ──
 
@@ -200,5 +236,65 @@ export class QuantitySurveyController {
   setFindingStatus(@Param('id') id: string, @Body() body: { status: string }): Promise<QsFinding> {
     if (!body?.status) throw new BadRequestException('status is required');
     return this.governance.setStatus(id, body.status);
+  }
+
+  // ── Quantity / Cost Governance traceability (the lifecycle ledger) ──
+
+  @Get('traceability/chains')
+  @RequiresCapability('canRunQuantitySurvey')
+  chains(): Record<string, unknown> {
+    return {
+      quantity: { stages: QUANTITY_STAGES, labels: STAGE_LABELS, labelsAr: STAGE_LABELS_AR },
+      cost: { stages: COST_STAGES, labels: STAGE_LABELS, labelsAr: STAGE_LABELS_AR },
+    };
+  }
+
+  @Post('traceability/record')
+  @HttpCode(200)
+  @RequiresCapability('canRunQuantitySurvey')
+  recordStage(@Body() body: Omit<RecordInput, 'recordedBy'>, @Req() req: { user?: User }): Promise<LifecycleLedgerEntry> {
+    return this.traceability.record({ ...body, recordedBy: req.user?.displayName ?? null });
+  }
+
+  @Get('traceability/subjects')
+  @RequiresCapability('canRunQuantitySurvey')
+  subjects(@Query('projectKey') projectKey?: string, @Query('dimension') dimension?: LedgerDimension): Promise<unknown> {
+    if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
+    return this.traceability.subjects(projectKey, dimension);
+  }
+
+  @Get('traceability/chain')
+  @RequiresCapability('canRunQuantitySurvey')
+  chain(
+    @Query('projectKey') projectKey?: string,
+    @Query('dimension') dimension?: LedgerDimension,
+    @Query('subjectKey') subjectKey?: string,
+  ): Promise<unknown> {
+    if (!projectKey || !dimension || !subjectKey) {
+      throw new BadRequestException('projectKey, dimension and subjectKey are all required');
+    }
+    return this.traceability.chain(projectKey, dimension, subjectKey);
+  }
+
+  @Get('traceability/history')
+  @RequiresCapability('canRunQuantitySurvey')
+  ledgerHistory(
+    @Query('projectKey') projectKey?: string,
+    @Query('dimension') dimension?: LedgerDimension,
+    @Query('subjectKey') subjectKey?: string,
+    @Query('stage') stage?: string,
+  ): Promise<LifecycleLedgerEntry[]> {
+    if (!projectKey || !dimension || !subjectKey || !stage) {
+      throw new BadRequestException('projectKey, dimension, subjectKey and stage are all required');
+    }
+    return this.traceability.history(projectKey, dimension, subjectKey, stage);
+  }
+
+  @Post('traceability/validate')
+  @HttpCode(200)
+  @RequiresCapability('canRunQuantitySurvey')
+  validateChains(@Body() body: { projectKey: string }): Promise<unknown> {
+    if (!body?.projectKey) throw new BadRequestException('projectKey is required');
+    return this.traceability.validate(body.projectKey);
   }
 }

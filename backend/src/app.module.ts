@@ -17,6 +17,7 @@ import { ExecutiveModule } from './modules/executive/executive.module';
 import { FeasibilityModule } from './modules/feasibility/feasibility.module';
 import { QuantitySurveyModule } from './modules/quantity-survey/quantity-survey.module';
 import { ProcurementModule } from './modules/procurement/procurement.module';
+import { RevenueModule } from './modules/revenue/revenue.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -165,6 +166,11 @@ import { SummaryModule } from './modules/summary/summary.module';
     // agent. Together they extend the governance chain: Investment → Quantity
     // Survey → Procurement → Portfolio → … → Governance Intelligence.
     ProcurementModule,
+    // Revenue Governance (2026-06-12 follow-up): governs what is EARNED — the
+    // revenue + cash-flow lifecycle chains and their impact on NPV/IRR/Payback,
+    // via the `ext.revenue_governance` agent. Completes the move from Project to
+    // Investment Governance (… → Procurement → Revenue → Portfolio → …).
+    RevenueModule,
   ],
   controllers: [HealthController],
 })

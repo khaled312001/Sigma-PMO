@@ -34,6 +34,6 @@ import { RapidAssessmentService } from './rapid-assessment.service';
     FeasibilityService,
     InvestmentAgentService,
   ],
-  exports: [FeasibilityService, RapidAssessmentService, BankabilityService],
+  exports: [FeasibilityService, RapidAssessmentService, BankabilityService, FinancialModelService],
 })
 export class FeasibilityModule {}
