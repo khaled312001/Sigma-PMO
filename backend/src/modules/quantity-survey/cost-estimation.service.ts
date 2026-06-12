@@ -3,6 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   CLASSIFICATION_FRAMEWORK_VERSION,
   ClassificationStandard,
+  ELEMENT_LABELS_AR,
   ELEMENT_LIBRARY,
   lookupElement,
 } from './cost-classification';
@@ -21,6 +22,7 @@ import { PROJECT_TYPE_ASSUMPTIONS, resolveLocationFactor } from '../feasibility/
 export interface EstimateElement {
   element: string;
   label: string;
+  labelAr: string;
   code: string;
   standard: ClassificationStandard;
   unit: string;
@@ -103,6 +105,7 @@ export class CostEstimationService {
         return {
           element: e.element,
           label: e.label,
+          labelAr: ELEMENT_LABELS_AR[e.element],
           code: e.codes[standard],
           standard,
           unit: e.unit,
@@ -183,6 +186,7 @@ export class CostEstimationService {
       return {
         element: def.element,
         label: def.label,
+        labelAr: ELEMENT_LABELS_AR[def.element],
         code: def.codes[standard],
         standard,
         unit: def.unit,
