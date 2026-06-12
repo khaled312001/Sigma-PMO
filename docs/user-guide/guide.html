@@ -458,6 +458,19 @@
 <div class="blk how"><b class="tag">طريقة الاستخدام</b>أضف حزمة مشتريات تحمل كميات <span class="ltr">BIM / Procured / Installed</span> وتواريخ التسليم، وأضف مورّدين (تُحسب درجاتهم تلقائياً). زر <b>Run procurement governance</b> يشغّل وكيل <span class="ltr">ext.procurement</span> الذي يقارن: <span class="ltr">BIM vs procured vs installed</span>، المخطط مقابل الفعلي للتسليم، تعرّض الأصناف طويلة التوريد، ومخاطر المورّد — ويولّد findings بتوصية تصحيحية لكل انحراف.</div>
 <div class="blk who"><b class="tag">من يراها</b>QS: طبقة حوكمة التكلفة (<span class="ltr">canRunQuantitySurvey</span>). Procurement: طبقة المشتريات (<span class="ltr">canRunProcurement</span>) — وكلاهما قابل للضبط لحظياً من <span class="route">/admin/roles</span>.</div>
 
+<h3>التتبّع الكامل للكميات والتكلفة — Traceability</h3>
+<figure><img src="shots/admin-quantity-survey-ar.png" alt="QS Arabic"><figcaption>صفحة حصر الكميات بالعربية الكاملة — الواجهة والبيانات بمصطلحات المجال</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>سجلّ تتبّع <b>إضافي فقط (append-only)</b> لكل رقم عبر دورة حياته. <b>سلسلة الكميات:</b> <span class="ltr">BIM → BOQ → Tender → Procured → Delivered → Installed → Claimed → Certified → Paid</span>. <b>سلسلة التكلفة:</b> <span class="ltr">Budget → Tender → Awarded → Procurement → Actual → Forecast → Final</span>. عند كل مرحلة يُحسب الانحراف وتُولَّد findings مع روابط الأدلة وسجل التدقيق — ليجيب لأي رقم: <b>من أين جاء؟ كيف ولماذا تغيّر؟ من اعتمده؟ ما الدليل؟</b> (تبويب <b>التتبّع</b> داخل صفحة حصر الكميات).</div>
+
+<h3>حوكمة الإيرادات — Revenue Governance <span class="route">/revenue</span></h3>
+<figure class="tall"><img src="shots/admin-revenue-ar.png" alt="Revenue Arabic"><figcaption>حوكمة الإيرادات — الأثر على NPV/IRR/الاسترداد + سلسلة تتبّع الإيراد بالعربية</figcaption></figure>
+<div class="blk goal"><b class="tag">الهدف</b>إتمام التحوّل من حوكمة المشروع إلى <b>حوكمة الاستثمار</b>: حوكمة ما يُكتسَب لا ما يُنفَق فقط. <b>سلسلة الإيراد:</b> <span class="ltr">Forecast → Business Case → Funding → Actual → Collections → Reforecast → Final</span>، و<b>سلسلة التدفق النقدي</b>. والأهم حساب <b>أثر انحراف الإيراد على NPV وIRR وفترة الاسترداد</b> بإعادة تشغيل النموذج المالي الحتمي، مع توصية تنفيذية (مثال حي: 82% من التوقع ⇐ NPV −5.15M، IRR −3.7 نقطة ⇐ تصعيد للجنة الاستثمار). وكيل <span class="ltr">ext.revenue_governance</span> ضمن السلسلة: <span class="ltr">… → Procurement → Revenue → Portfolio → …</span></div>
+<div class="blk who"><b class="tag">من يراها</b>الطبقة الاستثمارية/الحوكمية (<span class="ltr">canRunRevenueGovernance</span>): Admin · Reviewer · Client · Owner · Investor · Lender · PMO · Governance Board.</div>
+
+<h3>طبقة الذكاء الاصطناعي بالمصادر العلمية — AI Analysis</h3>
+<div class="blk sys"><b class="tag">مدعوم بالذكاء الاصطناعي</b>كل الموديولات الجديدة (حصر الكميات، المشتريات، الإيرادات) فيها لوحة <b>AI Analysis</b>: أول ما يُضاف مفتاح Claude من <span class="route">/admin/settings</span> يفسّر النظام الأرقام الحتمية ويربطها بالمخاطر الحوكمية والإجراءات — <b>موثّقاً بمصادر علمية حقيقية</b> عبر صيغة الاستشهاد <span class="ltr">[SOURCE: id]</span>: <span class="ltr">RICS NRM1/2/3, CESMM4, ASTM UniFormat, CSI MasterFormat, FIDIC Red Book 2017, PMI PMBOK 7, AACE 18R-97, RICS Cost Prediction, Damodaran, Brealey-Myers, World Bank PPP, ISO 31000/44001, CIPS</span>. بدون المفتاح تعمل بتدرّج آمن: تعرض المصادر دون اختلاق نص. الأرقام دائماً حتمية؛ الذكاء الاصطناعي يُفسّر ولا يحسب، والمخرجات استرشادية خلف بوابة المراجعة البشرية.</div>
+<div class="blk note">كل البيانات الجديدة <b>ثنائية اللغة</b> وبترجمة عربية <b>مبنية على مصطلحات المجال</b> (حصر الكميات / إدارة التكلفة / الاستثمار) وليست حرفية — وعناصر التصنيف ومراحل السلاسل والمعايير تأتي بالعربية من الخادم.</div>
+
 <!-- ════════════════ 12. AGENT LAYERS ════════════════ -->
 <h2><span class="no">12</span>طبقات الوكلاء L0 → L8 صفحةً صفحة</h2>
 
