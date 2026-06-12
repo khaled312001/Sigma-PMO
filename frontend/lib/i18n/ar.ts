@@ -42,6 +42,7 @@ export const ar: Dictionary = {
     policy: 'السياسة',
     users: 'المستخدمون',
     roles: 'صلاحيات الأدوار',
+    governanceConfig: 'إعدادات الحوكمة',
     signIn: 'تسجيل الدخول',
     signInWithKey: 'تسجيل الدخول بمفتاح API',
     signOut: 'تسجيل الخروج',

@@ -69,17 +69,25 @@ describe('ROLE_CAPABILITIES — plan §7 matrix', () => {
   });
 
   describe('named approval gates (plan §7)', () => {
-    it('letter approval belongs to admin + client only', () => {
+    // The decision-authority tier. Expanded 2026-06-12 beyond admin + client to
+    // the equivalent ecosystem roles: OWNER (employer/asset owner — client-
+    // equivalent) and GOVERNANCE_BOARD (strategic approval body).
+    const APPROVAL_AUTHORITY = new Set<Role>([
+      Role.SIGMA_ADMIN,
+      Role.CLIENT,
+      Role.OWNER,
+      Role.GOVERNANCE_BOARD,
+    ]);
+
+    it('letter approval belongs to the decision-authority tier', () => {
       for (const role of Object.values(Role)) {
-        const expected = role === Role.SIGMA_ADMIN || role === Role.CLIENT;
-        expect(ROLE_CAPABILITIES[role].canApproveLetter).toBe(expected);
+        expect(ROLE_CAPABILITIES[role].canApproveLetter).toBe(APPROVAL_AUTHORITY.has(role));
       }
     });
 
-    it('baseline approval belongs to admin + client only (dual-signature pool)', () => {
+    it('baseline approval belongs to the decision-authority tier (dual-signature pool)', () => {
       for (const role of Object.values(Role)) {
-        const expected = role === Role.SIGMA_ADMIN || role === Role.CLIENT;
-        expect(ROLE_CAPABILITIES[role].canApproveBaseline).toBe(expected);
+        expect(ROLE_CAPABILITIES[role].canApproveBaseline).toBe(APPROVAL_AUTHORITY.has(role));
       }
     });
 

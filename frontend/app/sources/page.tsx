@@ -263,7 +263,7 @@ function FamilyChip({
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ring-1 transition ${
         active
           ? 'bg-sky-500/20 text-sky-100 ring-sky-500/40'
-          : 'bg-slate-900/50 text-slate-300 ring-slate-800 hover:text-white hover:ring-slate-600'
+          : 'bg-slate-900/50 text-slate-300 ring-slate-800 hover:text-slate-50 hover:ring-slate-600'
       }`}
     >
       <span>{label}</span>

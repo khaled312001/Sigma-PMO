@@ -144,7 +144,7 @@ function ObjectNode({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={open ? `Collapse ${keyName ?? 'object'}` : `Expand ${keyName ?? 'object'}`}
-          className="cursor-pointer text-slate-300 hover:text-white"
+          className="cursor-pointer text-slate-300 hover:text-slate-50"
         >
           <span className="me-1 inline-block w-3 select-none text-center text-[9px] text-slate-500">{open ? '▼' : '▶'}</span>
           {'{'}
@@ -226,7 +226,7 @@ function ArrayNode({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-label={open ? 'Collapse array' : 'Expand array'}
-          className="cursor-pointer text-slate-300 hover:text-white"
+          className="cursor-pointer text-slate-300 hover:text-slate-50"
         >
           <span className="me-1 inline-block w-3 select-none text-center text-[9px] text-slate-500">{open ? '▼' : '▶'}</span>
           {'['}

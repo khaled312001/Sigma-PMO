@@ -885,7 +885,7 @@ function ForkDialog({
         <button
           onClick={() => !submitting && onClose()}
           aria-label={t('common.cancel')}
-          className="absolute end-3 top-3 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+          className="absolute end-3 top-3 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-50"
         >
           <IconX className="h-4 w-4" />
         </button>

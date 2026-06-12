@@ -40,6 +40,7 @@ export const en: Dictionary = {
     policy: 'Policy',
     users: 'Users',
     roles: 'Role permissions',
+    governanceConfig: 'Governance Config',
     signIn: 'Sign in',
     signInWithKey: 'Sign in with API key',
     signOut: 'Sign out',
@@ -510,7 +511,7 @@ export interface Dictionary {
     agentLayers: string;
     tools: string;
     repository: string;
-    policy: string; users: string; roles: string;
+    policy: string; users: string; roles: string; governanceConfig: string;
     signIn: string; signInWithKey: string; signOut: string;
     account: string; help: string;
     accountMenu: string; openMenu: string; closeMenu: string; collapseMenu: string; expandMenu: string;

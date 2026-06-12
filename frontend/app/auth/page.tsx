@@ -241,7 +241,7 @@ export default function AuthPage() {
                       className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
                         selectedRole === account.role
                           ? 'border-sky-400/60 bg-sky-500/15 text-sky-100 shadow-sm shadow-sky-500/20'
-                          : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-slate-500 hover:text-white'
+                          : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-slate-500 hover:text-slate-50'
                       }`}
                     >
                       {ROLE_LABEL[account.role]}
@@ -302,7 +302,7 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setReveal((r) => !r)}
-                      className="absolute end-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition hover:border-slate-400 hover:text-white"
+                      className="absolute end-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition hover:border-slate-400 hover:text-slate-50"
                       aria-label={reveal ? t('auth.hide') : t('auth.show')}
                     >
                       {reveal ? t('auth.hide') : t('auth.show')}

@@ -111,6 +111,7 @@ export function Button({
   type = 'button',
   children,
   className = '',
+  title,
 }: {
   variant?: 'primary' | 'success' | 'danger' | 'ghost';
   size?: 'sm' | 'md';
@@ -119,12 +120,13 @@ export function Button({
   type?: 'button' | 'submit';
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   const variants: Record<string, string> = {
     primary: 'bg-sky-600 text-white hover:bg-sky-500',
     success: 'bg-emerald-600 text-white hover:bg-emerald-500',
     danger:  'bg-red-600 text-white hover:bg-red-500',
-    ghost:   'border border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white',
+    ghost:   'border border-slate-700 text-slate-200 hover:border-slate-500 hover:text-slate-50',
   };
   const sizes: Record<string, string> = {
     sm: 'px-2.5 py-1 text-xs',
@@ -135,6 +137,7 @@ export function Button({
       type={type}
       disabled={disabled}
       onClick={onClick}
+      title={title}
       className={`inline-flex items-center gap-1.5 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${className}`}
     >
       {children}

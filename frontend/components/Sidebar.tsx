@@ -94,6 +94,7 @@ const TOOLS: NavLink[] = [
 // ── Admin — privileged operations only. ──
 const ADMIN: NavLink[] = [
   { href: '/admin/roles',    labelKey: 'nav.roles',            surface: 'admin', icon: IconUsers, badge: 'new', visible: cap('canManageRoles') },
+  { href: '/admin/governance', labelKey: 'nav.governanceConfig',  surface: 'admin', icon: IconShield, badge: 'new', visible: cap('canEditPolicy') },
   { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
   { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: cap('canEditPersonas') },
   { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: cap('canReadAll') },
@@ -231,7 +232,7 @@ function SidebarBody({
           </div>
         )}
         {onClose && (
-          <button onClick={onClose} className="rounded p-1 text-slate-300 transition hover:bg-slate-800 hover:text-white md:hidden" aria-label={t('nav.closeMenu')}>
+          <button onClick={onClose} className="rounded p-1 text-slate-300 transition hover:bg-slate-800 hover:text-slate-50 md:hidden" aria-label={t('nav.closeMenu')}>
             <IconX className="h-4 w-4" />
           </button>
         )}

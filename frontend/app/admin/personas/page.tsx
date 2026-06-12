@@ -315,7 +315,7 @@ function PersonaModal({
             onClick={onClose}
             disabled={saving}
             aria-label={t('admin.personas.modal.close')}
-            className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
+            className="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-50 disabled:opacity-50"
           >
             <IconX className="h-4 w-4" />
           </button>
