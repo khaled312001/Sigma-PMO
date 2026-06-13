@@ -72,6 +72,20 @@ const NARRATIVE_TYPES: { key: NarrativeType; label: string }[] = [
   { key: 'portfolio', label: 'Portfolio' },
 ];
 
+/** Domain-appropriate Arabic labels for the narrative composition types. */
+const NARRATIVE_TYPE_LABEL_AR: Record<string, string> = {
+  executive: 'تنفيذي',
+  governance: 'حوكمة',
+  investment: 'استثماري',
+  portfolio: 'محفظة',
+};
+
+/** Localized narrative-type label; falls back to the capitalized key. */
+function narrativeTypeLabel(key: string, lang: 'en' | 'ar'): string {
+  if (lang === 'ar') return NARRATIVE_TYPE_LABEL_AR[key] ?? key;
+  return NARRATIVE_TYPES.find((n) => n.key === key)?.label ?? key;
+}
+
 interface MonthlyReportRow {
   id: string;
   projectBusinessKey: string;
@@ -113,7 +127,7 @@ export default function MonthlyReportsRoute() {
 // ---------------------------------------------------------------------------
 
 function MonthlyReportsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const toast = useToast();
   const { me } = useMe();
   const projectKey = useCurrentProjectKey();
@@ -194,7 +208,9 @@ function MonthlyReportsPage() {
     if (!re.test(periodKey)) {
       toast.error(
         t('reportsMonthly.toast.invalidMonthTitle'),
-        `Period key "${periodKey}" does not match the ${cadence} format.`,
+        lang === 'ar'
+          ? `مفتاح الفترة "${periodKey}" لا يطابق صيغة الدورية (${cadence}).`
+          : `Period key "${periodKey}" does not match the ${cadence} format.`,
       );
       return;
     }
@@ -335,7 +351,7 @@ function GenerateForm({
   onNarrativeTypeChange: (v: NarrativeType) => void;
   onSubmit: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <Card
       title={t('reportsMonthly.form.title')}
@@ -350,11 +366,13 @@ function GenerateForm({
       >
         <fieldset className="flex flex-col gap-1 text-xs">
           <legend className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-            Cadence
+            {lang === 'ar' ? 'الدورية' : 'Cadence'}
           </legend>
           <div className="flex flex-wrap gap-1.5">
             {(['day', 'week', 'month'] as const).map((c) => {
-              const labels: Record<Cadence, string> = { day: 'Daily', week: 'Weekly', month: 'Monthly' };
+              const labels: Record<Cadence, string> = lang === 'ar'
+                ? { day: 'يومي', week: 'أسبوعي', month: 'شهري' }
+                : { day: 'Daily', week: 'Weekly', month: 'Monthly' };
               return (
                 <button
                   key={c}
@@ -377,7 +395,7 @@ function GenerateForm({
         {cadence === 'month' && (
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-              Month (YYYY-MM)
+              {lang === 'ar' ? 'الشهر (YYYY-MM)' : 'Month (YYYY-MM)'}
             </span>
             <input
               type="month"
@@ -392,7 +410,7 @@ function GenerateForm({
         {cadence === 'week' && (
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-              ISO Week (YYYY-Www)
+              {lang === 'ar' ? 'أسبوع ISO (YYYY-Www)' : 'ISO Week (YYYY-Www)'}
             </span>
             <input
               type="week"
@@ -407,7 +425,7 @@ function GenerateForm({
         {cadence === 'day' && (
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-              Day (YYYY-MM-DD)
+              {lang === 'ar' ? 'اليوم (YYYY-MM-DD)' : 'Day (YYYY-MM-DD)'}
             </span>
             <input
               type="date"
@@ -446,7 +464,7 @@ function GenerateForm({
         {cadence === 'month' && (
           <fieldset className="flex flex-col gap-1 text-xs">
             <legend className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-              Narrative type
+              {lang === 'ar' ? 'نوع السرد' : 'Narrative type'}
             </legend>
             <div className="flex flex-wrap gap-1.5">
               {NARRATIVE_TYPES.map((nt) => (
@@ -455,14 +473,16 @@ function GenerateForm({
                   type="button"
                   aria-pressed={narrativeType === nt.key}
                   onClick={() => onNarrativeTypeChange(nt.key)}
-                  title={`${nt.label} narrative composition`}
+                  title={lang === 'ar'
+                    ? `تركيب سرد ${narrativeTypeLabel(nt.key, lang)}`
+                    : `${nt.label} narrative composition`}
                   className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
                     narrativeType === nt.key
                       ? 'border-violet-400 bg-violet-500/30 text-violet-50 shadow-sm scale-105'
                       : 'border-slate-600 bg-slate-900/60 text-slate-200 hover:border-slate-400 hover:scale-105'
                   }`}
                 >
-                  {nt.label}
+                  {narrativeTypeLabel(nt.key, lang)}
                 </button>
               ))}
             </div>
@@ -884,12 +904,13 @@ function AudiencePill({ audience }: { audience: Audience }) {
 
 /** Narrative-type pill from the persisted metrics. Hidden for legacy/executive. */
 function NarrativeTypePill({ metrics }: { metrics: Record<string, unknown> }) {
+  const { lang } = useI18n();
   const nt = typeof metrics?.narrativeType === 'string' ? (metrics.narrativeType as string) : null;
   if (!nt || nt === 'executive') return null;
   const tone: Record<string, 'violet' | 'amber' | 'sky'> = {
     governance: 'violet', investment: 'amber', portfolio: 'sky',
   };
-  return <Pill tone={tone[nt] ?? 'slate'}>{nt}</Pill>;
+  return <Pill tone={tone[nt] ?? 'slate'}>{narrativeTypeLabel(nt, lang)}</Pill>;
 }
 
 function SourceBadge({ source }: { source: string }) {
@@ -905,19 +926,22 @@ function SourceBadge({ source }: { source: string }) {
 }
 
 function PrintButton() {
+  const { lang } = useI18n();
   return (
     <button
       type="button"
       onClick={() => window.print()}
       className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-900/60 px-2.5 py-1.5 text-xs font-medium text-slate-100 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:text-sky-100 print:hidden"
-      title="Print / Save as PDF (Ctrl+P)"
+      title={lang === 'ar' ? 'طباعة / حفظ كـ PDF (Ctrl+P)' : 'Print / Save as PDF (Ctrl+P)'}
     >
-      Print
+      {lang === 'ar' ? 'طباعة' : 'Print'}
     </button>
   );
 }
 
 function ChartsStrip({ metrics }: { metrics: Record<string, unknown> }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const activityCount = readNumber(metrics?.activityCount) ?? 0;
   const critical = readNumber(metrics?.criticalAlertCount) ?? 0;
   const warning = readNumber(metrics?.warningAlertCount) ?? 0;
@@ -929,9 +953,9 @@ function ChartsStrip({ metrics }: { metrics: Record<string, unknown> }) {
   const byCode = (metrics?.alertsByCode ?? {}) as Record<string, number>;
 
   const severityDonut = [
-    { label: 'Critical', value: critical, accent: SEVERITY_ACCENT.critical },
-    { label: 'Warning', value: warning, accent: SEVERITY_ACCENT.warning },
-    { label: 'Info', value: info, accent: SEVERITY_ACCENT.info },
+    { label: ar ? 'حرج' : 'Critical', value: critical, accent: SEVERITY_ACCENT.critical },
+    { label: ar ? 'تحذير' : 'Warning', value: warning, accent: SEVERITY_ACCENT.warning },
+    { label: ar ? 'معلومة' : 'Info', value: info, accent: SEVERITY_ACCENT.info },
   ].filter((d) => d.value > 0);
 
   const byCodeBars = Object.entries(byCode)
@@ -942,46 +966,46 @@ function ChartsStrip({ metrics }: { metrics: Record<string, unknown> }) {
   return (
     <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-3">
       <GaugeChart
-        title="Data confidence"
+        title={ar ? 'موثوقية البيانات' : 'Data confidence'}
         value={confidence}
         max={1}
         label={`${(confidence * 100).toFixed(0)}%`}
-        hint={confidence >= 0.85 ? 'HIGH' : confidence >= 0.65 ? 'MED' : 'LOW'}
+        hint={confidence >= 0.85 ? (ar ? 'مرتفعة' : 'HIGH') : confidence >= 0.65 ? (ar ? 'متوسطة' : 'MED') : (ar ? 'منخفضة' : 'LOW')}
       />
       {planned !== null && actual !== null && (
         <StackedBar
-          title="Planned vs Actual"
-          caption={`${activityCount} activities`}
+          title={ar ? 'المخطط مقابل الفعلي' : 'Planned vs Actual'}
+          caption={ar ? `${activityCount} نشاط` : `${activityCount} activities`}
           data={[
-            { label: `Planned ${(planned * 100).toFixed(0)}%`, value: planned * 100, accent: CHART_PALETTE.crimson },
-            { label: `Actual ${(actual * 100).toFixed(0)}%`, value: actual * 100, accent: actual >= planned ? CHART_PALETTE.emerald : CHART_PALETTE.amber },
+            { label: ar ? `المخطط ${(planned * 100).toFixed(0)}%` : `Planned ${(planned * 100).toFixed(0)}%`, value: planned * 100, accent: CHART_PALETTE.crimson },
+            { label: ar ? `الفعلي ${(actual * 100).toFixed(0)}%` : `Actual ${(actual * 100).toFixed(0)}%`, value: actual * 100, accent: actual >= planned ? CHART_PALETTE.emerald : CHART_PALETTE.amber },
           ]}
         />
       )}
       {severityDonut.length > 0 ? (
         <DonutChart
-          title="Alerts by severity"
+          title={ar ? 'التنبيهات حسب الخطورة' : 'Alerts by severity'}
           data={severityDonut}
           size={150}
           thickness={20}
           centerValue={alertCount}
-          centerLabel="open"
+          centerLabel={ar ? 'مفتوحة' : 'open'}
         />
       ) : (
         <DonutChart
-          title="Alerts by severity"
-          data={[{ label: 'No open alerts', value: 1, accent: CHART_PALETTE.emerald }]}
+          title={ar ? 'التنبيهات حسب الخطورة' : 'Alerts by severity'}
+          data={[{ label: ar ? 'لا توجد تنبيهات مفتوحة' : 'No open alerts', value: 1, accent: CHART_PALETTE.emerald }]}
           size={150}
           thickness={20}
           centerValue={0}
-          centerLabel="clear"
+          centerLabel={ar ? 'نظيف' : 'clear'}
         />
       )}
       {byCodeBars.length > 0 && (
         <div className="md:col-span-3">
           <BarChart
-            title="Alerts by rule code"
-            caption="top six"
+            title={ar ? 'التنبيهات حسب رمز القاعدة' : 'Alerts by rule code'}
+            caption={ar ? 'أعلى ستة' : 'top six'}
             data={byCodeBars}
             labelWidth={180}
             rowHeight={26}

@@ -66,6 +66,13 @@ const PORTFOLIO: NavLink[] = [
   { href: '/revenue', labelKey: 'nav.revenue', surface: 'evidence', icon: IconActivity, badge: 'new', tag: 'REV', visible: cap('canRunRevenueGovernance') },
   { href: '/funding', labelKey: 'nav.funding', surface: 'approval', icon: IconShield, badge: 'new', tag: 'FND', visible: cap('canRunFunding') },
   { href: '/predictive', labelKey: 'nav.predictive', surface: 'insights', icon: IconActivity, badge: 'new', tag: 'PRD', visible: cap('canRunPredictive') },
+  // Full governance lifecycle (Mr. Ayham, 2026-06-13).
+  { href: '/bankability', labelKey: 'nav.bankability', surface: 'approval', icon: IconShield, badge: 'new', tag: 'BNK', visible: cap('canRunBankability') },
+  { href: '/safety', labelKey: 'nav.safety', surface: 'review', icon: IconShield, badge: 'new', tag: 'SAF', visible: cap('canRunSafety') },
+  { href: '/fire-safety', labelKey: 'nav.fireSafety', surface: 'review', icon: IconShield, badge: 'new', tag: 'FLS', visible: cap('canRunFireLifeSafety') },
+  { href: '/authority', labelKey: 'nav.authority', surface: 'approval', icon: IconEvidence, badge: 'new', tag: 'AUT', visible: cap('canRunAuthority') },
+  { href: '/utility', labelKey: 'nav.utility', surface: 'planning', icon: IconActivity, badge: 'new', tag: 'UTL', visible: cap('canRunUtility') },
+  { href: '/operational-readiness', labelKey: 'nav.operationalReadiness', surface: 'evidence', icon: IconList, badge: 'new', tag: 'OPR', visible: cap('canRunOperationalReadiness') },
   { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
 ];
 

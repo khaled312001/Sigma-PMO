@@ -40,7 +40,8 @@ interface ProjectRow extends ScoredProject {
 }
 
 function ProjectsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const isAr = lang === 'ar';
   const { projects, loading } = useProject();
   const [scored, setScored] = useState<ScoredProject[] | null>(null);
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
@@ -149,17 +150,17 @@ function ProjectsPage() {
             },
             {
               key: 'composite',
-              label: 'Composite',
+              label: isAr ? 'الدرجة المركّبة' : 'Composite',
               width: '11rem',
               render: (r) => (
                 <div className="flex flex-col items-start gap-1">
                   <ScorePill value={r.compositeScore} higherBetter />
                   <div className="flex items-center gap-1">
                     {typeof r.projectRanking === 'number' && r.projectRanking > 0 && (
-                      <Pill tone="violet">Rank #{r.projectRanking}</Pill>
+                      <Pill tone="violet">{isAr ? `الترتيب #${r.projectRanking}` : `Rank #${r.projectRanking}`}</Pill>
                     )}
                     {typeof r.portfolioRanking === 'number' && r.portfolioRanking > 0 && (
-                      <Pill tone="sky">Portfolio #{r.portfolioRanking}</Pill>
+                      <Pill tone="sky">{isAr ? `المحفظة #${r.portfolioRanking}` : `Portfolio #${r.portfolioRanking}`}</Pill>
                     )}
                   </div>
                 </div>
@@ -168,7 +169,7 @@ function ProjectsPage() {
             },
             {
               key: 'governance',
-              label: 'Governance',
+              label: isAr ? 'الحوكمة' : 'Governance',
               width: '7rem',
               align: 'end',
               render: (r) => <ScorePill value={r.governanceScore} higherBetter />,
@@ -177,7 +178,7 @@ function ProjectsPage() {
             },
             {
               key: 'risk',
-              label: 'Risk',
+              label: isAr ? 'المخاطر' : 'Risk',
               width: '6rem',
               align: 'end',
               render: (r) => <ScorePill value={r.riskScore} higherBetter={false} />,
@@ -186,7 +187,7 @@ function ProjectsPage() {
             },
             {
               key: 'investment',
-              label: 'Investment',
+              label: isAr ? 'الاستثمار' : 'Investment',
               width: '7rem',
               align: 'end',
               render: (r) => r.investmentScore === null || r.investmentScore === undefined

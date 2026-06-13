@@ -29,6 +29,7 @@ import { AuthGate } from '../../components/AuthGate';
 import { IconBook, IconFilter, IconSearch } from '../../components/Icons';
 import { Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useI18n } from '../../lib/i18n';
 
 interface SourceRecord {
   id: string;
@@ -82,6 +83,7 @@ export default function SourcesPageRoute() {
 }
 
 function SourcesPage() {
+  const { lang } = useI18n();
   const [sources, setSources] = useState<SourceRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -146,13 +148,19 @@ function SourcesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Reference catalogue"
-        title="Sources"
-        description="The authoritative scientific and professional references the platform's expert personas are allowed to cite. Curated by Sigma — every persona claim without a [SOURCE: externalId] marker pointing to a row below is flagged as an unverified assumption."
+        eyebrow={lang === 'ar' ? 'المرجعية العلمية المعتمدة' : 'Reference catalogue'}
+        title={lang === 'ar' ? 'المصادر المرجعية' : 'Sources'}
+        description={
+          lang === 'ar'
+            ? 'المراجع العلمية والمهنية المعتمدة التي يُسمح لخبراء المنصّة بالاستناد إليها. منسّقة من Sigma — وأي استنتاج لخبير لا يحمل وسم [SOURCE: externalId] يشير إلى أحد البنود أدناه يُعَدّ افتراضاً غير موثّق.'
+            : "The authoritative scientific and professional references the platform's expert personas are allowed to cite. Curated by Sigma — every persona claim without a [SOURCE: externalId] marker pointing to a row below is flagged as an unverified assumption."
+        }
         actions={
           sources ? (
             <Pill tone="slate">
-              {sources.length} {sources.length === 1 ? 'source' : 'sources'}
+              {lang === 'ar'
+                ? `${sources.length} ${sources.length === 1 ? 'مرجع' : 'مرجعاً'}`
+                : `${sources.length} ${sources.length === 1 ? 'source' : 'sources'}`}
             </Pill>
           ) : null
         }
@@ -165,12 +173,12 @@ function SourcesPage() {
           they read as a single filter strip. */}
       <Card padded={false}>
         <div className="flex flex-col gap-3 border-b border-slate-800/70 px-5 py-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by family">
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={lang === 'ar' ? 'تصفية حسب العائلة المرجعية' : 'Filter by family'}>
             <span className="inline-flex items-center gap-1 pe-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               <IconFilter className="h-3.5 w-3.5" />
-              Family
+              {lang === 'ar' ? 'العائلة المرجعية' : 'Family'}
             </span>
-            <FamilyChip label="All" active={family === null} count={sources?.length ?? 0} onClick={() => setFamily(null)} />
+            <FamilyChip label={lang === 'ar' ? 'الكل' : 'All'} active={family === null} count={sources?.length ?? 0} onClick={() => setFamily(null)} />
             {KNOWN_FAMILIES.map((f) => (
               <FamilyChip
                 key={f}
@@ -182,7 +190,7 @@ function SourcesPage() {
             ))}
             {(counts[OTHER_FAMILY] ?? 0) > 0 && (
               <FamilyChip
-                label={OTHER_FAMILY}
+                label={lang === 'ar' ? 'أخرى' : OTHER_FAMILY}
                 active={family === OTHER_FAMILY}
                 count={counts[OTHER_FAMILY]}
                 onClick={() => setFamily(OTHER_FAMILY)}
@@ -190,13 +198,13 @@ function SourcesPage() {
             )}
           </div>
           <label className="relative block w-full md:w-80">
-            <span className="sr-only">Search sources</span>
+            <span className="sr-only">{lang === 'ar' ? 'البحث في المصادر' : 'Search sources'}</span>
             <IconSearch className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search title, publisher, scope, persona…"
+              placeholder={lang === 'ar' ? 'ابحث في العنوان أو الناشر أو النطاق أو الخبير…' : 'Search title, publisher, scope, persona…'}
               className="block w-full rounded-lg border border-slate-800 bg-slate-950/60 ps-9 pe-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
               dir="ltr"
               spellCheck={false}
@@ -219,15 +227,27 @@ function SourcesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<IconBook className="h-8 w-8" />}
-          title={search || family ? 'No sources match the current filter' : 'No sources registered yet'}
+          title={
+            search || family
+              ? lang === 'ar'
+                ? 'لا توجد مصادر مطابقة للمُرشّح الحالي'
+                : 'No sources match the current filter'
+              : lang === 'ar'
+                ? 'لا توجد مصادر مُسجَّلة بعد'
+                : 'No sources registered yet'
+          }
           description={
             search || family
-              ? 'Try clearing the family chip or the search box.'
-              : 'The catalogue is empty. Edit sources.seed.json on the backend and restart to populate it.'
+              ? lang === 'ar'
+                ? 'جرّب إزالة مُرشّح العائلة أو مسح حقل البحث.'
+                : 'Try clearing the family chip or the search box.'
+              : lang === 'ar'
+                ? 'القائمة المرجعية فارغة. عدّل ملف sources.seed.json على الخادم ثم أعد التشغيل لتعبئته.'
+                : 'The catalogue is empty. Edit sources.seed.json on the backend and restart to populate it.'
           }
         />
       ) : (
-        <ul className="space-y-3" aria-label="Reference catalogue">
+        <ul className="space-y-3" aria-label={lang === 'ar' ? 'المرجعية المعتمدة' : 'Reference catalogue'}>
           {filtered.map((s) => (
             <li key={s.id}>
               <SourceRow source={s} />
@@ -279,6 +299,7 @@ function FamilyChip({
  * the long prose; link footer = the upstream publisher URL (new tab).
  */
 function SourceRow({ source }: { source: SourceRecord }) {
+  const { lang } = useI18n();
   const familyKey = classifyFamily(source.family);
   const tone = FAMILY_TONE[familyKey] ?? 'slate';
   const verified = source.verification === 'confirmed';
@@ -294,9 +315,9 @@ function SourceRow({ source }: { source: SourceRecord }) {
                 {source.externalId}
               </span>
               {verified ? (
-                <Pill tone="emerald">verified</Pill>
+                <Pill tone="emerald">{lang === 'ar' ? 'موثّق' : 'verified'}</Pill>
               ) : (
-                <Pill tone="amber">verify</Pill>
+                <Pill tone="amber">{lang === 'ar' ? 'بانتظار التوثيق' : 'verify'}</Pill>
               )}
             </div>
             <h3 className="mt-2 text-sm font-semibold text-slate-100">{source.title}</h3>
@@ -316,9 +337,8 @@ function SourceRow({ source }: { source: SourceRecord }) {
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 transition hover:border-sky-500/60 hover:text-sky-200"
-              dir="ltr"
             >
-              Open
+              {lang === 'ar' ? 'فتح المصدر' : 'Open'}
               {/* Tiny inline external-link glyph keeps the bundle lean — we
                   don't depend on adding a new icon to the global set. */}
               <svg
@@ -342,7 +362,7 @@ function SourceRow({ source }: { source: SourceRecord }) {
         {source.applicablePersonas && source.applicablePersonas.length > 0 && (
           <div className="mt-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Applicable personas
+              {lang === 'ar' ? 'الخبراء المعنيّون' : 'Applicable personas'}
             </p>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {source.applicablePersonas.map((p) => (

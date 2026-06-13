@@ -28,7 +28,8 @@ export default function InputPageRoute() {
 }
 
 function InputPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const isAr = lang === 'ar';
   const toast = useToast();
   const [runs, setRuns] = useState<IngestionRun[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -39,19 +40,29 @@ function InputPage() {
 
   const refresh = useCallback(async () => {
     try { setRuns(await api<IngestionRun[]>('/ingestion/runs?limit=20')); }
-    catch (e) { toast.error('Failed to load runs', (e as Error).message); }
-  }, [toast]);
+    catch (e) { toast.error(isAr ? 'تعذّر تحميل عمليات الإدخال' : 'Failed to load runs', (e as Error).message); }
+  }, [toast, isAr]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   const setFileSafe = (f: File | null) => {
     if (!f) { setFile(null); return; }
     if (!ACCEPTED_EXT.test(f.name)) {
-      toast.error('Unsupported file', 'Accepted formats: .xer, .xml, .xlsx, .csv, .pdf (Primavera P6 PDF export)');
+      toast.error(
+        isAr ? 'صيغة غير مدعومة' : 'Unsupported file',
+        isAr
+          ? 'الصيغ المقبولة: ‎.xer و‎.xml و‎.xlsx و‎.csv و‎.pdf (تصدير Primavera P6 بصيغة PDF)'
+          : 'Accepted formats: .xer, .xml, .xlsx, .csv, .pdf (Primavera P6 PDF export)',
+      );
       return;
     }
     if (f.size > MAX_BYTES) {
-      toast.error('File too large', `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 24 MB limit. Use ingest-path for larger files.`);
+      toast.error(
+        isAr ? 'الملف أكبر من الحدّ المسموح' : 'File too large',
+        isAr
+          ? `${(f.size / 1024 / 1024).toFixed(1)} ميغابايت تتجاوز حدّ الـ 24 ميغابايت. استخدم مسار الإدخال (ingest-path) للملفات الأكبر.`
+          : `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 24 MB limit. Use ingest-path for larger files.`,
+      );
       return;
     }
     setFile(f);
@@ -72,9 +83,9 @@ function InputPage() {
       });
       setOutcome(r);
       setFile(null);
-      toast.success('Ingested', `${r.parser} · ${Object.entries(r.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}`);
+      toast.success(isAr ? 'تم الإدخال' : 'Ingested', `${r.parser} · ${Object.entries(r.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}`);
       await refresh();
-    } catch (e) { toast.error('Ingestion failed', (e as Error).message); }
+    } catch (e) { toast.error(isAr ? 'فشل الإدخال' : 'Ingestion failed', (e as Error).message); }
     finally { setUploading(false); }
   };
 
@@ -84,10 +95,15 @@ function InputPage() {
         eyebrow={t('input.eyebrow')}
         title={t('input.title')}
         description={t('input.description')}
-        actions={<Button variant="ghost" size="sm" onClick={refresh}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>}
+        actions={<Button variant="ghost" size="sm" onClick={refresh}><IconRefresh className="h-3.5 w-3.5" /> {isAr ? 'تحديث' : 'Refresh'}</Button>}
       />
 
-      <Card title="Upload a file" hint="Drop here or browse. The file is archived immutably and traced through the entire pipeline.">
+      <Card
+        title={isAr ? 'رفع ملف' : 'Upload a file'}
+        hint={isAr
+          ? 'أفلِت الملف هنا أو تصفّح. يُؤرشَف الملف بصورة غير قابلة للتعديل ويُتتبَّع عبر مسار المعالجة بالكامل.'
+          : 'Drop here or browse. The file is archived immutably and traced through the entire pipeline.'}
+      >
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -96,7 +112,7 @@ function InputPage() {
             dragOver ? 'border-sky-500 bg-sky-500/5' : 'border-slate-700 bg-slate-900/30'
           }`}
           role="region"
-          aria-label="Drop zone for file upload"
+          aria-label={isAr ? 'منطقة إفلات الملف للرفع' : 'Drop zone for file upload'}
         >
           <div className="grid h-12 w-12 place-items-center rounded-full bg-sky-500/10 text-sky-300 ring-1 ring-sky-500/30">
             <IconUpload className="h-5 w-5" />
@@ -108,8 +124,12 @@ function InputPage() {
             </>
           ) : (
             <>
-              <p className="text-sm text-slate-200">Drag a P6 (.xer / .xml / .pdf) · MS Project · Excel · CSV file here</p>
-              <p className="text-xs text-slate-400">or click below to browse</p>
+              <p className="text-sm text-slate-200" dir={isAr ? 'rtl' : 'ltr'}>
+                {isAr
+                  ? 'اسحب إلى هنا ملف P6 (‎.xer / ‎.xml / ‎.pdf) · MS Project · Excel · CSV'
+                  : 'Drag a P6 (.xer / .xml / .pdf) · MS Project · Excel · CSV file here'}
+              </p>
+              <p className="text-xs text-slate-400">{isAr ? 'أو انقر بالأسفل للتصفّح' : 'or click below to browse'}</p>
             </>
           )}
           <div className="flex items-center gap-2">
@@ -119,11 +139,11 @@ function InputPage() {
               accept=".xer,.xml,.xlsx,.csv,.pdf,application/pdf"
               onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)}
               className="hidden"
-              aria-label="File to ingest"
+              aria-label={isAr ? 'الملف المراد إدخاله' : 'File to ingest'}
             />
-            <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>Browse</Button>
+            <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>{isAr ? 'تصفّح' : 'Browse'}</Button>
             <Button variant="primary" size="sm" disabled={!file || uploading} onClick={upload}>
-              {uploading ? 'Ingesting…' : 'Ingest'}
+              {uploading ? (isAr ? 'جارٍ الإدخال…' : 'Ingesting…') : (isAr ? 'إدخال' : 'Ingest')}
             </Button>
           </div>
         </div>
@@ -131,26 +151,35 @@ function InputPage() {
         {outcome && (
           <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
             <div className="flex flex-wrap items-center gap-2">
-              <span>Ingested via</span>
+              <span>{isAr ? 'تم الإدخال عبر' : 'Ingested via'}</span>
               <Pill tone="emerald">{outcome.parser}</Pill>
               <Pill tone="slate">{outcome.status}</Pill>
-              {outcome.confidence && <Pill tone="emerald">{(outcome.confidence.overall * 100).toFixed(1)}% confidence</Pill>}
+              {outcome.confidence && <Pill tone="emerald">{(outcome.confidence.overall * 100).toFixed(1)}% {isAr ? 'ثقة' : 'confidence'}</Pill>}
             </div>
             <p className="mt-2 text-xs text-emerald-100/80">
-              Rows: {Object.entries(outcome.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}
+              {isAr ? 'الصفوف:' : 'Rows:'} {Object.entries(outcome.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}
             </p>
           </div>
         )}
       </Card>
 
-      <Card title="Recent runs" hint="Append-only audit trail. Each row pins to its archived source file." padded={false}>
+      <Card
+        title={isAr ? 'عمليات الإدخال الأخيرة' : 'Recent runs'}
+        hint={isAr
+          ? 'سجلّ تدقيق تراكمي لا يقبل التعديل. كل صف مرتبط بالملف المصدر المؤرشَف الخاص به.'
+          : 'Append-only audit trail. Each row pins to its archived source file.'}
+        padded={false}
+      >
         {runs.length === 0 ? (
-          <EmptyState title="No ingestion runs yet" description="Upload a file above to start the pipeline." />
+          <EmptyState
+            title={isAr ? 'لا توجد عمليات إدخال بعد' : 'No ingestion runs yet'}
+            description={isAr ? 'ارفع ملفاً بالأعلى لبدء مسار المعالجة.' : 'Upload a file above to start the pipeline.'}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
-              <thead className="bg-slate-900/40 text-left text-[10px] uppercase tracking-wider text-slate-400">
-                <tr><th scope="col" className="px-5 py-2.5">When</th><th scope="col" className="py-2.5">Parser</th><th scope="col" className="py-2.5">Status</th><th scope="col" className="py-2.5">Counts</th><th scope="col" className="py-2.5 pr-5">Confidence</th></tr>
+              <thead className="bg-slate-900/40 text-start text-[10px] uppercase tracking-wider text-slate-400">
+                <tr><th scope="col" className="px-5 py-2.5 text-start">{isAr ? 'الوقت' : 'When'}</th><th scope="col" className="py-2.5 text-start">{isAr ? 'المُحلِّل' : 'Parser'}</th><th scope="col" className="py-2.5 text-start">{isAr ? 'الحالة' : 'Status'}</th><th scope="col" className="py-2.5 text-start">{isAr ? 'الأعداد' : 'Counts'}</th><th scope="col" className="py-2.5 pr-5 text-start">{isAr ? 'الثقة' : 'Confidence'}</th></tr>
               </thead>
               <tbody>
                 {runs.map((r) => {

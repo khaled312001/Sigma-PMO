@@ -60,6 +60,7 @@ import { useConfirm } from '../../components/ConfirmDialog';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { API_BASE, api, getApiKey } from '../../lib/api';
 import { CAPABILITIES } from '../../lib/capabilities';
+import { useI18n } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 
@@ -113,6 +114,25 @@ const CATEGORY_LABEL: Record<LetterCategory, string> = {
   response: 'Responses',
   instruction: 'Instructions',
 };
+const CATEGORY_LABEL_AR: Record<LetterCategory, string> = {
+  notice: 'الإشعارات',
+  claim: 'المطالبات',
+  response: 'الردود',
+  instruction: 'التعليمات',
+};
+const STATUS_LABEL_AR: Record<'all' | StatusKey, string> = {
+  all: 'الكل',
+  draft: 'مسودة',
+  approved: 'معتمَد',
+  sent: 'مُرسَل',
+};
+/** Singular category label (for chips/pills) — distinct from the plural section headers. */
+const CATEGORY_PILL_AR: Record<LetterCategory, string> = {
+  notice: 'إشعار',
+  claim: 'مطالبة',
+  response: 'رد',
+  instruction: 'تعليمات',
+};
 
 type StatusKey = 'draft' | 'approved' | 'sent';
 type StatusFilter = 'all' | StatusKey;
@@ -144,6 +164,8 @@ function LettersPage() {
   const toast = useToast();
   const confirm = useConfirm();
   const { me } = useMe();
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const projectKey = useCurrentProjectKey();
 
   const role = me?.user?.role;
@@ -246,14 +268,17 @@ function LettersPage() {
           projectKey,
         }),
       });
-      toast.success('Draft created', 'Persona returned a citation-backed reply.');
+      toast.success(
+        ar ? 'تم إنشاء المسودة' : 'Draft created',
+        ar ? 'أعدّ النموذج رداً مدعوماً بالمراجع.' : 'Persona returned a citation-backed reply.',
+      );
       setOpenForm(null);
       await refresh();
     } catch (e) {
       // The drafter throws `LetterDrafterRejection` for missing/unknown
       // citations — surface the body so the user knows why the draft was
       // refused rather than "Action failed".
-      toast.error('Drafting refused', (e as Error).message);
+      toast.error(ar ? 'تعذّرت الصياغة' : 'Drafting refused', (e as Error).message);
     } finally {
       setActing(null);
     }
@@ -276,12 +301,15 @@ function LettersPage() {
           ...(input.templateKey ? { templateKey: input.templateKey } : {}),
         }),
       });
-      toast.success('Compliance draft created', 'Persona produced a citation-backed notice.');
+      toast.success(
+        ar ? 'تم إنشاء مسودة الامتثال' : 'Compliance draft created',
+        ar ? 'أصدر النموذج إشعاراً مدعوماً بالمراجع.' : 'Persona produced a citation-backed notice.',
+      );
       setOpenForm(null);
       setPrefillTemplate(null);
       await refresh();
     } catch (e) {
-      toast.error('Drafting refused', (e as Error).message);
+      toast.error(ar ? 'تعذّرت الصياغة' : 'Drafting refused', (e as Error).message);
     } finally {
       setActing(null);
     }
@@ -290,20 +318,22 @@ function LettersPage() {
   const approve = async (letterId: string) => {
     if (!canApprove) return;
     const ok = await confirm({
-      title: 'Approve this letter?',
-      description:
-        'Approval flips the draft to `approved` and unlocks PDF rendering. ' +
-        'Sending is still gated until Computer Use enablement (ADR-0011).',
-      confirmLabel: 'Approve',
+      title: ar ? 'اعتماد هذا الخطاب؟' : 'Approve this letter?',
+      description: ar
+        ? 'يحوّل الاعتماد المسودة إلى «معتمَدة» ويُتيح إصدار ملف PDF. ' +
+          'يظل الإرسال موقوفاً حتى تفعيل ميزة Computer Use (ADR-0011).'
+        : 'Approval flips the draft to `approved` and unlocks PDF rendering. ' +
+          'Sending is still gated until Computer Use enablement (ADR-0011).',
+      confirmLabel: ar ? 'اعتماد' : 'Approve',
     });
     if (!ok) return;
     setActing(letterId);
     try {
       await api<LetterRecord>(`/letters/${letterId}/approve`, { method: 'POST' });
-      toast.success('Letter approved');
+      toast.success(ar ? 'تم اعتماد الخطاب' : 'Letter approved');
       await refresh();
     } catch (e) {
-      toast.error('Approval failed', (e as Error).message);
+      toast.error(ar ? 'تعذّر الاعتماد' : 'Approval failed', (e as Error).message);
     } finally {
       setActing(null);
     }
@@ -338,7 +368,7 @@ function LettersPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      toast.error('PDF download failed', (e as Error).message);
+      toast.error(ar ? 'تعذّر تنزيل ملف PDF' : 'PDF download failed', (e as Error).message);
     }
   };
 
@@ -347,17 +377,21 @@ function LettersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Governance · FIDIC"
-        title="Letters"
+        eyebrow={ar ? 'الحوكمة · FIDIC' : 'Governance · FIDIC'}
+        title={ar ? 'الخطابات التعاقدية' : 'Letters'}
         description={
-          'Bilingual FIDIC contract letters drafted by the fidic-redbook-expert persona. ' +
-          'Every draft carries a mandatory citation footer pointing to the Source registry. ' +
-          'Wave 2 stops at approval — sending stays gated until Computer Use enablement (ADR-0011).'
+          ar
+            ? 'خطابات تعاقدية ثنائية اللغة وفق عقود FIDIC يصوغها خبير الكتاب الأحمر (fidic-redbook-expert). ' +
+              'تحمل كل مسودة تذييل استشهاد إلزامي يشير إلى سجل المصادر. ' +
+              'تتوقف المرحلة الثانية عند الاعتماد — ويظل الإرسال موقوفاً حتى تفعيل ميزة Computer Use (ADR-0011).'
+            : 'Bilingual FIDIC contract letters drafted by the fidic-redbook-expert persona. ' +
+              'Every draft carries a mandatory citation footer pointing to the Source registry. ' +
+              'Wave 2 stops at approval — sending stays gated until Computer Use enablement (ADR-0011).'
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={refresh}>
-              <IconRefresh className="h-3.5 w-3.5" /> Refresh
+              <IconRefresh className="h-3.5 w-3.5" /> {ar ? 'تحديث' : 'Refresh'}
             </Button>
             {canDraft && (
               <>
@@ -368,7 +402,7 @@ function LettersPage() {
                     setOpenForm((cur) => (cur === 'incoming' ? null : 'incoming'))
                   }
                 >
-                  <IconSparkles className="h-3.5 w-3.5" /> Draft from incoming
+                  <IconSparkles className="h-3.5 w-3.5" /> {ar ? 'صياغة رد على وارد' : 'Draft from incoming'}
                 </Button>
                 <Button
                   variant="primary"
@@ -377,7 +411,7 @@ function LettersPage() {
                     setOpenForm((cur) => (cur === 'compliance' ? null : 'compliance'))
                   }
                 >
-                  <IconBell className="h-3.5 w-3.5" /> Draft compliance
+                  <IconBell className="h-3.5 w-3.5" /> {ar ? 'صياغة إشعار امتثال' : 'Draft compliance'}
                 </Button>
               </>
             )}
@@ -392,7 +426,7 @@ function LettersPage() {
       {mostUrgent && mostUrgent.mustRespondBy && (
         <div
           role="alert"
-          dir="rtl"
+          dir={ar ? 'rtl' : 'ltr'}
           className={`flex flex-wrap items-center gap-2 rounded-xl border px-4 py-3 text-sm ${
             mostUrgent.overdue
               ? 'border-rose-500/50 bg-rose-500/10 text-rose-200'
@@ -403,17 +437,33 @@ function LettersPage() {
         >
           <IconClock className="h-4 w-4 shrink-0" />
           {mostUrgent.overdue ? (
-            <span>
-              خطاب متأخر عن موعد الرد — كان يجب الرد قبل{' '}
-              <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
-              (متأخر {Math.abs(mostUrgent.remainingDays as number)} يوم)
-            </span>
+            ar ? (
+              <span>
+                خطاب متأخر عن موعد الرد — كان يجب الرد قبل{' '}
+                <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
+                (متأخر {Math.abs(mostUrgent.remainingDays as number)} يوم)
+              </span>
+            ) : (
+              <span>
+                Letter past its response deadline — reply was due by{' '}
+                <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
+                ({Math.abs(mostUrgent.remainingDays as number)} d overdue)
+              </span>
+            )
           ) : (
-            <span>
-              خطاب يجب الرد قبل{' '}
-              <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
-              ({mostUrgent.remainingDays} أيام متبقية)
-            </span>
+            ar ? (
+              <span>
+                خطاب يجب الرد قبل{' '}
+                <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
+                ({mostUrgent.remainingDays} أيام متبقية)
+              </span>
+            ) : (
+              <span>
+                Letter must be answered by{' '}
+                <strong dir="ltr">{mostUrgent.mustRespondBy}</strong>{' '}
+                ({mostUrgent.remainingDays} d remaining)
+              </span>
+            )
           )}
           {mostUrgent.fidicClauseRef && (
             <Pill tone={mostUrgent.overdue ? 'rose' : 'amber'}>
@@ -425,7 +475,7 @@ function LettersPage() {
             onClick={() => setSelectedId(mostUrgent.id)}
             className="ms-auto rounded-md bg-slate-900/50 px-2.5 py-1 text-xs underline-offset-2 hover:underline"
           >
-            عرض الخطاب
+            {ar ? 'عرض الخطاب' : 'View letter'}
           </button>
         </div>
       )}
@@ -438,6 +488,7 @@ function LettersPage() {
           busy={acting === 'draft-incoming'}
           onCancel={() => setOpenForm(null)}
           onSubmit={draftFromIncoming}
+          ar={ar}
         />
       )}
       {openForm === 'compliance' && canDraft && (
@@ -447,22 +498,23 @@ function LettersPage() {
           template={prefillTemplate}
           onCancel={() => { setOpenForm(null); setPrefillTemplate(null); }}
           onSubmit={draftCompliance}
+          ar={ar}
         />
       )}
 
       {/* FIDIC template picker — click a card to prefill the compliance form
           with that template's clause + body scaffold. */}
       {canDraft && templates.length > 0 && (
-        <TemplatePicker templates={templates} onPick={pickTemplate} activeKey={prefillTemplate?.key ?? null} />
+        <TemplatePicker templates={templates} onPick={pickTemplate} activeKey={prefillTemplate?.key ?? null} ar={ar} />
       )}
 
       {/* Status filter chip row. Mirrors the same pattern Decisions page uses
           (consistent UX across governance surfaces). */}
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by status">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={ar ? 'تصفية حسب الحالة' : 'Filter by status'}>
         {(['all', 'draft', 'approved', 'sent'] as const).map((k) => (
           <StatusChip
             key={k}
-            label={k === 'all' ? 'All' : k}
+            label={ar ? STATUS_LABEL_AR[k] : (k === 'all' ? 'All' : k)}
             active={filter === k}
             count={counts[k]}
             onClick={() => setFilter(k)}
@@ -485,24 +537,28 @@ function LettersPage() {
           icon={<IconBook className="h-8 w-8" />}
           title={
             filter === 'all'
-              ? 'No letters drafted yet'
-              : `No letters in status “${filter}”`
+              ? (ar ? 'لا توجد خطابات مُصاغة بعد' : 'No letters drafted yet')
+              : (ar ? `لا توجد خطابات بحالة «${STATUS_LABEL_AR[filter]}»` : `No letters in status “${filter}”`)
           }
           description={
             canDraft
-              ? 'Use the two CTAs above to ask the FIDIC persona to draft a reply or a compliance notice.'
-              : 'Once a Sigma reviewer drafts a letter for this project it will appear here.'
+              ? (ar
+                  ? 'استخدم الزرّين أعلاه لتكليف خبير FIDIC بصياغة رد أو إشعار امتثال.'
+                  : 'Use the two CTAs above to ask the FIDIC persona to draft a reply or a compliance notice.')
+              : (ar
+                  ? 'بمجرد أن يصوغ مراجِع من Sigma خطاباً لهذا المشروع سيظهر هنا.'
+                  : 'Once a Sigma reviewer drafts a letter for this project it will appear here.')
           }
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           {/* Left pane: row list grouped by correspondence-library category.
               Headers let a reviewer scan notices vs claims vs responses fast. */}
-          <div className="space-y-4" aria-label="Letter list">
+          <div className="space-y-4" aria-label={ar ? 'قائمة الخطابات' : 'Letter list'}>
             {groupByCategory(filtered).map(({ category, items }) => (
               <section key={category}>
                 <h4 className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  {CATEGORY_LABEL[category]}
+                  {ar ? CATEGORY_LABEL_AR[category] : CATEGORY_LABEL[category]}
                   <span className="rounded bg-slate-800/80 px-1.5 py-0.5 font-mono text-[9px] text-slate-500">{items.length}</span>
                 </h4>
                 <ul className="space-y-2">
@@ -512,6 +568,7 @@ function LettersPage() {
                         letter={l}
                         selected={l.id === selectedId}
                         onSelect={() => setSelectedId(l.id)}
+                        ar={ar}
                       />
                     </li>
                   ))}
@@ -529,11 +586,12 @@ function LettersPage() {
                 acting={acting === selected.id}
                 onApprove={() => approve(selected.id)}
                 onDownload={() => downloadPdf(selected)}
+                ar={ar}
               />
             ) : (
               <EmptyState
-                title="Select a letter"
-                description="Pick a row on the left to read its bilingual body and citation footer."
+                title={ar ? 'اختر خطاباً' : 'Select a letter'}
+                description={ar ? 'اختر صفاً من القائمة لقراءة نصه ثنائي اللغة وتذييل الاستشهادات.' : 'Pick a row on the left to read its bilingual body and citation footer.'}
               />
             )}
           </div>
@@ -553,10 +611,12 @@ function LetterRowCard({
   letter,
   selected,
   onSelect,
+  ar,
 }: {
   letter: LetterRecord;
   selected: boolean;
   onSelect: () => void;
+  ar: boolean;
 }) {
   const deadline = deadlineCountdownOf(letter);
   return (
@@ -571,26 +631,28 @@ function LetterRowCard({
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <StatusPill status={letter.status as StatusKey} />
+        <StatusPill status={letter.status as StatusKey} ar={ar} />
         {letter.fidicClauseRef && (
           <Pill tone="rose">
             <span className="font-mono" dir="ltr">{letter.fidicClauseRef}</span>
           </Pill>
         )}
         {letter.trigger === 'compliance-flag' ? (
-          <Pill tone="amber">compliance</Pill>
+          <Pill tone="amber">{ar ? 'امتثال' : 'compliance'}</Pill>
         ) : (
-          <Pill tone="sky">incoming</Pill>
+          <Pill tone="sky">{ar ? 'وارد' : 'incoming'}</Pill>
         )}
         <span className="ms-auto inline-flex items-center gap-1 text-[10px] text-slate-500">
           <IconBook className="h-3 w-3" />
-          {letter.citations.length} citation{letter.citations.length === 1 ? '' : 's'}
+          {ar
+            ? `${letter.citations.length} استشهاد`
+            : `${letter.citations.length} citation${letter.citations.length === 1 ? '' : 's'}`}
         </span>
       </div>
       <h3 className="mt-2 text-sm font-medium text-slate-100">{letter.subject}</h3>
       <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
         <span dir="ltr">{new Date(letter.createdAt).toLocaleString()}</span>
-        <DeadlineBadge countdown={deadline} status={letter.status as StatusKey} />
+        <DeadlineBadge countdown={deadline} status={letter.status as StatusKey} ar={ar} />
       </div>
     </button>
   );
@@ -604,12 +666,14 @@ function LetterDetailCard({
   acting,
   onApprove,
   onDownload,
+  ar,
 }: {
   letter: LetterRecord;
   canApprove: boolean;
   acting: boolean;
   onApprove: () => void;
   onDownload: () => void;
+  ar: boolean;
 }) {
   const [bodyLang, setBodyLang] = useState<'ar' | 'en'>('ar');
   const isDraft = letter.status === 'draft';
@@ -625,31 +689,31 @@ function LetterDetailCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <StatusPill status={letter.status as StatusKey} />
+              <StatusPill status={letter.status as StatusKey} ar={ar} />
               {letter.fidicClauseRef && (
                 <Pill tone="rose">
                   <span className="font-mono" dir="ltr">{letter.fidicClauseRef}</span>
                 </Pill>
               )}
               {letter.trigger === 'compliance-flag' ? (
-                <Pill tone="amber">compliance flag</Pill>
+                <Pill tone="amber">{ar ? 'إشعار امتثال' : 'compliance flag'}</Pill>
               ) : (
-                <Pill tone="sky">incoming reply</Pill>
+                <Pill tone="sky">{ar ? 'رد على وارد' : 'incoming reply'}</Pill>
               )}
             </div>
             <h2 className="mt-2 text-base font-semibold text-slate-100">{letter.subject}</h2>
-            <p className="mt-1 text-[11px] text-slate-500" dir="ltr">
-              Drafted {new Date(letter.createdAt).toLocaleString()} · project {letter.projectBusinessKey}
+            <p className="mt-1 text-[11px] text-slate-500" dir={ar ? 'rtl' : 'ltr'}>
+              {ar ? 'صيغت في' : 'Drafted'} <span dir="ltr">{new Date(letter.createdAt).toLocaleString()}</span> · {ar ? 'المشروع' : 'project'} <span dir="ltr">{letter.projectBusinessKey}</span>
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {canApprove && isDraft && (
               <Button variant="success" size="sm" disabled={acting} onClick={onApprove}>
-                <IconCheck className="h-3.5 w-3.5" /> Approve
+                <IconCheck className="h-3.5 w-3.5" /> {ar ? 'اعتماد' : 'Approve'}
               </Button>
             )}
             <Button variant="ghost" size="sm" disabled={!canDownload} onClick={onDownload}>
-              <IconBook className="h-3.5 w-3.5" /> Download PDF
+              <IconBook className="h-3.5 w-3.5" /> {ar ? 'تنزيل PDF' : 'Download PDF'}
             </Button>
           </div>
         </div>
@@ -665,21 +729,21 @@ function LetterDetailCard({
             }`}
           >
             <IconClock className="h-3.5 w-3.5" />
-            Contractual deadline: <span className="font-semibold">{letter.deadlineDays} d</span>
+            {ar ? 'المهلة التعاقدية:' : 'Contractual deadline:'} <span className="font-semibold">{letter.deadlineDays} {ar ? 'يوم' : 'd'}</span>
             {letter.mustRespondBy ? (
               <>
                 <span className="text-slate-500">·</span>
-                must respond by <span className="font-semibold" dir="ltr">{letter.mustRespondBy}</span>
+                {ar ? 'الرد قبل' : 'must respond by'} <span className="font-semibold" dir="ltr">{letter.mustRespondBy}</span>
                 {typeof letter.remainingDays === 'number' && (
                   <span className={letter.overdue ? 'font-semibold' : 'text-slate-400'}>
                     ({letter.overdue
-                      ? `${Math.abs(letter.remainingDays)} d overdue`
-                      : `${letter.remainingDays} d remaining`})
+                      ? (ar ? `متأخر ${Math.abs(letter.remainingDays)} يوم` : `${Math.abs(letter.remainingDays)} d overdue`)
+                      : (ar ? `متبقٍ ${letter.remainingDays} يوم` : `${letter.remainingDays} d remaining`)})
                   </span>
                 )}
               </>
             ) : (
-              <span className="text-slate-500">from receipt</span>
+              <span className="text-slate-500">{ar ? 'من تاريخ الاستلام' : 'from receipt'}</span>
             )}
           </div>
         )}
@@ -690,12 +754,12 @@ function LetterDetailCard({
       <div className="border-t border-slate-800/70 px-5 py-4">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Body
+            {ar ? 'نص الخطاب' : 'Body'}
           </p>
           <div
             className="inline-flex overflow-hidden rounded-md ring-1 ring-slate-700"
             role="group"
-            aria-label="Language toggle"
+            aria-label={ar ? 'تبديل اللغة' : 'Language toggle'}
           >
             <button
               type="button"
@@ -735,14 +799,16 @@ function LetterDetailCard({
           the chips below are therefore guaranteed-resolvable curated ids. */}
       <div className="border-t border-slate-800/70 px-5 py-4">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          Citations ({letter.citations.length})
+          {ar ? 'الاستشهادات' : 'Citations'} ({letter.citations.length})
         </p>
         {letter.citations.length === 0 ? (
           // Defensive: the drafter refuses to persist a row with zero
           // citations, so this branch is effectively unreachable. Render
           // a warning rather than silently hiding the empty footer.
           <p className="mt-2 text-xs text-amber-300">
-            No citations recorded — this row should not have been persisted.
+            {ar
+              ? 'لم تُسجَّل أي استشهادات — ما كان ينبغي حفظ هذا السجل.'
+              : 'No citations recorded — this row should not have been persisted.'}
           </p>
         ) : (
           <ul className="mt-2 flex flex-wrap gap-1.5">
@@ -776,16 +842,21 @@ function DraftFromIncomingForm({
   busy,
   onCancel,
   onSubmit,
+  ar,
 }: {
   projectKey: string;
   busy: boolean;
   onCancel: () => void;
   onSubmit: (input: { letterSourceFileId: string }) => void;
+  ar: boolean;
 }) {
   const [sourceFileId, setSourceFileId] = useState('');
   const valid = sourceFileId.trim().length > 0;
   return (
-    <Card title="Draft from incoming contractor letter" hint={`Project: ${projectKey}`}>
+    <Card
+      title={ar ? 'صياغة رد على خطاب وارد من المقاول' : 'Draft from incoming contractor letter'}
+      hint={ar ? `المشروع: ${projectKey}` : `Project: ${projectKey}`}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -796,29 +867,30 @@ function DraftFromIncomingForm({
       >
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Incoming letter source file id
+            {ar ? 'معرّف الملف المصدر للخطاب الوارد' : 'Incoming letter source file id'}
           </label>
           <input
             type="text"
             value={sourceFileId}
             onChange={(e) => setSourceFileId(e.target.value)}
-            placeholder="SourceFile uuid (uploaded on the Input page)"
+            placeholder={ar ? 'معرّف الملف المصدر UUID (المرفوع في صفحة الإدخال)' : 'SourceFile uuid (uploaded on the Input page)'}
             className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
             dir="ltr"
             spellCheck={false}
             required
           />
           <p className="mt-1 text-[11px] text-slate-500">
-            Paste the uuid of the contractor letter you previously ingested. The persona
-            reads its bytes and proposes a reply with explicit Sub-Clause + deadline.
+            {ar
+              ? 'الصق معرّف UUID لخطاب المقاول الذي استوردته سابقاً. يقرأ النموذج محتواه ويقترح رداً مع تحديد البند الفرعي والمهلة صراحةً.'
+              : 'Paste the uuid of the contractor letter you previously ingested. The persona reads its bytes and proposes a reply with explicit Sub-Clause + deadline.'}
           </p>
         </div>
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            <IconX className="h-3.5 w-3.5" /> Cancel
+            <IconX className="h-3.5 w-3.5" /> {ar ? 'إلغاء' : 'Cancel'}
           </Button>
           <Button variant="primary" size="sm" type="submit" disabled={!valid || busy}>
-            {busy ? 'Drafting…' : 'Draft reply'}
+            {busy ? (ar ? 'جارٍ الصياغة…' : 'Drafting…') : (ar ? 'صياغة الرد' : 'Draft reply')}
           </Button>
         </div>
       </form>
@@ -832,12 +904,14 @@ function DraftComplianceForm({
   template,
   onCancel,
   onSubmit,
+  ar,
 }: {
   projectKey: string;
   busy: boolean;
   template: LetterTemplate | null;
   onCancel: () => void;
   onSubmit: (input: { complianceTrigger: string; narrative: string; templateKey?: string }) => void;
+  ar: boolean;
 }) {
   const [trigger, setTrigger] = useState('');
   const [narrative, setNarrative] = useState('');
@@ -854,8 +928,10 @@ function DraftComplianceForm({
   const valid = trigger.trim().length > 0 && narrative.trim().length > 0;
   return (
     <Card
-      title="Draft compliance letter"
-      hint={template ? `Template: ${template.title} · ${template.fidicClause}` : `Project: ${projectKey}`}
+      title={ar ? 'صياغة خطاب امتثال' : 'Draft compliance letter'}
+      hint={template
+        ? (ar ? `النموذج: ${template.title} · ${template.fidicClause}` : `Template: ${template.title} · ${template.fidicClause}`)
+        : (ar ? `المشروع: ${projectKey}` : `Project: ${projectKey}`)}
     >
       <form
         onSubmit={(e) => {
@@ -871,14 +947,18 @@ function DraftComplianceForm({
       >
         {template && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-500/30 bg-violet-500/5 px-3 py-2 text-[11px] text-violet-200">
-            <Pill tone="violet">{template.category}</Pill>
+            <Pill tone="violet">{ar ? CATEGORY_PILL_AR[template.category] : template.category}</Pill>
             <span className="font-mono" dir="ltr">{template.fidicClause}</span>
-            <span className="text-slate-400">— prefilled from “{template.title}”. Fill the {'{{placeholders}}'} before drafting.</span>
+            <span className="text-slate-400">
+              {ar
+                ? `— مُعبّأ مسبقاً من «${template.title}». املأ ${'{{placeholders}}'} قبل الصياغة.`
+                : `— prefilled from “${template.title}”. Fill the ${'{{placeholders}}'} before drafting.`}
+            </span>
           </div>
         )}
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Trigger code
+            {ar ? 'رمز المُحفِّز' : 'Trigger code'}
           </label>
           <input
             type="text"
@@ -893,27 +973,28 @@ function DraftComplianceForm({
         </div>
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Narrative
+            {ar ? 'السرد' : 'Narrative'}
           </label>
           <textarea
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             rows={4}
-            placeholder="What is the non-compliance? Which role / role-week / clause is affected?"
+            placeholder={ar ? 'ما هي حالة عدم الامتثال؟ وأي دور / أسبوع دور / بند يتأثر بها؟' : 'What is the non-compliance? Which role / role-week / clause is affected?'}
             className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
             required
           />
           <p className="mt-1 text-[11px] text-slate-500">
-            The persona weaves this narrative into a formal Arabic + English notice and
-            cites the applicable Sub-Clause / PMI / ISO standard from the Source registry.
+            {ar
+              ? 'يحوّل النموذج هذا السرد إلى إشعار رسمي بالعربية والإنجليزية، ويستشهد بالبند الفرعي / معيار PMI / ISO المعمول به من سجل المصادر.'
+              : 'The persona weaves this narrative into a formal Arabic + English notice and cites the applicable Sub-Clause / PMI / ISO standard from the Source registry.'}
           </p>
         </div>
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            <IconX className="h-3.5 w-3.5" /> Cancel
+            <IconX className="h-3.5 w-3.5" /> {ar ? 'إلغاء' : 'Cancel'}
           </Button>
           <Button variant="primary" size="sm" type="submit" disabled={!valid || busy}>
-            {busy ? 'Drafting…' : 'Draft notice'}
+            {busy ? (ar ? 'جارٍ الصياغة…' : 'Drafting…') : (ar ? 'صياغة الإشعار' : 'Draft notice')}
           </Button>
         </div>
       </form>
@@ -931,18 +1012,22 @@ function TemplatePicker({
   templates,
   activeKey,
   onPick,
+  ar,
 }: {
   templates: LetterTemplate[];
   activeKey: string | null;
   onPick: (tpl: LetterTemplate) => void;
+  ar: boolean;
 }) {
   const categoryTone: Record<LetterCategory, 'sky' | 'rose' | 'emerald' | 'violet'> = {
     notice: 'sky', claim: 'rose', response: 'emerald', instruction: 'violet',
   };
   return (
     <Card
-      title="FIDIC letter templates"
-      hint="Click a template to prefill the compliance draft form with its clause + body scaffold."
+      title={ar ? 'نماذج خطابات FIDIC' : 'FIDIC letter templates'}
+      hint={ar
+        ? 'انقر نموذجاً لتعبئة نموذج صياغة خطاب الامتثال ببنده وهيكل نصه مسبقاً.'
+        : 'Click a template to prefill the compliance draft form with its clause + body scaffold.'}
     >
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {templates.map((tpl) => (
@@ -958,7 +1043,7 @@ function TemplatePicker({
             }`}
           >
             <div className="flex items-center gap-1.5">
-              <Pill tone={categoryTone[tpl.category]}>{tpl.category}</Pill>
+              <Pill tone={categoryTone[tpl.category]}>{ar ? CATEGORY_PILL_AR[tpl.category] : tpl.category}</Pill>
               <span className="font-mono text-[10px] text-slate-400" dir="ltr">{tpl.fidicClause}</span>
             </div>
             <span className="text-xs font-medium text-slate-100">{tpl.title}</span>

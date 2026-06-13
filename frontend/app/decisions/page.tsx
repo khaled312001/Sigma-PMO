@@ -22,21 +22,21 @@ type StatusKey = 'pending' | 'approve' | 'reject' | 'acknowledge';
  * longest-prefix so a sub-code inherits its family chip. Title + clause only —
  * the authoritative source is GET /governance/decision-templates.
  */
-const TEMPLATE_FAMILIES: { codePrefix: string; title: string; fidicClause: string | null }[] = [
-  { codePrefix: 'SCHEDULE_FINISH_SLIPPED', title: 'Schedule slip', fidicClause: 'Sub-Clause 8.5 / 20.1' },
-  { codePrefix: 'SCHEDULE_BEHIND_PLAN', title: 'Behind plan', fidicClause: 'Sub-Clause 8.6' },
-  { codePrefix: 'COST_OVERRUN', title: 'Cost overrun', fidicClause: 'Sub-Clause 13 / 14' },
-  { codePrefix: 'DURATION_OVERRUN', title: 'Duration overrun', fidicClause: 'Sub-Clause 8.4 / 8.5' },
-  { codePrefix: 'RESOURCE_UNDERUSE', title: 'Resource under-use', fidicClause: 'Sub-Clause 8.3 / 8.6' },
-  { codePrefix: 'BASELINE_DURATION_OUTLIER', title: 'Baseline outlier', fidicClause: 'Sub-Clause 8.3' },
-  { codePrefix: 'STALE_REPORTING', title: 'Stale reporting', fidicClause: 'Sub-Clause 4.21' },
-  { codePrefix: 'REPORTED_VS_SCHEDULE_MISMATCH', title: 'Reported vs schedule', fidicClause: 'Sub-Clause 4.21 / 14.3' },
-  { codePrefix: 'MISSING_WEEKLY_REPORT', title: 'Missing weekly', fidicClause: 'Sub-Clause 4.21' },
-  { codePrefix: 'DATA_COMPLETENESS', title: 'Data completeness', fidicClause: 'Sub-Clause 4.21' },
+const TEMPLATE_FAMILIES: { codePrefix: string; title: string; titleAr: string; fidicClause: string | null }[] = [
+  { codePrefix: 'SCHEDULE_FINISH_SLIPPED', title: 'Schedule slip', titleAr: 'انزلاق الجدول', fidicClause: 'Sub-Clause 8.5 / 20.1' },
+  { codePrefix: 'SCHEDULE_BEHIND_PLAN', title: 'Behind plan', titleAr: 'تأخر عن الخطة', fidicClause: 'Sub-Clause 8.6' },
+  { codePrefix: 'COST_OVERRUN', title: 'Cost overrun', titleAr: 'تجاوز التكلفة', fidicClause: 'Sub-Clause 13 / 14' },
+  { codePrefix: 'DURATION_OVERRUN', title: 'Duration overrun', titleAr: 'تجاوز المدة', fidicClause: 'Sub-Clause 8.4 / 8.5' },
+  { codePrefix: 'RESOURCE_UNDERUSE', title: 'Resource under-use', titleAr: 'نقص استغلال الموارد', fidicClause: 'Sub-Clause 8.3 / 8.6' },
+  { codePrefix: 'BASELINE_DURATION_OUTLIER', title: 'Baseline outlier', titleAr: 'شذوذ في خط الأساس', fidicClause: 'Sub-Clause 8.3' },
+  { codePrefix: 'STALE_REPORTING', title: 'Stale reporting', titleAr: 'تقارير متقادمة', fidicClause: 'Sub-Clause 4.21' },
+  { codePrefix: 'REPORTED_VS_SCHEDULE_MISMATCH', title: 'Reported vs schedule', titleAr: 'تعارض المُبلّغ مع الجدول', fidicClause: 'Sub-Clause 4.21 / 14.3' },
+  { codePrefix: 'MISSING_WEEKLY_REPORT', title: 'Missing weekly', titleAr: 'غياب التقرير الأسبوعي', fidicClause: 'Sub-Clause 4.21' },
+  { codePrefix: 'DATA_COMPLETENESS', title: 'Data completeness', titleAr: 'اكتمال البيانات', fidicClause: 'Sub-Clause 4.21' },
 ];
 
-function templateForCode(code: string): { title: string; fidicClause: string | null } | null {
-  let best: { codePrefix: string; title: string; fidicClause: string | null } | null = null;
+function templateForCode(code: string): { title: string; titleAr: string; fidicClause: string | null } | null {
+  let best: { codePrefix: string; title: string; titleAr: string; fidicClause: string | null } | null = null;
   for (const t of TEMPLATE_FAMILIES) {
     if (code.startsWith(t.codePrefix) && (!best || t.codePrefix.length > best.codePrefix.length)) best = t;
   }
@@ -64,11 +64,12 @@ interface DecisionRow {
   status: StatusKey;
   alertId: string;
   alertSummary: string;
-  template: { title: string; fidicClause: string | null } | null;
+  template: { title: string; titleAr: string; fidicClause: string | null } | null;
 }
 
 function DecisionsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const ar = lang === 'ar';
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
   const [decisions, setDecisions] = useState<GovernanceDecision[] | null>(null);
@@ -85,7 +86,7 @@ function DecisionsPage() {
     try {
       const result = await api<DecisionTrace>(`/governance/decisions/${decisionId}/trace`);
       setTrace(result);
-    } catch (e) { toast.error('Failed to load trace', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'تعذّر تحميل مسار الإثبات' : 'Failed to load trace', (e as Error).message); }
     finally { setTraceLoading(false); }
   };
 
@@ -216,9 +217,9 @@ function DecisionsPage() {
               hideOnMobile: true,
             },
             {
-              key: 'template', label: 'Template', width: '10rem', sortable: false,
+              key: 'template', label: ar ? 'النموذج' : 'Template', width: '10rem', sortable: false,
               render: (r) => r.template
-                ? <Pill tone="violet">{r.template.title}</Pill>
+                ? <Pill tone="violet">{ar ? r.template.titleAr : r.template.title}</Pill>
                 : <span className="text-slate-500">—</span>,
               hideOnMobile: true,
             },
@@ -242,10 +243,10 @@ function DecisionsPage() {
               accessor: (r) => r.status,
             },
             {
-              key: 'trace', label: 'Trace', width: '6rem', align: 'center', sortable: false,
+              key: 'trace', label: ar ? 'الإثبات' : 'Trace', width: '6rem', align: 'center', sortable: false,
               render: (r) => (
                 <Button variant="ghost" size="sm" onClick={() => void openTrace(r.id)}>
-                  {traceFor === r.id ? 'Hide' : 'Trace'}
+                  {traceFor === r.id ? (ar ? 'إخفاء' : 'Hide') : (ar ? 'الإثبات' : 'Trace')}
                 </Button>
               ),
             },
@@ -258,13 +259,19 @@ function DecisionsPage() {
       )}
 
       {traceFor && (
-        <Card title="Evidence path" hint="decision → alert → evaluation → ingestion → source · confidence">
+        <Card
+          title={ar ? 'مسار الإثبات' : 'Evidence path'}
+          hint={ar ? 'القرار ← الإنذار ← التقييم ← الاستيراد ← المصدر · درجة الثقة' : 'decision → alert → evaluation → ingestion → source · confidence'}
+        >
           {traceLoading ? (
             <p className="text-sm text-slate-400">{t('common.loading')}</p>
           ) : trace ? (
-            <TracePath trace={trace} />
+            <TracePath trace={trace} ar={ar} />
           ) : (
-            <EmptyState title="No trace" description="No evidence chain could be assembled for this decision." />
+            <EmptyState
+              title={ar ? 'لا يوجد مسار إثبات' : 'No trace'}
+              description={ar ? 'تعذّر تجميع سلسلة إثبات لهذا القرار.' : 'No evidence chain could be assembled for this decision.'}
+            />
           )}
         </Card>
       )}
@@ -273,10 +280,10 @@ function DecisionsPage() {
 }
 
 /** Vertical evidence path rendering of a decision trace. */
-function TracePath({ trace }: { trace: DecisionTrace }) {
+function TracePath({ trace, ar }: { trace: DecisionTrace; ar: boolean }) {
   const steps: { label: string; tone: 'violet' | 'rose' | 'amber' | 'sky' | 'emerald' | 'slate'; body: React.ReactNode }[] = [
     {
-      label: 'Decision', tone: 'violet',
+      label: ar ? 'القرار' : 'Decision', tone: 'violet',
       body: <>
         <span className="text-slate-200">{trace.decision.responsibleParty}</span>
         {' · '}<Pill tone={trace.decision.escalationLevel === 'L3' ? 'rose' : trace.decision.escalationLevel === 'L2' ? 'amber' : 'slate'}>{trace.decision.escalationLevel}</Pill>
@@ -285,33 +292,33 @@ function TracePath({ trace }: { trace: DecisionTrace }) {
       </>,
     },
     {
-      label: 'Alert', tone: 'rose',
+      label: ar ? 'الإنذار' : 'Alert', tone: 'rose',
       body: trace.alert
         ? <><span className="font-mono text-[11px] text-slate-200" dir="ltr">{trace.alert.code}</span> · <span className="text-xs text-slate-300">{trace.alert.severity}</span><p className="mt-1 text-xs text-slate-400">{trace.alert.summary}</p></>
         : <span className="text-slate-500">—</span>,
     },
     {
-      label: 'Rule evaluation', tone: 'amber',
+      label: ar ? 'تقييم القاعدة' : 'Rule evaluation', tone: 'amber',
       body: trace.ruleEvaluation
-        ? <span className="text-xs text-slate-300" dir="ltr">{trace.ruleEvaluation.status} · {trace.ruleEvaluation.alertCount} alert(s) · {new Date(trace.ruleEvaluation.startedAt).toLocaleString()}</span>
+        ? <span className="text-xs text-slate-300" dir="ltr">{trace.ruleEvaluation.status} · {trace.ruleEvaluation.alertCount} {ar ? 'إنذار' : 'alert(s)'} · {new Date(trace.ruleEvaluation.startedAt).toLocaleString()}</span>
         : <span className="text-slate-500">—</span>,
     },
     {
-      label: 'Ingestion run', tone: 'sky',
+      label: ar ? 'عملية الاستيراد' : 'Ingestion run', tone: 'sky',
       body: trace.ingestionRun
         ? <span className="text-xs text-slate-300" dir="ltr">{trace.ingestionRun.parser} · {trace.ingestionRun.status}</span>
         : <span className="text-slate-500">—</span>,
     },
     {
-      label: 'Source file', tone: 'slate',
+      label: ar ? 'الملف المصدر' : 'Source file', tone: 'slate',
       body: trace.sourceFile
         ? <><span className="text-xs text-slate-200" dir="ltr">{trace.sourceFile.filename}</span><p className="mt-0.5 font-mono text-[10px] text-slate-500" dir="ltr">sha256 {trace.sourceFile.contentSha256.slice(0, 16)}… · {trace.sourceFile.byteSize} B</p></>
         : <span className="text-slate-500">—</span>,
     },
     {
-      label: 'Confidence', tone: 'emerald',
+      label: ar ? 'درجة الثقة' : 'Confidence', tone: 'emerald',
       body: trace.confidence
-        ? <span className="text-xs text-slate-300" dir="ltr">overall {(trace.confidence.overall * 100).toFixed(0)}% · completeness {(trace.confidence.completeness * 100).toFixed(0)}% · consistency {(trace.confidence.consistency * 100).toFixed(0)}%</span>
+        ? <span className="text-xs text-slate-300" dir={ar ? 'rtl' : 'ltr'}>{ar ? 'الإجمالية' : 'overall'} {(trace.confidence.overall * 100).toFixed(0)}% · {ar ? 'الاكتمال' : 'completeness'} {(trace.confidence.completeness * 100).toFixed(0)}% · {ar ? 'الاتساق' : 'consistency'} {(trace.confidence.consistency * 100).toFixed(0)}%</span>
         : <span className="text-slate-500">—</span>,
     },
   ];

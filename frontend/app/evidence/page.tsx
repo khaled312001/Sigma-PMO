@@ -35,7 +35,7 @@ interface EvidenceTrace {
 }
 
 function EvidencePage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const projectKey = useCurrentProjectKey();
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -128,7 +128,7 @@ function EvidencePage() {
                   <IconArrowRight className="h-3 w-3 text-slate-500" />
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/70 px-2.5 py-1 text-slate-300">
                     <IconEvidence className="h-3 w-3" />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">sha</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">{lang === 'ar' ? 'بصمة' : 'sha'}</span>
                     <code className="font-mono text-slate-200" dir="ltr">{evidence.sourceFile.contentSha256.slice(0, 12)}…</code>
                   </span>
                 </div>

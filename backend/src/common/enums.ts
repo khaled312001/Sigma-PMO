@@ -128,6 +128,28 @@ export enum AgentLayer {
   EXT_OPPORTUNITY = 'ext_opportunity',
   EXT_FUNDING = 'ext_funding',
   EXT_PREDICTIVE = 'ext_predictive',
+  /**
+   * Full governance lifecycle (Mr. Ayham, 2026-06-13): Sigma as a complete
+   * Investment, Delivery & Governance OS. These six complete the 17-stage chain
+   * (Idea → … → Sigma Governance), each wired to schedule / cost / risk / claims
+   * / revenue / funding and traced Decision → Finding → Agent → Evidence → Source.
+   *  - Bankability Intelligence: feasibility → lender-ready package (DSCR, debt
+   *    schedule, investor/lender packages). Reads FeasibilityAssessment + FundingFacility.
+   *  - Safety Governance: governs HSE-plan implementation during execution; every
+   *    safety finding links to activities + critical path; Safety event → Stop Work
+   *    → Delay → Critical Path → EOT → Claim readiness.
+   *  - Fire & Life Safety Governance: fire-strategy compliance + Civil Defence approvals.
+   *  - Authority Governance: all authority submissions/approvals; delays auto-calc
+   *    project delay exposure + critical-path impact.
+   *  - Utility Governance: utility readiness + connection status + delay exposure.
+   *  - Operational Readiness Governance: construction-complete → operational go-live.
+   */
+  EXT_BANKABILITY = 'ext_bankability',
+  EXT_SAFETY = 'ext_safety',
+  EXT_FIRE_LIFE_SAFETY = 'ext_fire_life_safety',
+  EXT_AUTHORITY = 'ext_authority',
+  EXT_UTILITY = 'ext_utility',
+  EXT_OPERATIONAL_READINESS = 'ext_operational_readiness',
 }
 
 /**

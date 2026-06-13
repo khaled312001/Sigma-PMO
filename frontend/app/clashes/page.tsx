@@ -57,7 +57,7 @@ import { PolicyAddonInline } from '../../components/PolicyAddonInline';
 import { SimulationModal, SimulationProjectionView } from '../../components/SimulationModal';
 import { useToast } from '../../components/ToastProvider';
 import { CAPABILITIES } from '../../lib/capabilities';
-import { useI18n } from '../../lib/i18n';
+import { useI18n, type Lang } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 import { api } from '../../lib/api';
@@ -154,7 +154,7 @@ export default function ClashesPageRoute() {
 // ─────────────────────────── page ───────────────────────────
 
 function ClashesPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const toast = useToast();
   const projectKey = useCurrentProjectKey();
   const { me } = useMe();
@@ -176,7 +176,7 @@ function ClashesPage() {
       setClashes([]);
       const msg = (e as Error).message;
       setLoadError(msg);
-      toast.error('Failed to load clashes', msg);
+      toast.error(lang === 'ar' ? 'تعذّر تحميل التضاربات' : 'Failed to load clashes', msg);
     }
   }, [projectKey, toast]);
 

@@ -15,6 +15,7 @@ import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
 import { CAPABILITIES } from '../../lib/capabilities';
+import { useI18n } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 
@@ -65,10 +66,20 @@ const TIER_TONE: Record<string, 'emerald' | 'sky' | 'amber' | 'rose'> = {
   low: 'emerald', medium: 'sky', high: 'amber', critical: 'rose',
 };
 
+const TIER_LABEL_AR: Record<string, string> = {
+  low: 'منخفض', medium: 'متوسط', high: 'مرتفع', critical: 'حرج',
+};
+
+const WEIGHT_LABEL_AR: Record<string, string> = {
+  recovery: 'استرداد', corrective: 'تصحيحي', preventive: 'وقائي',
+};
+
 function RiskPage() {
   const toast = useToast();
   const projectKey = useCurrentProjectKey();
   const { me } = useMe();
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const canRun = !!(me?.user?.role && CAPABILITIES[me.user.role].canEvaluateRules);
 
   const [rows, setRows] = useState<RiskRow[] | null>(null);
@@ -100,9 +111,9 @@ function RiskPage() {
     setBusy(true);
     try {
       await api(`/agents/l5.risk/run`, { method: 'POST', body: JSON.stringify({ projectKey }) });
-      toast.success('Risk agent ran', 'Register refreshed from the latest alerts + EVM signals.');
+      toast.success(ar ? 'تم تشغيل وكيل المخاطر' : 'Risk agent ran', ar ? 'تم تحديث السجل من أحدث الإنذارات وإشارات القيمة المكتسبة.' : 'Register refreshed from the latest alerts + EVM signals.');
       await load();
-    } catch (e) { toast.error('Risk run failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل تشغيل وكيل المخاطر' : 'Risk run failed', (e as Error).message); }
     finally { setBusy(false); }
   };
 
@@ -110,30 +121,32 @@ function RiskPage() {
     mitigations?.rows.find((row) => row.risk.id === riskId)?.mitigation ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={ar ? 'rtl' : 'ltr'}>
       <PageHeader
-        eyebrow="Layer 5 · Risk"
-        title="Risk Register"
-        description="Risks derived deterministically from L2 alerts and L4 EVM, scored probability × impact, with library-matched mitigations, category correlation and a portfolio-risk roll-up."
+        eyebrow={ar ? 'الطبقة 5 · المخاطر' : 'Layer 5 · Risk'}
+        title={ar ? 'سجل المخاطر' : 'Risk Register'}
+        description={ar
+          ? 'مخاطر مشتقّة حتميًا من إنذارات L2 وقيمة L4 المكتسبة، مُقيَّمة وفق الاحتمالية × الأثر، مع تدابير معالجة مطابَقة من المكتبة، وارتباط الفئات، وتجميع لمخاطر المحفظة.'
+          : 'Risks derived deterministically from L2 alerts and L4 EVM, scored probability × impact, with library-matched mitigations, category correlation and a portfolio-risk roll-up.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>
-            {canRun && <Button variant="primary" size="sm" disabled={busy} onClick={run}><IconSparkles className="h-3.5 w-3.5" /> {busy ? 'Running…' : 'Run risk agent'}</Button>}
+            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> {ar ? 'تحديث' : 'Refresh'}</Button>
+            {canRun && <Button variant="primary" size="sm" disabled={busy} onClick={run}><IconSparkles className="h-3.5 w-3.5" /> {busy ? (ar ? 'جارٍ التشغيل…' : 'Running…') : (ar ? 'تشغيل وكيل المخاطر' : 'Run risk agent')}</Button>}
           </div>
         }
       />
       <ErrorBanner message={error} />
 
-      {portfolio && portfolio.projectCount > 0 && <PortfolioStrip portfolio={portfolio} />}
+      {portfolio && portfolio.projectCount > 0 && <PortfolioStrip portfolio={portfolio} ar={ar} />}
 
-      {rows && rows.length > 0 && <HeatMap rows={rows} />}
+      {rows && rows.length > 0 && <HeatMap rows={rows} ar={ar} />}
 
-      {correlation && correlation.categories.length > 0 && <CorrelationCard correlation={correlation} />}
+      {correlation && correlation.categories.length > 0 && <CorrelationCard correlation={correlation} ar={ar} />}
 
       {rows === null ? (
         <Card><div className="h-24 animate-pulse rounded bg-slate-800/40" /></Card>
       ) : rows.length === 0 ? (
-        <EmptyState title="No risks yet" description={canRun ? 'Run the risk agent to derive the register from current findings.' : 'The register appears once a reviewer runs the risk agent.'} />
+        <EmptyState title={ar ? 'لا توجد مخاطر بعد' : 'No risks yet'} description={canRun ? (ar ? 'شغّل وكيل المخاطر لاشتقاق السجل من الملاحظات الحالية.' : 'Run the risk agent to derive the register from current findings.') : (ar ? 'يظهر السجل بمجرّد تشغيل المراجِع لوكيل المخاطر.' : 'The register appears once a reviewer runs the risk agent.')} />
       ) : (
         <div className="space-y-2">
           {rows.map((r) => {
@@ -142,18 +155,18 @@ function RiskPage() {
             return (
               <Card key={r.id}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Pill tone={TIER_TONE[r.tier] ?? 'slate'}>{r.tier}</Pill>
+                  <Pill tone={TIER_TONE[r.tier] ?? 'slate'}>{ar ? (TIER_LABEL_AR[r.tier] ?? r.tier) : r.tier}</Pill>
                   <Pill tone="slate">{r.category}</Pill>
                   <span className="text-sm font-medium text-slate-100">{r.title}</span>
                   <span className="ms-auto font-mono text-[10px] text-slate-500" dir="ltr">priority {r.priorityScore}</span>
                 </div>
                 <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Meter label="Probability" value={r.probability} />
-                  <Meter label="Impact" value={r.impact} />
+                  <Meter label={ar ? 'الاحتمالية' : 'Probability'} value={r.probability} />
+                  <Meter label={ar ? 'الأثر' : 'Impact'} value={r.impact} />
                 </div>
-                <p className="mt-2 text-sm text-slate-300"><span className="text-slate-500">Mitigation:</span> {r.mitigation}</p>
+                <p className="mt-2 text-sm text-slate-300"><span className="text-slate-500">{ar ? 'المعالجة:' : 'Mitigation:'}</span> {r.mitigation}</p>
                 {r.escalationTrigger && (
-                  <p className="mt-1 text-sm text-amber-300"><span className="text-amber-500/80">Escalation:</span> {r.escalationTrigger}</p>
+                  <p className="mt-1 text-sm text-amber-300"><span className="text-amber-500/80">{ar ? 'التصعيد:' : 'Escalation:'}</span> {r.escalationTrigger}</p>
                 )}
 
                 {match && match.options.length > 0 && (
@@ -164,7 +177,9 @@ function RiskPage() {
                       className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
                     >
                       <IconChevronRight className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                      {isOpen ? 'Hide' : 'Show'} {match.options.length} mitigation option(s)
+                      {ar
+                        ? `${isOpen ? 'إخفاء' : 'عرض'} ${match.options.length} خيار معالجة`
+                        : `${isOpen ? 'Hide' : 'Show'} ${match.options.length} mitigation option(s)`}
                       <span className="ms-1 font-mono text-[10px] text-slate-500" dir="ltr">{match.source}</span>
                     </button>
                     {isOpen && (
@@ -172,11 +187,11 @@ function RiskPage() {
                         {match.options.map((o, i) => (
                           <li key={i} className="text-sm">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Pill tone={o.weight === 'recovery' ? 'rose' : o.weight === 'corrective' ? 'amber' : 'sky'}>{o.weight}</Pill>
+                              <Pill tone={o.weight === 'recovery' ? 'rose' : o.weight === 'corrective' ? 'amber' : 'sky'}>{ar ? (WEIGHT_LABEL_AR[o.weight] ?? o.weight) : o.weight}</Pill>
                               <span className="font-medium text-slate-100">{o.title}</span>
                             </div>
                             <p className="mt-0.5 text-slate-300">{o.action}</p>
-                            <p className="mt-0.5 text-[11px] text-slate-500"><span className="uppercase tracking-wider">When:</span> {o.when}</p>
+                            <p className="mt-0.5 text-[11px] text-slate-500"><span className="uppercase tracking-wider">{ar ? 'متى:' : 'When:'}</span> {o.when}</p>
                           </li>
                         ))}
                       </ul>
@@ -192,15 +207,15 @@ function RiskPage() {
   );
 }
 
-function PortfolioStrip({ portfolio }: { portfolio: PortfolioRiskResult }) {
+function PortfolioStrip({ portfolio, ar }: { portfolio: PortfolioRiskResult; ar: boolean }) {
   return (
-    <Card title="Portfolio risk (whole estate)">
+    <Card title={ar ? 'مخاطر المحفظة (المنشأة بالكامل)' : 'Portfolio risk (whole estate)'}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { k: 'Projects', v: String(portfolio.projectCount) },
-          { k: 'Open risks', v: String(portfolio.totals.openRiskCount) },
-          { k: 'Σ priority', v: portfolio.totals.sumScore.toFixed(2) },
-          { k: 'Max priority', v: portfolio.totals.maxScore.toFixed(2) },
+          { k: ar ? 'المشاريع' : 'Projects', v: String(portfolio.projectCount) },
+          { k: ar ? 'المخاطر المفتوحة' : 'Open risks', v: String(portfolio.totals.openRiskCount) },
+          { k: ar ? 'مجموع الأولوية Σ' : 'Σ priority', v: portfolio.totals.sumScore.toFixed(2) },
+          { k: ar ? 'أقصى أولوية' : 'Max priority', v: portfolio.totals.maxScore.toFixed(2) },
         ].map((c) => (
           <div key={c.k} className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{c.k}</p>
@@ -211,10 +226,10 @@ function PortfolioStrip({ portfolio }: { portfolio: PortfolioRiskResult }) {
       {(portfolio.byPortfolio.length > 0 || portfolio.byProgram.length > 0) && (
         <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
           {portfolio.byPortfolio.length > 0 && (
-            <GroupTable title="By portfolio" groups={portfolio.byPortfolio} />
+            <GroupTable title={ar ? 'حسب المحفظة' : 'By portfolio'} groups={portfolio.byPortfolio} ar={ar} />
           )}
           {portfolio.byProgram.length > 0 && (
-            <GroupTable title="By program" groups={portfolio.byProgram} />
+            <GroupTable title={ar ? 'حسب البرنامج' : 'By program'} groups={portfolio.byProgram} ar={ar} />
           )}
         </div>
       )}
@@ -223,17 +238,17 @@ function PortfolioStrip({ portfolio }: { portfolio: PortfolioRiskResult }) {
   );
 }
 
-function GroupTable({ title, groups }: { title: string; groups: Array<{ key: string; openRiskCount: number; sumScore: number; maxScore: number; projectCount: number }> }) {
+function GroupTable({ title, groups, ar }: { title: string; groups: Array<{ key: string; openRiskCount: number; sumScore: number; maxScore: number; projectCount: number }>; ar: boolean }) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950/30 p-3">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{title}</p>
       <table className="w-full text-left text-xs">
         <thead>
           <tr className="text-[9px] uppercase tracking-wider text-slate-500">
-            <th className="py-1 pe-2 font-semibold">Key</th>
-            <th className="py-1 pe-2 text-right font-semibold">Projects</th>
-            <th className="py-1 pe-2 text-right font-semibold">Open</th>
-            <th className="py-1 text-right font-semibold">Σ priority</th>
+            <th className="py-1 pe-2 font-semibold">{ar ? 'المفتاح' : 'Key'}</th>
+            <th className="py-1 pe-2 text-right font-semibold">{ar ? 'المشاريع' : 'Projects'}</th>
+            <th className="py-1 pe-2 text-right font-semibold">{ar ? 'المفتوحة' : 'Open'}</th>
+            <th className="py-1 text-right font-semibold">{ar ? 'مجموع الأولوية Σ' : 'Σ priority'}</th>
           </tr>
         </thead>
         <tbody>
@@ -251,7 +266,7 @@ function GroupTable({ title, groups }: { title: string; groups: Array<{ key: str
   );
 }
 
-function CorrelationCard({ correlation }: { correlation: CorrelationResult }) {
+function CorrelationCard({ correlation, ar }: { correlation: CorrelationResult; ar: boolean }) {
   const { categories, matrix } = correlation;
   const max = Math.max(1, ...matrix.flat());
   const cellTone = (v: number, diag: boolean) => {
@@ -263,7 +278,7 @@ function CorrelationCard({ correlation }: { correlation: CorrelationResult }) {
     return 'bg-sky-600/40 text-slate-100';
   };
   return (
-    <Card title="Risk correlation (category co-occurrence)">
+    <Card title={ar ? 'ارتباط المخاطر (التزامن بين الفئات)' : 'Risk correlation (category co-occurrence)'}>
       <div className="overflow-x-auto">
         <table className="text-xs">
           <thead>
@@ -293,7 +308,7 @@ function CorrelationCard({ correlation }: { correlation: CorrelationResult }) {
       {correlation.clusters.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {correlation.clusters.map((cl) => (
-            <Pill key={cl.name} tone="violet">{cl.name} · {cl.riskCount} risk(s)</Pill>
+            <Pill key={cl.name} tone="violet">{cl.name} · {cl.riskCount} {ar ? 'خطر' : 'risk(s)'}</Pill>
           ))}
         </div>
       )}
@@ -323,7 +338,7 @@ function Meter({ label, value }: { label: string; value: number }) {
 }
 
 /** Compact 5×5 probability/impact heat-map placing each risk in its cell. */
-function HeatMap({ rows }: { rows: RiskRow[] }) {
+function HeatMap({ rows, ar }: { rows: RiskRow[]; ar: boolean }) {
   const cell = (p: number, i: number) => rows.filter((r) => bucket(r.probability) === p && bucket(r.impact) === i).length;
   const colour = (p: number, i: number) => {
     const score = ((p + 1) / 5) * ((i + 1) / 5);
@@ -333,10 +348,10 @@ function HeatMap({ rows }: { rows: RiskRow[] }) {
     return 'bg-emerald-700/40';
   };
   return (
-    <Card title="Probability × impact heat-map">
+    <Card title={ar ? 'خريطة حرارية للاحتمالية × الأثر' : 'Probability × impact heat-map'}>
       <div className="flex gap-2">
         <div className="flex flex-col-reverse justify-between py-1 text-[9px] text-slate-500" style={{ height: 160 }}>
-          <span>low P</span><span>high P</span>
+          <span>{ar ? 'احتمالية منخفضة' : 'low P'}</span><span>{ar ? 'احتمالية مرتفعة' : 'high P'}</span>
         </div>
         <div className="grid flex-1 grid-rows-5 gap-1">
           {[4, 3, 2, 1, 0].map((p) => (
@@ -353,7 +368,7 @@ function HeatMap({ rows }: { rows: RiskRow[] }) {
           ))}
         </div>
       </div>
-      <div className="mt-1 flex justify-between px-6 text-[9px] text-slate-500"><span>low impact</span><span>high impact</span></div>
+      <div className="mt-1 flex justify-between px-6 text-[9px] text-slate-500"><span>{ar ? 'أثر منخفض' : 'low impact'}</span><span>{ar ? 'أثر مرتفع' : 'high impact'}</span></div>
     </Card>
   );
 }

@@ -70,6 +70,12 @@ import { SourceFile } from './source-file.entity';
 import { SystemSetting } from './system-setting.entity';
 import { User } from './user.entity';
 import { Vendor } from './vendor.entity';
+// Full governance lifecycle (2026-06-13) — the five site-governance entities.
+import { SafetyRecord } from './safety-record.entity';
+import { FireSafetyRecord } from './fire-safety-record.entity';
+import { AuthoritySubmission } from './authority-submission.entity';
+import { UtilityConnection } from './utility-connection.entity';
+import { OperationalReadinessItem } from './operational-readiness-item.entity';
 
 export {
   Activity,
@@ -127,6 +133,11 @@ export {
   SystemSetting,
   User,
   Vendor,
+  SafetyRecord,
+  FireSafetyRecord,
+  AuthoritySubmission,
+  UtilityConnection,
+  OperationalReadinessItem,
 };
 
 /** All canonical ORM entities, for TypeOrmModule.forFeature registration. */
@@ -211,4 +222,12 @@ export const CANONICAL_ENTITIES = [
   // + funding facilities (DSCR/covenants/drawdown).
   OpportunityScreening,
   FundingFacility,
+  // Full governance lifecycle (2026-06-13): Safety, Fire & Life Safety,
+  // Authority, Utility & Operational Readiness governance records. Bankability
+  // adds no entity (it reads FeasibilityAssessment + FundingFacility).
+  SafetyRecord,
+  FireSafetyRecord,
+  AuthoritySubmission,
+  UtilityConnection,
+  OperationalReadinessItem,
 ];

@@ -57,7 +57,8 @@ export default function OverviewPage() {
 }
 
 function Overview() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const ar = lang === 'ar';
   const projectKey = useCurrentProjectKey();
   const [counts, setCounts] = useState<Counts | null>(null);
   const [latestRun, setLatestRun] = useState<IngestionRun | null>(null);
@@ -130,7 +131,7 @@ function Overview() {
 
       <ErrorBanner message={error} />
 
-      <ExecutiveKpiStrip kpis={kpis} portfolio={portfolio} />
+      <ExecutiveKpiStrip kpis={kpis} portfolio={portfolio} ar={ar} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label={t('overview.cards.ingestionRuns')} value={counts?.runs}    icon={<IconDatabase className="h-5 w-5" />}       tone="sky"     href="/input" />
@@ -139,7 +140,7 @@ function Overview() {
         <StatCard label={t('overview.cards.warnings')}      value={counts?.warning}  icon={<IconAlertWarning className="h-5 w-5" />}  tone="amber"   href="/evidence" />
       </section>
 
-      <OverviewAnalytics runs={runs} alerts={alerts} latestConfidence={(latestRun?.summary?.confidence as { overall?: number } | undefined)?.overall} />
+      <OverviewAnalytics runs={runs} alerts={alerts} latestConfidence={(latestRun?.summary?.confidence as { overall?: number } | undefined)?.overall} ar={ar} />
 
       {latestRun && (
         <Card title={t('overview.latestIngestion')} hint={t('overview.latestIngestionHint')}>
@@ -185,19 +186,21 @@ function OverviewAnalytics({
   runs,
   alerts,
   latestConfidence,
+  ar,
 }: {
   runs: IngestionRun[];
   alerts: AlertRecord[];
   latestConfidence: number | undefined;
+  ar: boolean;
 }) {
   // Donut: alerts by severity.
   const critical = alerts.filter((a) => a.severity === 'critical').length;
   const warning = alerts.filter((a) => a.severity === 'warning').length;
   const info = alerts.filter((a) => a.severity === 'info').length;
   const severityDonut = [
-    { label: 'Critical', value: critical, accent: SEVERITY_ACCENT.critical },
-    { label: 'Warning', value: warning, accent: SEVERITY_ACCENT.warning },
-    { label: 'Info', value: info, accent: SEVERITY_ACCENT.info },
+    { label: ar ? 'حرجة' : 'Critical', value: critical, accent: SEVERITY_ACCENT.critical },
+    { label: ar ? 'تحذير' : 'Warning', value: warning, accent: SEVERITY_ACCENT.warning },
+    { label: ar ? 'معلومة' : 'Info', value: info, accent: SEVERITY_ACCENT.info },
   ].filter((d) => d.value > 0);
 
   // BarChart: alerts by rule code (top 8).
@@ -239,56 +242,56 @@ function OverviewAnalytics({
   return (
     <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <GaugeChart
-        title="Latest ingestion confidence"
+        title={ar ? 'ثقة آخر استيعاب للبيانات' : 'Latest ingestion confidence'}
         value={latestConfidence ?? 0}
         max={1}
         label={`${((latestConfidence ?? 0) * 100).toFixed(0)}%`}
         hint={
           latestConfidence === undefined
-            ? 'NO DATA'
+            ? (ar ? 'لا بيانات' : 'NO DATA')
             : latestConfidence >= 0.85
-              ? 'HIGH'
+              ? (ar ? 'مرتفعة' : 'HIGH')
               : latestConfidence >= 0.65
-                ? 'MED'
-                : 'LOW'
+                ? (ar ? 'متوسطة' : 'MED')
+                : (ar ? 'منخفضة' : 'LOW')
         }
       />
       {severityDonut.length > 0 ? (
         <DonutChart
-          title="Alerts by severity"
+          title={ar ? 'التنبيهات حسب الخطورة' : 'Alerts by severity'}
           data={severityDonut}
           size={170}
           thickness={22}
           centerValue={alerts.length}
-          centerLabel="OPEN"
+          centerLabel={ar ? 'مفتوحة' : 'OPEN'}
         />
       ) : (
         <DonutChart
-          title="Alerts by severity"
-          data={[{ label: 'No open alerts', value: 1, accent: CHART_PALETTE.emerald }]}
+          title={ar ? 'التنبيهات حسب الخطورة' : 'Alerts by severity'}
+          data={[{ label: ar ? 'لا تنبيهات مفتوحة' : 'No open alerts', value: 1, accent: CHART_PALETTE.emerald }]}
           size={170}
           thickness={22}
           centerValue={0}
-          centerLabel="CLEAR"
+          centerLabel={ar ? 'لا يوجد' : 'CLEAR'}
         />
       )}
       <LineChart
-        title="Ingestion runs"
-        caption="last 14 days"
-        series={[{ label: 'runs', points: linePoints, accent: CHART_PALETTE.crimson }]}
+        title={ar ? 'عمليات استيعاب البيانات' : 'Ingestion runs'}
+        caption={ar ? 'آخر 14 يوماً' : 'last 14 days'}
+        series={[{ label: ar ? 'العمليات' : 'runs', points: linePoints, accent: CHART_PALETTE.crimson }]}
         height={170}
         yMin={0}
       />
       {parserSeg.length > 0 && (
         <div className="md:col-span-3">
-          <StackedBar title="Parser distribution" caption="across ingested runs" data={parserSeg} />
+          <StackedBar title={ar ? 'توزيع المحلّلات' : 'Parser distribution'} caption={ar ? 'عبر العمليات المُستوعَبة' : 'across ingested runs'} data={parserSeg} />
         </div>
       )}
       {byCodeBars.length > 0 && (
         <div className="md:col-span-3">
           <BarChart
-            title="Alerts by rule code"
-            caption="top eight"
+            title={ar ? 'التنبيهات حسب رمز القاعدة' : 'Alerts by rule code'}
+            caption={ar ? 'أعلى ثمانية' : 'top eight'}
             data={byCodeBars}
             labelWidth={200}
             rowHeight={26}
@@ -315,49 +318,49 @@ function scoreTone(score: number | null | undefined): KpiTone {
  * Forecast Cost Overrun, Forecast Completion) plus the portfolio-wide Health.
  */
 function ExecutiveKpiStrip({
-  kpis, portfolio,
-}: { kpis: ExecutiveKpis | null; portfolio: PortfolioKpis | null }) {
+  kpis, portfolio, ar,
+}: { kpis: ExecutiveKpis | null; portfolio: PortfolioKpis | null; ar: boolean }) {
   const dash = '—';
   const overrun = kpis?.forecastCostOverrunPct;
   const delay = kpis?.forecastDelayDays;
   return (
     <section>
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-        Executive KPIs
+        {ar ? 'مؤشرات الأداء التنفيذية' : 'Executive KPIs'}
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <KpiTile
-          label="Project Health"
+          label={ar ? 'صحة المشروع' : 'Project Health'}
           value={kpis ? `${kpis.projectHealthScore}` : dash}
           suffix={kpis ? '/100' : undefined}
           tone={scoreTone(kpis?.projectHealthScore)}
         />
         <KpiTile
-          label="Gov. Confidence"
+          label={ar ? 'ثقة الحوكمة' : 'Gov. Confidence'}
           value={kpis ? `${kpis.governanceConfidenceScore}` : dash}
           suffix={kpis ? '/100' : undefined}
           tone={scoreTone(kpis?.governanceConfidenceScore)}
         />
         <KpiTile
-          label="Forecast Delay"
+          label={ar ? 'التأخير المتوقع' : 'Forecast Delay'}
           value={delay === null || delay === undefined ? dash : `${delay}`}
-          suffix={delay === null || delay === undefined ? undefined : 'd'}
+          suffix={delay === null || delay === undefined ? undefined : (ar ? 'يوم' : 'd')}
           tone={delay === null || delay === undefined ? 'slate' : delay <= 0 ? 'emerald' : delay <= 30 ? 'amber' : 'rose'}
         />
         <KpiTile
-          label="Cost Overrun"
+          label={ar ? 'تجاوز التكلفة' : 'Cost Overrun'}
           value={overrun === null || overrun === undefined ? dash : `${overrun >= 0 ? '+' : ''}${overrun}`}
           suffix={overrun === null || overrun === undefined ? undefined : '%'}
           tone={overrun === null || overrun === undefined ? 'slate' : overrun <= 0 ? 'emerald' : overrun <= 10 ? 'amber' : 'rose'}
         />
         <KpiTile
-          label="Forecast Finish"
+          label={ar ? 'تاريخ الإنجاز المتوقع' : 'Forecast Finish'}
           value={kpis?.forecastCompletionDate ?? dash}
           tone="slate"
           small
         />
         <KpiTile
-          label="Portfolio Health"
+          label={ar ? 'صحة المحفظة' : 'Portfolio Health'}
           value={portfolio ? `${portfolio.portfolioHealthScore}` : dash}
           suffix={portfolio ? '/100' : undefined}
           tone={scoreTone(portfolio?.portfolioHealthScore)}

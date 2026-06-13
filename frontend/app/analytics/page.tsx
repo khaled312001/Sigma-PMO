@@ -14,6 +14,7 @@ import { BarChart, GaugeChart, LineChart, CHART_PALETTE } from '../../components
 import { IconRefresh } from '../../components/Icons';
 import { Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useI18n } from '../../lib/i18n';
 import { useCurrentProjectKey } from '../../lib/project-context';
 
 interface EvmResult {
@@ -78,8 +79,22 @@ const DIRECTION_TONE: Record<TrendDirection, 'emerald' | 'slate' | 'rose'> = {
   improving: 'emerald', stable: 'slate', deteriorating: 'rose',
 };
 
+const DIRECTION_LABEL: Record<TrendDirection, { en: string; ar: string }> = {
+  improving: { en: 'improving', ar: 'في تحسّن' },
+  stable: { en: 'stable', ar: 'مستقر' },
+  deteriorating: { en: 'deteriorating', ar: 'في تدهور' },
+};
+
+const SCHEDULE_HEALTH_LABEL: Record<Forecast['scheduleHealth'], { en: string; ar: string }> = {
+  'on-track': { en: 'on track', ar: 'ضمن المسار' },
+  'at-risk': { en: 'at risk', ar: 'معرّض للخطر' },
+  slipping: { en: 'slipping', ar: 'منزلق عن المسار' },
+};
+
 function AnalyticsPage() {
   const projectKey = useCurrentProjectKey();
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const [tab, setTab] = useState<'project' | 'portfolio'>('project');
 
   const [data, setData] = useState<AnalyticsResult | null>(null);
@@ -118,17 +133,19 @@ function AnalyticsPage() {
   const healthTone = fc?.scheduleHealth === 'slipping' ? 'rose' : fc?.scheduleHealth === 'at-risk' ? 'amber' : 'emerald';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={ar ? 'rtl' : 'ltr'}>
       <PageHeader
-        eyebrow="Layer 4 · Analytics"
-        title="Analytics & Earned Value"
+        eyebrow={ar ? 'الطبقة 4 · التحليلات' : 'Layer 4 · Analytics'}
+        title={ar ? 'التحليلات والقيمة المكتسبة' : 'Analytics & Earned Value'}
         description={
-          'Deterministic EVM (SPI / CPI / EAC / VAC), Earned Schedule, productivity KPIs, trends and a ' +
-          'whole-estate portfolio roll-up — computed from canonical activity rows, never an LLM.'
+          ar
+            ? 'مؤشرات القيمة المكتسبة الحتمية (SPI / CPI / EAC / VAC) والجدول المكتسب ومؤشرات الإنتاجية والاتجاهات إضافةً إلى تجميع المحفظة على مستوى المنشأة بالكامل — محسوبة من بنود الأنشطة المرجعية، دون أي نموذج لغوي.'
+            : 'Deterministic EVM (SPI / CPI / EAC / VAC), Earned Schedule, productivity KPIs, trends and a ' +
+              'whole-estate portfolio roll-up — computed from canonical activity rows, never an LLM.'
         }
         actions={
           <button type="button" onClick={load} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-slate-500">
-            <IconRefresh className="h-3.5 w-3.5" /> Refresh
+            <IconRefresh className="h-3.5 w-3.5" /> {ar ? 'تحديث' : 'Refresh'}
           </button>
         }
       />
@@ -144,7 +161,7 @@ function AnalyticsPage() {
               tab === t ? 'bg-slate-800 text-slate-100' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {t === 'project' ? 'This project' : 'Portfolio'}
+            {t === 'project' ? (ar ? 'هذا المشروع' : 'This project') : (ar ? 'المحفظة' : 'Portfolio')}
           </button>
         ))}
       </div>
@@ -152,21 +169,23 @@ function AnalyticsPage() {
       <ErrorBanner message={error} />
 
       {tab === 'portfolio' ? (
-        <PortfolioSection portfolio={portfolio} loading={loading} />
+        <PortfolioSection portfolio={portfolio} loading={loading} ar={ar} />
       ) : loading ? (
         <Card><div className="h-40 animate-pulse rounded bg-slate-800/40" /></Card>
       ) : !evm ? (
-        <EmptyState title="No analytics" description={`No activity data to analyse for ${projectKey}.`} />
+        <EmptyState title={ar ? 'لا توجد تحليلات' : 'No analytics'} description={ar ? `لا توجد بيانات أنشطة لتحليلها للمشروع ${projectKey}.` : `No activity data to analyse for ${projectKey}.`} />
       ) : (
         <>
           {/* Forecast banner */}
           {fc && (
             <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
-              <Pill tone={healthTone}>{fc.scheduleHealth.replace('-', ' ')}</Pill>
+              <Pill tone={healthTone}>{ar ? SCHEDULE_HEALTH_LABEL[fc.scheduleHealth].ar : SCHEDULE_HEALTH_LABEL[fc.scheduleHealth].en}</Pill>
               {fc.projectedCostOverrunPct !== null && (
                 <span className="text-sm text-slate-200">
-                  Projected cost {fc.projectedCostOverrunPct >= 0 ? 'overrun' : 'saving'}:{' '}
-                  <strong className={fc.projectedCostOverrunPct >= 0 ? 'text-rose-300' : 'text-emerald-300'}>
+                  {ar
+                    ? `${fc.projectedCostOverrunPct >= 0 ? 'تجاوز' : 'توفير'} التكلفة المتوقّع:`
+                    : `Projected cost ${fc.projectedCostOverrunPct >= 0 ? 'overrun' : 'saving'}:`}{' '}
+                  <strong className={fc.projectedCostOverrunPct >= 0 ? 'text-rose-300' : 'text-emerald-300'} dir="ltr">
                     {fc.projectedCostOverrunPct >= 0 ? '+' : ''}{fc.projectedCostOverrunPct}%
                   </strong>
                 </span>
@@ -176,27 +195,27 @@ function AnalyticsPage() {
           )}
 
           {/* Earned Schedule */}
-          {es && <EarnedScheduleCard es={es} />}
+          {es && <EarnedScheduleCard es={es} ar={ar} />}
 
           {/* EVM gauges */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Card title="Schedule Performance (SPI)">
+            <Card title={ar ? 'أداء الجدول الزمني (SPI)' : 'Schedule Performance (SPI)'}>
               {evm.spi !== null ? (
-                <GaugeChart value={Math.min(evm.spi, 1.5)} max={1.5} label={evm.spi.toFixed(3)} hint={evm.spi >= 1 ? 'on/ahead of schedule' : 'behind schedule'} />
-              ) : <p className="text-sm text-slate-500">No planned-value baseline.</p>}
+                <GaugeChart value={Math.min(evm.spi, 1.5)} max={1.5} label={evm.spi.toFixed(3)} hint={evm.spi >= 1 ? (ar ? 'ضمن المسار أو متقدّم عليه' : 'on/ahead of schedule') : (ar ? 'متأخّر عن الجدول' : 'behind schedule')} />
+              ) : <p className="text-sm text-slate-500">{ar ? 'لا يوجد خط أساس للقيمة المخطّطة.' : 'No planned-value baseline.'}</p>}
             </Card>
-            <Card title="Cost Performance (CPI)">
+            <Card title={ar ? 'أداء التكلفة (CPI)' : 'Cost Performance (CPI)'}>
               {evm.cpi !== null ? (
-                <GaugeChart value={Math.min(evm.cpi, 1.5)} max={1.5} label={evm.cpi.toFixed(3)} hint={evm.cpi >= 1 ? 'on/under budget' : 'over budget'} />
-              ) : <p className="text-sm text-slate-500">No actual-cost data.</p>}
+                <GaugeChart value={Math.min(evm.cpi, 1.5)} max={1.5} label={evm.cpi.toFixed(3)} hint={evm.cpi >= 1 ? (ar ? 'ضمن الميزانية أو دونها' : 'on/under budget') : (ar ? 'تجاوز الميزانية' : 'over budget')} />
+              ) : <p className="text-sm text-slate-500">{ar ? 'لا توجد بيانات تكلفة فعلية.' : 'No actual-cost data.'}</p>}
             </Card>
           </div>
 
           {/* Trends */}
-          {trends && <TrendsCard trends={trends} />}
+          {trends && <TrendsCard trends={trends} ar={ar} />}
 
           {/* EVM money tiles */}
-          <Card title="Earned Value (currency)">
+          <Card title={ar ? 'القيمة المكتسبة (بالعملة)' : 'Earned Value (currency)'}>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {[
                 { k: 'BAC', v: evm.bac, t: 'slate' },
@@ -214,29 +233,29 @@ function AnalyticsPage() {
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-slate-500">{evm.costedActivityCount} costed activit(ies) underpin these indices.</p>
+            <p className="mt-2 text-[11px] text-slate-500">{ar ? `يستند هذا المؤشّر إلى ${evm.costedActivityCount} نشاطًا مُسعّرًا.` : `${evm.costedActivityCount} costed activit(ies) underpin these indices.`}</p>
           </Card>
 
           {/* Productivity */}
           {prod && (
-            <Card title="Productivity & progress">
+            <Card title={ar ? 'الإنتاجية والتقدّم' : 'Productivity & progress'}>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <BarChart
-                  title="Activity status"
+                  title={ar ? 'حالة الأنشطة' : 'Activity status'}
                   data={[
-                    { label: 'Completed', value: prod.completedCount, accent: '#10b981' },
-                    { label: 'In progress', value: prod.inProgressCount, accent: '#0ea5e9' },
-                    { label: 'Not started', value: prod.notStartedCount, accent: '#64748b' },
+                    { label: ar ? 'مكتملة' : 'Completed', value: prod.completedCount, accent: '#10b981' },
+                    { label: ar ? 'قيد التنفيذ' : 'In progress', value: prod.inProgressCount, accent: '#0ea5e9' },
+                    { label: ar ? 'لم تبدأ' : 'Not started', value: prod.notStartedCount, accent: '#64748b' },
                   ]}
                 />
                 <div className="flex flex-col justify-center gap-2 text-sm text-slate-200">
-                  <div className="flex items-center justify-between"><span className="text-slate-500">Avg planned</span><strong className="tabular-nums">{prod.avgPlannedPct}%</strong></div>
-                  <div className="flex items-center justify-between"><span className="text-slate-500">Avg actual</span><strong className="tabular-nums">{prod.avgActualPct}%</strong></div>
+                  <div className="flex items-center justify-between"><span className="text-slate-500">{ar ? 'متوسط المخطّط' : 'Avg planned'}</span><strong className="tabular-nums">{prod.avgPlannedPct}%</strong></div>
+                  <div className="flex items-center justify-between"><span className="text-slate-500">{ar ? 'متوسط الفعلي' : 'Avg actual'}</span><strong className="tabular-nums">{prod.avgActualPct}%</strong></div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500">Progress delta</span>
-                    <Pill tone={prod.progressDeltaPct >= 0 ? 'emerald' : 'rose'}>{prod.progressDeltaPct >= 0 ? '+' : ''}{prod.progressDeltaPct} pp</Pill>
+                    <span className="text-slate-500">{ar ? 'فارق التقدّم' : 'Progress delta'}</span>
+                    <Pill tone={prod.progressDeltaPct >= 0 ? 'emerald' : 'rose'}>{prod.progressDeltaPct >= 0 ? '+' : ''}{prod.progressDeltaPct} {ar ? 'نقطة مئوية' : 'pp'}</Pill>
                   </div>
-                  <div className="flex items-center justify-between"><span className="text-slate-500">Completion rate</span><strong className="tabular-nums">{Math.round(prod.completionRate * 100)}%</strong></div>
+                  <div className="flex items-center justify-between"><span className="text-slate-500">{ar ? 'معدّل الإنجاز' : 'Completion rate'}</span><strong className="tabular-nums">{Math.round(prod.completionRate * 100)}%</strong></div>
                 </div>
               </div>
             </Card>
@@ -247,10 +266,10 @@ function AnalyticsPage() {
   );
 }
 
-function EarnedScheduleCard({ es }: { es: EarnedScheduleResult }) {
+function EarnedScheduleCard({ es, ar }: { es: EarnedScheduleResult; ar: boolean }) {
   const spiTTone = es.spiT === null ? 'slate' : es.spiT >= 1 ? 'emerald' : es.spiT >= 0.9 ? 'amber' : 'rose';
   return (
-    <Card title="Earned Schedule (time-based forecast)">
+    <Card title={ar ? 'الجدول المكتسب (تنبؤ زمني)' : 'Earned Schedule (time-based forecast)'}>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="flex items-center justify-center">
           {es.spiT !== null ? (
@@ -258,38 +277,38 @@ function EarnedScheduleCard({ es }: { es: EarnedScheduleResult }) {
               value={Math.min(es.spiT, 1.5)}
               max={1.5}
               label={es.spiT.toFixed(3)}
-              hint={es.spiT >= 1 ? 'ahead of schedule (time)' : 'behind schedule (time)'}
+              hint={es.spiT >= 1 ? (ar ? 'متقدّم عن الجدول (زمنيًا)' : 'ahead of schedule (time)') : (ar ? 'متأخّر عن الجدول (زمنيًا)' : 'behind schedule (time)')}
               title="SPI(t)"
             />
           ) : (
-            <p className="text-sm text-slate-500">Not enough schedule data to compute SPI(t).</p>
+            <p className="text-sm text-slate-500">{ar ? 'بيانات الجدول غير كافية لاحتساب SPI(t).' : 'Not enough schedule data to compute SPI(t).'}</p>
           )}
         </div>
         <div className="flex flex-col justify-center gap-2 text-sm text-slate-200">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Earned Schedule (ES)</span>
-            <strong className="tabular-nums" dir="ltr">{es.es === null ? '—' : `${es.es} d`}</strong>
+            <span className="text-slate-500">{ar ? 'الجدول المكتسب (ES)' : 'Earned Schedule (ES)'}</span>
+            <strong className="tabular-nums" dir="ltr">{es.es === null ? '—' : `${es.es} ${ar ? 'يوم' : 'd'}`}</strong>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Actual Time (AT)</span>
-            <strong className="tabular-nums" dir="ltr">{es.at === null ? '—' : `${es.at} d`}</strong>
+            <span className="text-slate-500">{ar ? 'الزمن الفعلي (AT)' : 'Actual Time (AT)'}</span>
+            <strong className="tabular-nums" dir="ltr">{es.at === null ? '—' : `${es.at} ${ar ? 'يوم' : 'd'}`}</strong>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-500">SPI(t)</span>
-            <Pill tone={spiTTone}>{es.spiT === null ? 'n/a' : es.spiT.toFixed(3)}</Pill>
+            <Pill tone={spiTTone}>{es.spiT === null ? (ar ? 'غير متاح' : 'n/a') : es.spiT.toFixed(3)}</Pill>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Planned duration</span>
-            <strong className="tabular-nums" dir="ltr">{es.plannedDurationDays === null ? '—' : `${es.plannedDurationDays} d`}</strong>
+            <span className="text-slate-500">{ar ? 'المدّة المخطّطة' : 'Planned duration'}</span>
+            <strong className="tabular-nums" dir="ltr">{es.plannedDurationDays === null ? '—' : `${es.plannedDurationDays} ${ar ? 'يوم' : 'd'}`}</strong>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Predicted duration</span>
+            <span className="text-slate-500">{ar ? 'المدّة المتوقّعة' : 'Predicted duration'}</span>
             <strong className="tabular-nums" dir="ltr">
-              {es.predictedDurationDays === null ? '—' : `${es.predictedDurationDays} d`}{es.capped ? ' (capped)' : ''}
+              {es.predictedDurationDays === null ? '—' : `${es.predictedDurationDays} ${ar ? 'يوم' : 'd'}`}{es.capped ? (ar ? ' (مُقيّدة)' : ' (capped)') : ''}
             </strong>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Predicted completion</span>
+            <span className="text-slate-500">{ar ? 'الإنجاز المتوقّع' : 'Predicted completion'}</span>
             <strong className="tabular-nums" dir="ltr">{es.predictedCompletionDate ?? '—'}</strong>
           </div>
         </div>
@@ -299,13 +318,14 @@ function EarnedScheduleCard({ es }: { es: EarnedScheduleResult }) {
   );
 }
 
-function TrendsCard({ trends }: { trends: TrendsResult }) {
+function TrendsCard({ trends, ar }: { trends: TrendsResult; ar: boolean }) {
   if (trends.sampleCount < 2) {
     return (
-      <Card title="SPI / CPI trends">
+      <Card title={ar ? 'اتجاهات SPI / CPI' : 'SPI / CPI trends'}>
         <p className="text-sm text-slate-500">
-          Only {trends.sampleCount} analytics snapshot(s) so far — at least two are needed to plot a trend.
-          Re-run the L4 analytics agent over time to build the series.
+          {ar
+            ? `لا تتوفّر سوى ${trends.sampleCount} لقطة تحليلية حتى الآن — يلزم وجود لقطتين على الأقل لرسم الاتجاه. أعد تشغيل وكيل التحليلات L4 على مدى الزمن لبناء السلسلة.`
+            : `Only ${trends.sampleCount} analytics snapshot(s) so far — at least two are needed to plot a trend. Re-run the L4 analytics agent over time to build the series.`}
         </p>
       </Card>
     );
@@ -313,10 +333,10 @@ function TrendsCard({ trends }: { trends: TrendsResult }) {
   const spiPts = trends.spi.points.map((p, i) => ({ x: shortDate(p.computedAt, i), y: p.value }));
   const cpiPts = trends.cpi.points.map((p, i) => ({ x: shortDate(p.computedAt, i), y: p.value }));
   return (
-    <Card title="SPI / CPI trends">
+    <Card title={ar ? 'اتجاهات SPI / CPI' : 'SPI / CPI trends'}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-xs text-slate-400">SPI</span>
-        <Pill tone={DIRECTION_TONE[trends.spi.direction]}>{trends.spi.direction}</Pill>
+        <Pill tone={DIRECTION_TONE[trends.spi.direction]}>{ar ? DIRECTION_LABEL[trends.spi.direction].ar : DIRECTION_LABEL[trends.spi.direction].en}</Pill>
         {trends.spi.slopePer30Days !== null && (
           <span className="font-mono text-[10px] text-slate-500" dir="ltr">
             slope {trends.spi.slopePer30Days >= 0 ? '+' : ''}{trends.spi.slopePer30Days}/30d
@@ -324,7 +344,7 @@ function TrendsCard({ trends }: { trends: TrendsResult }) {
         )}
         <span className="mx-2 text-slate-700">·</span>
         <span className="text-xs text-slate-400">CPI</span>
-        <Pill tone={DIRECTION_TONE[trends.cpi.direction]}>{trends.cpi.direction}</Pill>
+        <Pill tone={DIRECTION_TONE[trends.cpi.direction]}>{ar ? DIRECTION_LABEL[trends.cpi.direction].ar : DIRECTION_LABEL[trends.cpi.direction].en}</Pill>
         {trends.cpi.slopePer30Days !== null && (
           <span className="font-mono text-[10px] text-slate-500" dir="ltr">
             slope {trends.cpi.slopePer30Days >= 0 ? '+' : ''}{trends.cpi.slopePer30Days}/30d
@@ -333,7 +353,7 @@ function TrendsCard({ trends }: { trends: TrendsResult }) {
       </div>
       <LineChart
         height={220}
-        yLabel="index"
+        yLabel={ar ? 'المؤشّر' : 'index'}
         series={[
           { label: 'SPI', points: spiPts, accent: CHART_PALETTE.sky },
           { label: 'CPI', points: cpiPts, accent: CHART_PALETTE.emerald },
@@ -344,23 +364,23 @@ function TrendsCard({ trends }: { trends: TrendsResult }) {
   );
 }
 
-function PortfolioSection({ portfolio, loading }: { portfolio: PortfolioResult | null; loading: boolean }) {
+function PortfolioSection({ portfolio, loading, ar }: { portfolio: PortfolioResult | null; loading: boolean; ar: boolean }) {
   if (loading) return <Card><div className="h-40 animate-pulse rounded bg-slate-800/40" /></Card>;
   if (!portfolio || portfolio.projectCount === 0) {
-    return <EmptyState title="No portfolio data" description="No current projects with analysable activity were found." />;
+    return <EmptyState title={ar ? 'لا توجد بيانات للمحفظة' : 'No portfolio data'} description={ar ? 'لم يُعثر على مشاريع حالية ذات نشاط قابل للتحليل.' : 'No current projects with analysable activity were found.'} />;
   }
   return (
     <div className="space-y-4">
       {/* Weighted KPIs */}
-      <Card title="Portfolio KPIs (BAC-weighted)">
+      <Card title={ar ? 'مؤشرات أداء المحفظة (مرجّحة بالميزانية BAC)' : 'Portfolio KPIs (BAC-weighted)'}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { k: 'Projects', v: String(portfolio.projectCount) },
+            { k: ar ? 'المشاريع' : 'Projects', v: String(portfolio.projectCount) },
             { k: 'BAC', v: money(portfolio.totals.bac) },
             { k: 'PV', v: money(portfolio.totals.pv) },
             { k: 'EV', v: money(portfolio.totals.ev) },
             { k: 'AC', v: money(portfolio.totals.ac) },
-            { k: 'Wtd SPI', v: portfolio.weightedSpi === null ? '—' : portfolio.weightedSpi.toFixed(3) },
+            { k: ar ? 'SPI المرجّح' : 'Wtd SPI', v: portfolio.weightedSpi === null ? '—' : portfolio.weightedSpi.toFixed(3) },
           ].map((c) => (
             <div key={c.k} className="rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{c.k}</p>
@@ -369,21 +389,21 @@ function PortfolioSection({ portfolio, loading }: { portfolio: PortfolioResult |
           ))}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-          <span>Weighted CPI:</span>
+          <span>{ar ? 'CPI المرجّح:' : 'Weighted CPI:'}</span>
           <Pill tone={portfolio.weightedCpi === null ? 'slate' : portfolio.weightedCpi >= 1 ? 'emerald' : 'rose'}>
-            {portfolio.weightedCpi === null ? 'n/a' : portfolio.weightedCpi.toFixed(3)}
+            {portfolio.weightedCpi === null ? (ar ? 'غير متاح' : 'n/a') : portfolio.weightedCpi.toFixed(3)}
           </Pill>
         </div>
         <p className="mt-2 text-[11px] text-slate-500">{portfolio.basis}</p>
       </Card>
 
       {/* Per-project table */}
-      <Card title="Per-project performance">
+      <Card title={ar ? 'الأداء حسب المشروع' : 'Per-project performance'}>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500">
-                <th className="py-2 pe-3 font-semibold">Project</th>
+                <th className="py-2 pe-3 font-semibold">{ar ? 'المشروع' : 'Project'}</th>
                 <th className="py-2 pe-3 text-right font-semibold">BAC</th>
                 <th className="py-2 pe-3 text-right font-semibold">PV</th>
                 <th className="py-2 pe-3 text-right font-semibold">EV</th>

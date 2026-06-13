@@ -23,6 +23,7 @@ import {
 import { PersonaActiveBadge } from '../../components/PersonaActiveBadge';
 import { PolicyAddonInline } from '../../components/PolicyAddonInline';
 import { useToast } from '../../components/ToastProvider';
+import { useI18n } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 import { CAPABILITIES } from '../../lib/capabilities';
@@ -127,6 +128,7 @@ function BaselinesPage() {
   const { me } = useMe();
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
+  const { lang } = useI18n();
 
   const canAuthor = !!me?.user && CAPABILITIES[me.user.role].canSimulate;
   const canApprove = !!me?.user && CAPABILITIES[me.user.role].canApproveBaseline;
@@ -183,7 +185,10 @@ function BaselinesPage() {
   const onAuthor = useCallback(async () => {
     if (!projectKey) return;
     if (!authoredBy.trim()) {
-      toast.error('Author required', 'Enter the planner name (authoredBy).');
+      toast.error(
+        lang === 'ar' ? 'اسم المُخطِّط مطلوب' : 'Author required',
+        lang === 'ar' ? 'أدخل اسم المُخطِّط (authoredBy).' : 'Enter the planner name (authoredBy).',
+      );
       return;
     }
     setBusy('author');
@@ -196,11 +201,16 @@ function BaselinesPage() {
           baselineName: baselineName.trim() || undefined,
         }),
       });
-      toast.success('Planning started', `Job ${created.id.slice(0, 8)} is now building the WBS…`);
+      toast.success(
+        lang === 'ar' ? 'بدأ التخطيط' : 'Planning started',
+        lang === 'ar'
+          ? `المهمّة ${created.id.slice(0, 8)} تبني الآن هيكل تجزئة العمل (WBS)…`
+          : `Job ${created.id.slice(0, 8)} is now building the WBS…`,
+      );
       setOpenId(created.id);
       await refresh();
     } catch (e) {
-      toast.error('Generation failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل التوليد' : 'Generation failed', (e as Error).message);
     } finally {
       setBusy(null);
     }
@@ -219,14 +229,20 @@ function BaselinesPage() {
           },
         );
         toast.success(
-          updated.status === 'committed' ? 'Committed (2/2 signatures)' : 'First signature recorded (1/2)',
           updated.status === 'committed'
-            ? `Job ${updated.id.slice(0, 8)} is now the approved baseline.`
-            : 'A second, different approver must sign to commit.',
+            ? lang === 'ar' ? 'تم الاعتماد (توقيعان من 2)' : 'Committed (2/2 signatures)'
+            : lang === 'ar' ? 'سُجِّل التوقيع الأول (1 من 2)' : 'First signature recorded (1/2)',
+          updated.status === 'committed'
+            ? lang === 'ar'
+              ? `المهمّة ${updated.id.slice(0, 8)} أصبحت خط الأساس المعتمَد الآن.`
+              : `Job ${updated.id.slice(0, 8)} is now the approved baseline.`
+            : lang === 'ar'
+              ? 'يجب أن يوقّع معتمِد ثانٍ مختلف لإتمام الاعتماد.'
+              : 'A second, different approver must sign to commit.',
         );
         await refresh();
       } catch (e) {
-        toast.error('Approval failed', (e as Error).message);
+        toast.error(lang === 'ar' ? 'فشل الاعتماد' : 'Approval failed', (e as Error).message);
       } finally {
         setBusy(null);
       }
@@ -238,7 +254,11 @@ function BaselinesPage() {
   const onReject = useCallback(
     async (jobId: string) => {
       if (!me?.user?.displayName) return;
-      const reason = window.prompt('سبب الرفض (إلزامي) — يصل للمخطط كتوجيه لإعادة المحاولة:');
+      const reason = window.prompt(
+        lang === 'ar'
+          ? 'سبب الرفض (إلزامي) — يصل للمُخطِّط كتوجيه لإعادة المحاولة:'
+          : 'Rejection reason (required) — reaches the planner as guidance for the re-run:',
+      );
       if (!reason?.trim()) return;
       setBusy(jobId);
       try {
@@ -246,10 +266,15 @@ function BaselinesPage() {
           method: 'POST',
           body: JSON.stringify({ rejectedBy: me.user.displayName, reason: reason.trim() }),
         });
-        toast.success('Rejected', 'Recorded with the reason — re-run the author path with adjustments.');
+        toast.success(
+          lang === 'ar' ? 'تم الرفض' : 'Rejected',
+          lang === 'ar'
+            ? 'سُجِّل مع السبب — أعد تشغيل مسار التأليف بعد التعديلات.'
+            : 'Recorded with the reason — re-run the author path with adjustments.',
+        );
         await refresh();
       } catch (e) {
-        toast.error('Rejection failed', (e as Error).message);
+        toast.error(lang === 'ar' ? 'فشل الرفض' : 'Rejection failed', (e as Error).message);
       } finally {
         setBusy(null);
       }
@@ -270,9 +295,13 @@ function BaselinesPage() {
   return (
     <div className="space-y-6 animate-[fade-in-up_240ms_ease-out]">
       <PageHeader
-        eyebrow="Primavera P6 · Author Path · ADR-0017"
-        title="Programme Baseline Builder"
-        description="An AI planner persona builds a real Primavera-style baseline from your project window — WBS, activities, dependencies, and critical path — and parks it for human review before release."
+        eyebrow={lang === 'ar' ? 'Primavera P6 · مسار التأليف · ADR-0017' : 'Primavera P6 · Author Path · ADR-0017'}
+        title={lang === 'ar' ? 'مُنشئ خط أساس البرنامج الزمني' : 'Programme Baseline Builder'}
+        description={
+          lang === 'ar'
+            ? 'يبني خبير تخطيط بالذكاء الاصطناعي خط أساس فعلياً بأسلوب Primavera انطلاقاً من نافذة مدّة مشروعك — هيكل تجزئة العمل (WBS) والأنشطة والعلاقات والمسار الحرج — ثم يحجزه لمراجعة بشرية قبل الإصدار.'
+            : 'An AI planner persona builds a real Primavera-style baseline from your project window — WBS, activities, dependencies, and critical path — and parks it for human review before release.'
+        }
         actions={
           <span className="flex items-center gap-2">
             <PersonaActiveBadge

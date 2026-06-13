@@ -14,6 +14,7 @@ import { useToast } from '../../../components/ToastProvider';
 import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../../components/ui';
 import { api, Role } from '../../../lib/api';
 import { ROLE_LABEL } from '../../../lib/capabilities';
+import { useI18n } from '../../../lib/i18n';
 import { useMe } from '../../../lib/me-context';
 
 type Matrix = Record<string, Record<string, boolean>>;
@@ -32,6 +33,7 @@ export default function RolesAdminRoute() {
 
 function RolesAdminPage() {
   const toast = useToast();
+  const { lang } = useI18n();
   const { refresh: refreshMe } = useMe();
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,10 +60,13 @@ function RolesAdminPage() {
         body: JSON.stringify({ role, capability, enabled: !current }),
       });
       setSnap(updated);
-      toast.success('Permission updated', `${ROLE_LABEL[role as Role] ?? role} · ${capability} → ${!current ? 'on' : 'off'}`);
+      toast.success(
+        lang === 'ar' ? 'تم تحديث الصلاحية' : 'Permission updated',
+        `${ROLE_LABEL[role as Role] ?? role} · ${capability} → ${!current ? (lang === 'ar' ? 'مُفعّل' : 'on') : (lang === 'ar' ? 'مُعطّل' : 'off')}`,
+      );
       await refreshMe(); // re-sync the live nav for the current session
     } catch (e) {
-      toast.error('Update failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر التحديث' : 'Update failed', (e as Error).message);
     } finally { setBusy(null); }
   };
 
@@ -72,9 +77,12 @@ function RolesAdminPage() {
         method: 'POST', body: JSON.stringify(role ? { role } : {}),
       });
       setSnap(updated);
-      toast.success('Reset to defaults', role ? (ROLE_LABEL[role as Role] ?? role) : 'all roles');
+      toast.success(
+        lang === 'ar' ? 'تمت الإعادة إلى الإعدادات الافتراضية' : 'Reset to defaults',
+        role ? (ROLE_LABEL[role as Role] ?? role) : (lang === 'ar' ? 'جميع الأدوار' : 'all roles'),
+      );
       await refreshMe();
-    } catch (e) { toast.error('Reset failed', (e as Error).message); }
+    } catch (e) { toast.error(lang === 'ar' ? 'تعذّرت الإعادة للإعدادات' : 'Reset failed', (e as Error).message); }
     finally { setBusy(null); }
   };
 
@@ -84,13 +92,15 @@ function RolesAdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Admin · Access control"
-        title="Role Permissions"
-        description="Toggle any role's capabilities — changes are enforced immediately by the backend guard. The Sigma Admin column is locked, and canRead / canManageRoles cannot be disabled (lockout protection)."
+        eyebrow={lang === 'ar' ? 'الإدارة · التحكم في الصلاحيات' : 'Admin · Access control'}
+        title={lang === 'ar' ? 'صلاحيات الأدوار' : 'Role Permissions'}
+        description={lang === 'ar'
+          ? 'تحكّم في صلاحيات أي دور — تُطبَّق التغييرات فوراً عبر حارس الصلاحيات في الخادم. عمود Sigma Admin مُقفل، ولا يمكن تعطيل canRead / canManageRoles (حماية من فقدان الوصول).'
+          : "Toggle any role's capabilities — changes are enforced immediately by the backend guard. The Sigma Admin column is locked, and canRead / canManageRoles cannot be disabled (lockout protection)."}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>
-            <Button variant="danger" size="sm" disabled={busy === 'reset:all'} onClick={() => reset()}>Reset all to defaults</Button>
+            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+            <Button variant="danger" size="sm" disabled={busy === 'reset:all'} onClick={() => reset()}>{lang === 'ar' ? 'إعادة الكل للإعدادات الافتراضية' : 'Reset all to defaults'}</Button>
           </div>
         }
       />

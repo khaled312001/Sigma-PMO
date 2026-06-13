@@ -39,7 +39,8 @@ export default function ApprovalPageRoute() {
 }
 
 function ApprovalPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const ar = lang === 'ar';
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
   const confirm = useConfirm();
@@ -73,8 +74,8 @@ function ApprovalPage() {
         latestReview: reviewMap[d.id]?.[0] ?? null,
       }));
       setRows(pairs);
-    } catch (e) { toast.error('Failed to load decisions', (e as Error).message); }
-  }, [toast, projectKey]);
+    } catch (e) { toast.error(ar ? 'تعذّر تحميل القرارات' : 'Failed to load decisions', (e as Error).message); }
+  }, [toast, projectKey, ar]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -95,7 +96,10 @@ function ApprovalPage() {
         { method: 'POST', body: JSON.stringify({ action }) },
       );
       if (result.chainState === 'awaiting-second-approval') {
-        toast.success('First approval recorded', 'A second, distinct approver is required for this critical decision.');
+        toast.success(
+          ar ? 'تم تسجيل الموافقة الأولى' : 'First approval recorded',
+          ar ? 'يلزم معتمِد ثانٍ مختلف لهذا القرار الحرج.' : 'A second, distinct approver is required for this critical decision.',
+        );
       } else {
         toast.success(t('approval.actionDone', { action: t(`approval.${action}`) }));
       }
@@ -104,7 +108,10 @@ function ApprovalPage() {
       const msg = (e as Error).message;
       // 409: same actor cannot supply both approvals on a critical decision.
       if (/already carries your approval|second.*approver/i.test(msg)) {
-        toast.error('Second approver required', 'You already approved this critical decision — a different approver must confirm it.');
+        toast.error(
+          ar ? 'يلزم معتمِد ثانٍ' : 'Second approver required',
+          ar ? 'لقد اعتمدت هذا القرار الحرج بالفعل — يجب أن يؤكده معتمِد آخر مختلف.' : 'You already approved this critical decision — a different approver must confirm it.',
+        );
       } else {
         toast.error(t('approval.actionFailed'), msg);
       }
@@ -133,7 +140,7 @@ function ApprovalPage() {
               decision={decision}
               latestReview={latestReview}
               actions={<div className="flex w-full flex-col gap-3">
-                <ChainBar decision={decision} />
+                <ChainBar decision={decision} ar={ar} />
                 <div className="flex flex-wrap gap-2">
                   <Button variant="success" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'approve')}>
                     <IconCheck className="h-3.5 w-3.5" /> {t('approval.approve')}
@@ -160,7 +167,7 @@ function ApprovalPage() {
  * single-approval state. Escalated (overdue + still pending) decisions get a
  * red "ESCALATED · Nd" pill.
  */
-function ChainBar({ decision }: { decision: EnrichedDecision }) {
+function ChainBar({ decision, ar }: { decision: EnrichedDecision; ar: boolean }) {
   const dual = decision.requiresDualApproval ?? false;
   const required = dual ? 2 : 1;
   const remaining = decision.approvalsRemaining ?? required;
@@ -173,18 +180,18 @@ function ChainBar({ decision }: { decision: EnrichedDecision }) {
     : state === 'awaiting-second-approval' ? 'amber'
     : 'slate';
   const stateLabel =
-    state === 'awaiting-second-approval' ? 'Awaiting 2nd approval'
-    : state === 'approved' ? 'Approved'
-    : state === 'rejected' ? 'Rejected'
-    : state === 'acknowledged' ? 'Acknowledged'
-    : 'Pending';
+    state === 'awaiting-second-approval' ? (ar ? 'بانتظار الموافقة الثانية' : 'Awaiting 2nd approval')
+    : state === 'approved' ? (ar ? 'معتمَد' : 'Approved')
+    : state === 'rejected' ? (ar ? 'مرفوض' : 'Rejected')
+    : state === 'acknowledged' ? (ar ? 'تم الإقرار' : 'Acknowledged')
+    : (ar ? 'قيد الانتظار' : 'Pending');
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Pill tone={stateTone}>{stateLabel}</Pill>
       {dual && (
         <span className="inline-flex items-center gap-1 text-[11px] text-slate-300">
-          <span className="font-mono tabular-nums">{have}/{required} approvals</span>
+          <span className="font-mono tabular-nums">{have}/{required} {ar ? 'موافقات' : 'approvals'}</span>
           <span className="flex items-center gap-0.5">
             {Array.from({ length: required }).map((_, i) => (
               <span
@@ -196,16 +203,16 @@ function ChainBar({ decision }: { decision: EnrichedDecision }) {
         </span>
       )}
       {dual && state === 'awaiting-second-approval' && (
-        <span className="text-[11px] text-amber-300">Needs a second, distinct approver</span>
+        <span className="text-[11px] text-amber-300">{ar ? 'يلزم معتمِد ثانٍ مختلف' : 'Needs a second, distinct approver'}</span>
       )}
       {(decision.approvals?.length ?? 0) > 0 && (
         <span className="text-[11px] text-slate-400" dir="auto">
-          by {decision.approvals!.map((a) => a.performedByDisplay ?? '—').join(', ')}
+          {ar ? 'بواسطة' : 'by'} {decision.approvals!.map((a) => a.performedByDisplay ?? '—').join('، ')}
         </span>
       )}
       {decision.escalated && (
         <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-200 ring-1 ring-rose-500/50">
-          ESCALATED · {decision.pendingAgeDays ?? '?'}d
+          {ar ? 'مُصعَّد' : 'ESCALATED'} · {decision.pendingAgeDays ?? '?'}{ar ? ' يوم' : 'd'}
         </span>
       )}
     </div>

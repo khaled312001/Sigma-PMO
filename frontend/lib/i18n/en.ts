@@ -39,6 +39,12 @@ export const en: Dictionary = {
     opportunity: 'Opportunity',
     funding: 'Funding',
     predictive: 'Predictive',
+    bankability: 'Bankability',
+    safety: 'Safety Governance',
+    fireSafety: 'Fire & Life Safety',
+    authority: 'Authority Governance',
+    utility: 'Utility Governance',
+    operationalReadiness: 'Operational Readiness',
     commandGroup: 'Governance Command',
     agentLayers: 'Agent Layers · L0–L8',
     tools: 'Tools & Evidence',
@@ -522,6 +528,12 @@ export interface Dictionary {
     opportunity: string;
     funding: string;
     predictive: string;
+    bankability: string;
+    safety: string;
+    fireSafety: string;
+    authority: string;
+    utility: string;
+    operationalReadiness: string;
     commandGroup: string;
     agentLayers: string;
     tools: string;

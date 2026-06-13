@@ -10,6 +10,7 @@ import { GovernanceStatusBadge } from '../../../components/GovernanceStatusBadge
 import { IconSparkles } from '../../../components/Icons';
 import { MarkdownLite } from '../../../components/MarkdownLite';
 import { useToast } from '../../../components/ToastProvider';
+import { useI18n } from '../../../lib/i18n';
 import {
   api,
   AssessmentRecord,
@@ -37,6 +38,22 @@ const REC_LABEL: Record<string, string> = {
   reject: 'Reject',
 };
 
+const REC_LABEL_AR: Record<string, string> = {
+  proceed: 'المضي قدماً',
+  proceed_with_conditions: 'المضي بشروط',
+  hold: 'تعليق',
+  reject: 'رفض',
+};
+
+const STAGE_LABEL_AR: Record<string, string> = {
+  idea: 'فكرة',
+  assessed: 'مُقيّمة',
+  study: 'دراسة',
+  approved: 'معتمدة',
+  rejected: 'مرفوضة',
+  hold: 'مُعلّقة',
+};
+
 const REC_BANNER: Record<string, string> = {
   proceed: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-100',
   proceed_with_conditions: 'border-amber-400/50 bg-amber-400/10 text-amber-100',
@@ -52,6 +69,8 @@ interface Detail {
 }
 
 function OpportunityPage() {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -62,13 +81,13 @@ function OpportunityPage() {
     try {
       setDetail(await api<Detail>(`/feasibility/opportunities/${id}`));
     } catch (e) {
-      toast.error('Failed to load opportunity', (e as Error).message);
+      toast.error(ar ? 'تعذّر تحميل الفرصة' : 'Failed to load opportunity', (e as Error).message);
     }
-  }, [id, toast]);
+  }, [id, toast, ar]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  if (!detail) return <p className="text-sm text-slate-400">Loading…</p>;
+  if (!detail) return <p className="text-sm text-slate-400">{ar ? 'جارٍ التحميل…' : 'Loading…'}</p>;
   const { opportunity: opp, latestAssessment: a } = detail;
   const cur = opp.currency;
   const fmtM = (n: number | null | undefined) =>
@@ -80,9 +99,10 @@ function OpportunityPage() {
     setBusy('assess');
     try {
       const r = await api<{ assessment: AssessmentRecord }>(`/feasibility/opportunities/${opp.id}/assess`, { method: 'POST' });
-      toast.success('Assessment complete', `${REC_LABEL[r.assessment?.recommendation ?? ''] ?? r.assessment?.recommendation} · audited via ext.investment`);
+      const recLabel = (ar ? REC_LABEL_AR : REC_LABEL)[r.assessment?.recommendation ?? ''] ?? r.assessment?.recommendation;
+      toast.success(ar ? 'اكتمل التقييم' : 'Assessment complete', ar ? `${recLabel} · موثّق عبر ext.investment` : `${recLabel} · audited via ext.investment`);
       await refresh();
-    } catch (e) { toast.error('Assessment failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل التقييم' : 'Assessment failed', (e as Error).message); }
     finally { setBusy(null); }
   };
 
@@ -90,10 +110,10 @@ function OpportunityPage() {
     setBusy('study');
     try {
       const rows = await api<StudySectionRecord[]>(`/feasibility/opportunities/${opp.id}/study/generate`, { method: 'POST' });
-      toast.success('Study generated', `${rows.length} sections (v${rows[0]?.version ?? 1})`);
+      toast.success(ar ? 'تم توليد الدراسة' : 'Study generated', ar ? `${rows.length} بنود (الإصدار v${rows[0]?.version ?? 1})` : `${rows.length} sections (v${rows[0]?.version ?? 1})`);
       setTab('study');
       await refresh();
-    } catch (e) { toast.error('Study generation failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل توليد الدراسة' : 'Study generation failed', (e as Error).message); }
     finally { setBusy(null); }
   };
 
@@ -102,25 +122,25 @@ function OpportunityPage() {
       <PageHeader
         eyebrow={`Investment & Feasibility · ${opp.code}`}
         title={opp.title}
-        description={`${opp.projectType} · ${[opp.city, opp.country].filter(Boolean).join(', ') || 'location TBD'} · stage: ${opp.stage}`}
+        description={`${opp.projectType} · ${[opp.city, opp.country].filter(Boolean).join(', ') || (ar ? 'الموقع لم يُحدّد بعد' : 'location TBD')} · ${ar ? 'المرحلة' : 'stage'}: ${ar ? (STAGE_LABEL_AR[opp.stage] ?? opp.stage) : opp.stage}`}
         actions={
           <>
             <Button variant="success" size="sm" disabled={busy === 'assess'} onClick={runAssessment}>
-              {busy === 'assess' ? 'Running…' : 'Run rapid assessment'}
+              {busy === 'assess' ? (ar ? 'جارٍ…' : 'Running…') : (ar ? 'تشغيل التقييم السريع' : 'Run rapid assessment')}
             </Button>
             <Button variant="primary" size="sm" disabled={busy === 'study'} onClick={generateStudy}>
-              <IconSparkles className="h-3.5 w-3.5" /> {busy === 'study' ? 'Generating…' : 'Generate professional study'}
+              <IconSparkles className="h-3.5 w-3.5" /> {busy === 'study' ? (ar ? 'جارٍ التوليد…' : 'Generating…') : (ar ? 'توليد الدراسة الاحترافية' : 'Generate professional study')}
             </Button>
           </>
         }
       />
 
-      <nav className="flex flex-wrap gap-2" role="tablist" aria-label="Opportunity views">
+      <nav className="flex flex-wrap gap-2" role="tablist" aria-label={ar ? 'عروض الفرصة' : 'Opportunity views'}>
         {([
-          ['assessment', 'Level 1 · Assessment'],
-          ['study', `Level 2 · Study${detail.sections.length ? ` (${detail.sections.length})` : ''}`],
-          ['packages', 'Packages'],
-          ['sketches', `Concept sketches${detail.documents.length ? ` (${detail.documents.length})` : ''}`],
+          ['assessment', ar ? 'المستوى الأول · التقييم' : 'Level 1 · Assessment'],
+          ['study', `${ar ? 'المستوى الثاني · الدراسة' : 'Level 2 · Study'}${detail.sections.length ? ` (${detail.sections.length})` : ''}`],
+          ['packages', ar ? 'الحزم' : 'Packages'],
+          ['sketches', `${ar ? 'الرسوم المفاهيمية' : 'Concept sketches'}${detail.documents.length ? ` (${detail.documents.length})` : ''}`],
         ] as Array<[Tab, string]>).map(([k, label]) => (
           <button
             key={k}
@@ -156,11 +176,15 @@ function AssessmentTab({
   fmtM: (n: number | null | undefined) => string;
   pct: (n: number | null | undefined) => string;
 }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   if (!a) {
     return (
       <EmptyState
-        title="No assessment yet"
-        description="Run the rapid assessment — the deterministic model needs only the inputs you provided at creation (or a confirmed concept sketch)."
+        title={ar ? 'لا يوجد تقييم بعد' : 'No assessment yet'}
+        description={ar
+          ? 'شغّل التقييم السريع — يكتفي النموذج الحتمي بالمُدخلات التي قدّمتها عند الإنشاء (أو برسم مفاهيمي مُعتمد).'
+          : 'Run the rapid assessment — the deterministic model needs only the inputs you provided at creation (or a confirmed concept sketch).'}
       />
     );
   }
@@ -172,24 +196,24 @@ function AssessmentTab({
       {/* Recommendation banner */}
       <div className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 ${REC_BANNER[rec] ?? REC_BANNER.hold}`}>
         <GovernanceStatusBadge status={a.governanceStatus} />
-        <span className="text-base font-bold">{REC_LABEL[rec] ?? rec}</span>
-        <span className="text-xs opacity-90">Risk: {a.riskRating}</span>
-        <span className="text-xs opacity-90" dir="ltr">Attractiveness {r.attractivenessScore}/100</span>
-        <span className="text-xs opacity-90" dir="ltr">Confidence {(a.confidence * 100).toFixed(0)}%</span>
+        <span className="text-base font-bold">{(ar ? REC_LABEL_AR : REC_LABEL)[rec] ?? rec}</span>
+        <span className="text-xs opacity-90">{ar ? 'المخاطر' : 'Risk'}: {a.riskRating}</span>
+        <span className="text-xs opacity-90">{ar ? 'الجاذبية' : 'Attractiveness'} <span dir="ltr">{r.attractivenessScore}/100</span></span>
+        <span className="text-xs opacity-90">{ar ? 'الثقة' : 'Confidence'} <span dir="ltr">{(a.confidence * 100).toFixed(0)}%</span></span>
         <span className="ms-auto text-[11px] opacity-75">{new Date(a.createdAt).toLocaleString()}</span>
       </div>
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Kpi label="NPV" value={fmtM(r.npv)} good={r.npv > 0} />
-        <Kpi label={`Project IRR (hurdle ${pct(r.hurdleIrrPct)})`} value={pct(r.projectIrr)} good={(r.projectIrr ?? -1) >= r.hurdleIrrPct} />
-        <Kpi label="Equity IRR" value={pct(r.equityIrr)} good={(r.equityIrr ?? -1) >= r.hurdleIrrPct} />
-        <Kpi label="Payback (years)" value={String(r.paybackYears ?? '—')} good={r.paybackYears !== null} />
-        <Kpi label="Min DSCR (stabilized)" value={String(r.dscr?.min ?? '—')} good={(r.dscr?.min ?? 0) >= 1.2} />
+        <Kpi label={`${ar ? 'IRR المشروع (الحد الأدنى للعائد' : 'Project IRR (hurdle'} ${pct(r.hurdleIrrPct)})`} value={pct(r.projectIrr)} good={(r.projectIrr ?? -1) >= r.hurdleIrrPct} />
+        <Kpi label={ar ? 'IRR حقوق الملكية' : 'Equity IRR'} value={pct(r.equityIrr)} good={(r.equityIrr ?? -1) >= r.hurdleIrrPct} />
+        <Kpi label={ar ? 'فترة الاسترداد (سنوات)' : 'Payback (years)'} value={String(r.paybackYears ?? '—')} good={r.paybackYears !== null} />
+        <Kpi label={ar ? 'أدنى DSCR (عند الاستقرار)' : 'Min DSCR (stabilized)'} value={String(r.dscr?.min ?? '—')} good={(r.dscr?.min ?? 0) >= 1.2} />
       </div>
 
       {(r.conditions?.length ?? 0) > 0 && (
-        <Card title="Conditions / rationale" hint="Every fired ladder rule, named">
+        <Card title={ar ? 'الشروط / المبررات' : 'Conditions / rationale'} hint={ar ? 'كل قاعدة تدرّج جرى تفعيلها، مُسمّاة' : 'Every fired ladder rule, named'}>
           <ul className="list-disc space-y-1 ps-5 text-sm text-slate-200">
             {r.conditions.map((c, i) => <li key={i}>{c}</li>)}
           </ul>
@@ -197,38 +221,41 @@ function AssessmentTab({
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="CAPEX breakdown" hint={`${fmtM(r.debtAmount + r.equityAmount)} total envelope`}>
+        <Card title={ar ? 'توزيع التكلفة الرأسمالية CAPEX' : 'CAPEX breakdown'} hint={ar ? `${fmtM(r.debtAmount + r.equityAmount)} إجمالي المظروف` : `${fmtM(r.debtAmount + r.equityAmount)} total envelope`}>
           <DonutChart
             data={[
-              { label: 'Construction', value: r.capexBreakdown?.construction ?? 0, accent: CHART_PALETTE.crimson },
-              { label: 'Land', value: r.capexBreakdown?.land ?? 0, accent: '#38bdf8' },
-              { label: 'Soft costs', value: r.capexBreakdown?.softCosts ?? 0, accent: '#a78bfa' },
-              { label: 'Contingency', value: r.capexBreakdown?.contingency ?? 0, accent: '#f59e0b' },
+              { label: ar ? 'الإنشاء' : 'Construction', value: r.capexBreakdown?.construction ?? 0, accent: CHART_PALETTE.crimson },
+              { label: ar ? 'الأرض' : 'Land', value: r.capexBreakdown?.land ?? 0, accent: '#38bdf8' },
+              { label: ar ? 'التكاليف غير المباشرة' : 'Soft costs', value: r.capexBreakdown?.softCosts ?? 0, accent: '#a78bfa' },
+              { label: ar ? 'الاحتياطي الطارئ' : 'Contingency', value: r.capexBreakdown?.contingency ?? 0, accent: '#f59e0b' },
             ]}
             centerValue={fmtM(r.debtAmount + r.equityAmount)}
             centerLabel="CAPEX"
           />
         </Card>
-        <Card title="Funding & operating profile" hint="From the snapshotted assumption set">
+        <Card title={ar ? 'هيكل التمويل والتشغيل' : 'Funding & operating profile'} hint={ar ? 'من مجموعة الافتراضات المُلتقطة' : 'From the snapshotted assumption set'}>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <Dt k="Equity" v={fmtM(r.equityAmount)} />
-            <Dt k="Debt" v={fmtM(r.debtAmount)} />
-            <Dt k="Annual debt service" v={fmtM(r.annualDebtService)} />
-            <Dt k="Avg DSCR" v={String(r.dscr?.avg ?? '—')} />
-            <Dt k="Stabilized revenue / yr" v={fmtM(r.stabilizedRevenue)} />
-            <Dt k="Stabilized EBITDA / yr" v={fmtM(r.stabilizedEbitda)} />
-            <Dt k="Exit (terminal) value" v={fmtM(r.terminalValue)} />
-            <Dt k="Risk factors" v={r.riskFactors?.length ? r.riskFactors.join('; ') : 'none fired'} />
+            <Dt k={ar ? 'حقوق الملكية' : 'Equity'} v={fmtM(r.equityAmount)} />
+            <Dt k={ar ? 'الدَّيْن' : 'Debt'} v={fmtM(r.debtAmount)} />
+            <Dt k={ar ? 'خدمة الدين السنوية' : 'Annual debt service'} v={fmtM(r.annualDebtService)} />
+            <Dt k={ar ? 'متوسط DSCR' : 'Avg DSCR'} v={String(r.dscr?.avg ?? '—')} />
+            <Dt k={ar ? 'الإيراد عند الاستقرار / سنة' : 'Stabilized revenue / yr'} v={fmtM(r.stabilizedRevenue)} />
+            <Dt k={ar ? 'EBITDA عند الاستقرار / سنة' : 'Stabilized EBITDA / yr'} v={fmtM(r.stabilizedEbitda)} />
+            <Dt k={ar ? 'قيمة الخروج (النهائية)' : 'Exit (terminal) value'} v={fmtM(r.terminalValue)} />
+            <Dt k={ar ? 'عوامل المخاطر' : 'Risk factors'} v={r.riskFactors?.length ? r.riskFactors.join('; ') : (ar ? 'لا عوامل مُفعّلة' : 'none fired')} />
           </dl>
         </Card>
       </div>
 
-      <Card title="Cash-flow projection" hint="Unlevered project flows; exit value in the final year">
+      <Card title={ar ? 'إسقاط التدفقات النقدية' : 'Cash-flow projection'} hint={ar ? 'تدفقات المشروع غير المُمَوّلة بالدين؛ قيمة الخروج في السنة الأخيرة' : 'Unlevered project flows; exit value in the final year'}>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-slate-800/80">
-                {['Year', 'Phase', 'Revenue', 'OPEX', 'EBITDA', 'CAPEX out', 'Debt service', 'DSCR', 'Project CF', 'Cumulative'].map((h) => (
+                {(ar
+                  ? ['السنة', 'المرحلة', 'الإيراد', 'OPEX', 'EBITDA', 'مخرج CAPEX', 'خدمة الدين', 'DSCR', 'تدفق المشروع', 'التراكمي']
+                  : ['Year', 'Phase', 'Revenue', 'OPEX', 'EBITDA', 'CAPEX out', 'Debt service', 'DSCR', 'Project CF', 'Cumulative']
+                ).map((h) => (
                   <th key={h} className="px-2.5 py-2 text-start font-semibold uppercase tracking-wider text-slate-300">{h}</th>
                 ))}
               </tr>
@@ -237,7 +264,7 @@ function AssessmentTab({
               {r.years?.map((y) => (
                 <tr key={y.year} className="border-t border-slate-800 odd:bg-slate-900/40">
                   <td className="px-2.5 py-1.5 font-mono text-slate-200" dir="ltr">{y.year}</td>
-                  <td className="px-2.5 py-1.5"><Pill tone={y.phase === 'construction' ? 'amber' : 'emerald'}>{y.phase}</Pill></td>
+                  <td className="px-2.5 py-1.5"><Pill tone={y.phase === 'construction' ? 'amber' : 'emerald'}>{ar ? (y.phase === 'construction' ? 'الإنشاء' : y.phase === 'operation' ? 'التشغيل' : y.phase) : y.phase}</Pill></td>
                   {[y.revenue, y.opex, y.ebitda, y.capexOutflow, y.debtService].map((v, i) => (
                     <td key={i} className="px-2.5 py-1.5 tabular-nums text-slate-200" dir="ltr">{v ? (v / 1_000_000).toFixed(2) + 'M' : '—'}</td>
                   ))}
@@ -256,8 +283,10 @@ function AssessmentTab({
       </Card>
 
       <p className="text-[11px] text-slate-500">
-        Deterministic model · assumption library {String((a.assumptions as Record<string, unknown>).libraryVersion ?? '')} · inputs basis: {String((a.inputs as Record<string, unknown>).capexBasis ?? '')} · audited as AgentExecution (ext.investment).
-        {' '}<Link href="/agents" className="text-sky-400 hover:underline">View in agent registry →</Link>
+        {ar
+          ? `نموذج حتمي · مكتبة الافتراضات ${String((a.assumptions as Record<string, unknown>).libraryVersion ?? '')} · أساس المُدخلات: ${String((a.inputs as Record<string, unknown>).capexBasis ?? '')} · موثّق كتنفيذ وكيل AgentExecution (ext.investment).`
+          : `Deterministic model · assumption library ${String((a.assumptions as Record<string, unknown>).libraryVersion ?? '')} · inputs basis: ${String((a.inputs as Record<string, unknown>).capexBasis ?? '')} · audited as AgentExecution (ext.investment).`}
+        {' '}<Link href="/agents" className="text-sky-400 hover:underline">{ar ? 'العرض في سجل الوكلاء ←' : 'View in agent registry →'}</Link>
       </p>
     </div>
   );
@@ -292,15 +321,19 @@ function StudyTab({
   onGenerate: () => Promise<void>;
   busy: boolean;
 }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(sections[0]?.sectionKey ?? null);
 
   if (!sections.length) {
     return (
       <EmptyState
-        title="No professional study yet"
-        description="Level 2 progressively generates the full feasibility & bankability study — 17 sections from Executive Summary to Governance Recommendation — from the deterministic model."
-        action={<Button variant="primary" disabled={busy} onClick={onGenerate}>{busy ? 'Generating…' : 'Generate professional study'}</Button>}
+        title={ar ? 'لا توجد دراسة احترافية بعد' : 'No professional study yet'}
+        description={ar
+          ? 'يُولّد المستوى الثاني تدريجياً دراسة الجدوى والقابلية للتمويل البنكي كاملةً — 17 بنداً من الملخص التنفيذي إلى توصية الحوكمة — انطلاقاً من النموذج الحتمي.'
+          : 'Level 2 progressively generates the full feasibility & bankability study — 17 sections from Executive Summary to Governance Recommendation — from the deterministic model.'}
+        action={<Button variant="primary" disabled={busy} onClick={onGenerate}>{busy ? (ar ? 'جارٍ التوليد…' : 'Generating…') : (ar ? 'توليد الدراسة الاحترافية' : 'Generate professional study')}</Button>}
       />
     );
   }
@@ -308,16 +341,17 @@ function StudyTab({
   const approve = async (sectionKey: string) => {
     try {
       await api(`/feasibility/opportunities/${opp.id}/study/${sectionKey}/approve`, { method: 'POST' });
-      toast.success('Section approved', sectionKey);
+      toast.success(ar ? 'تم اعتماد البند' : 'Section approved', sectionKey);
       await refresh();
-    } catch (e) { toast.error('Approve failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل الاعتماد' : 'Approve failed', (e as Error).message); }
   };
 
   return (
     <div className="space-y-2.5">
       <p className="text-xs text-slate-400">
-        Version {sections[0]?.version} · {sections.filter((s) => s.status === 'approved').length}/{sections.length} approved ·
-        every section is regenerable; approval is the human gate before packaging.
+        {ar
+          ? `الإصدار ${sections[0]?.version} · ${sections.filter((s) => s.status === 'approved').length}/${sections.length} مُعتمد · كل بند قابل لإعادة التوليد؛ والاعتماد هو البوابة البشرية قبل التجميع.`
+          : `Version ${sections[0]?.version} · ${sections.filter((s) => s.status === 'approved').length}/${sections.length} approved · every section is regenerable; approval is the human gate before packaging.`}
       </p>
       {sections.map((s, i) => (
         <div key={s.id} className="overflow-hidden rounded-xl border border-slate-700/70 bg-slate-900/60">
@@ -328,16 +362,16 @@ function StudyTab({
           >
             <span className="font-mono text-[10px] font-bold text-slate-500" dir="ltr">{String(i + 1).padStart(2, '0')}</span>
             <span className="flex-1 text-sm font-semibold text-slate-100">{s.title}</span>
-            <Pill tone={s.source === 'llm' ? 'violet' : 'slate'}>{s.source}</Pill>
-            <Pill tone={s.status === 'approved' ? 'emerald' : 'amber'}>{s.status}</Pill>
+            <Pill tone={s.source === 'llm' ? 'violet' : 'slate'}>{ar ? (s.source === 'llm' ? 'ذكاء اصطناعي' : s.source === 'deterministic' ? 'حتمي' : s.source) : s.source}</Pill>
+            <Pill tone={s.status === 'approved' ? 'emerald' : 'amber'}>{ar ? (s.status === 'approved' ? 'مُعتمد' : s.status === 'draft' ? 'مسودة' : s.status) : s.status}</Pill>
           </button>
           {open === s.sectionKey && (
             <div className="space-y-3 border-t border-slate-800 px-4 py-4">
               <MarkdownLite text={s.content} />
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-500">v{s.version} · {new Date(s.createdAt).toLocaleString()}{s.approvedBy ? ` · approved by ${s.approvedBy}` : ''}</span>
+                <span className="text-[11px] text-slate-500">v{s.version} · {new Date(s.createdAt).toLocaleString()}{s.approvedBy ? (ar ? ` · اعتمده ${s.approvedBy}` : ` · approved by ${s.approvedBy}`) : ''}</span>
                 {s.status !== 'approved' && (
-                  <Button variant="success" size="sm" onClick={() => approve(s.sectionKey)}>Approve section</Button>
+                  <Button variant="success" size="sm" onClick={() => approve(s.sectionKey)}>{ar ? 'اعتماد البند' : 'Approve section'}</Button>
                 )}
               </div>
             </div>
@@ -350,27 +384,29 @@ function StudyTab({
 
 // ───────────────────────── Audience packages ─────────────────────────
 
-const AUDIENCES: Array<{ key: string; title: string; desc: string }> = [
-  { key: 'investor', title: 'Investor Package', desc: 'Returns story: market, revenue, NPV/IRR/payback, sensitivity, risk.' },
-  { key: 'partner', title: 'Partner Package', desc: 'Venture story: market, technical & operational model, CAPEX/OPEX.' },
-  { key: 'bank', title: 'Bank Financing Package', desc: 'Credit story: statements, DSCR, funding requirements, bankability.' },
+const AUDIENCES: Array<{ key: string; title: string; desc: string; titleAr: string; descAr: string }> = [
+  { key: 'investor', title: 'Investor Package', desc: 'Returns story: market, revenue, NPV/IRR/payback, sensitivity, risk.', titleAr: 'حزمة المستثمر', descAr: 'سردية العوائد: السوق، الإيراد، NPV/IRR/فترة الاسترداد، تحليل الحساسية، المخاطر.' },
+  { key: 'partner', title: 'Partner Package', desc: 'Venture story: market, technical & operational model, CAPEX/OPEX.', titleAr: 'حزمة الشريك', descAr: 'سردية المشروع: السوق، النموذج الفني والتشغيلي، CAPEX/OPEX.' },
+  { key: 'bank', title: 'Bank Financing Package', desc: 'Credit story: statements, DSCR, funding requirements, bankability.', titleAr: 'حزمة التمويل البنكي', descAr: 'السردية الائتمانية: القوائم المالية، DSCR، متطلبات التمويل، القابلية للتمويل البنكي.' },
 ];
 
 function PackagesTab({ opp, hasStudy }: { opp: OpportunityRecord; hasStudy: boolean }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const toast = useToast();
   const [pkg, setPkg] = useState<FeasibilityPackage | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   if (!hasStudy) {
-    return <EmptyState title="Generate the study first" description="Packages are audience-specific compositions of the Level-2 study sections." />;
+    return <EmptyState title={ar ? 'ولّد الدراسة أولاً' : 'Generate the study first'} description={ar ? 'الحزم تركيبات خاصة بكل جمهور من بنود دراسة المستوى الثاني.' : 'Packages are audience-specific compositions of the Level-2 study sections.'} />;
   }
 
   const load = async (audience: string) => {
     setLoading(audience);
     try {
       setPkg(await api<FeasibilityPackage>(`/feasibility/opportunities/${opp.id}/package/${audience}`));
-    } catch (e) { toast.error('Package failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل تجهيز الحزمة' : 'Package failed', (e as Error).message); }
     finally { setLoading(null); }
   };
 
@@ -385,18 +421,18 @@ function PackagesTab({ opp, hasStudy }: { opp: OpportunityRecord; hasStudy: bool
               pkg?.audience === a.key ? 'border-sky-500/60 bg-sky-500/10' : 'border-slate-700/70 bg-slate-900/60'
             }`}
           >
-            <p className="text-sm font-bold text-slate-50">{a.title}</p>
-            <p className="mt-1 text-xs text-slate-400">{a.desc}</p>
-            <p className="mt-2 text-[11px] font-semibold text-sky-300">{loading === a.key ? 'Composing…' : 'Compose →'}</p>
+            <p className="text-sm font-bold text-slate-50">{ar ? a.titleAr : a.title}</p>
+            <p className="mt-1 text-xs text-slate-400">{ar ? a.descAr : a.desc}</p>
+            <p className="mt-2 text-[11px] font-semibold text-sky-300">{loading === a.key ? (ar ? 'جارٍ التجميع…' : 'Composing…') : (ar ? 'تجميع ←' : 'Compose →')}</p>
           </button>
         ))}
       </div>
 
       {pkg && (
         <Card
-          title={`${AUDIENCES.find((a) => a.key === pkg.audience)?.title ?? pkg.audience} — ${pkg.opportunity.code}`}
-          hint={`${pkg.generatedSections} sections · ${pkg.approvedSections} approved`}
-          actions={<Button variant="ghost" size="sm" onClick={() => window.print()}>Print / save PDF</Button>}
+          title={`${(ar ? AUDIENCES.find((a) => a.key === pkg.audience)?.titleAr : AUDIENCES.find((a) => a.key === pkg.audience)?.title) ?? pkg.audience} — ${pkg.opportunity.code}`}
+          hint={ar ? `${pkg.generatedSections} بنود · ${pkg.approvedSections} مُعتمد` : `${pkg.generatedSections} sections · ${pkg.approvedSections} approved`}
+          actions={<Button variant="ghost" size="sm" onClick={() => window.print()}>{ar ? 'طباعة / حفظ PDF' : 'Print / save PDF'}</Button>}
         >
           <div ref={printRef} className="space-y-6">
             <div className="border-b border-slate-700 pb-3">
@@ -409,7 +445,7 @@ function PackagesTab({ opp, hasStudy }: { opp: OpportunityRecord; hasStudy: bool
               <section key={s.id}>
                 <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-sky-300">
                   {i + 1}. {s.title}
-                  {s.status === 'approved' && <span className="ms-2 text-[10px] font-semibold text-emerald-400">✓ approved</span>}
+                  {s.status === 'approved' && <span className="ms-2 text-[10px] font-semibold text-emerald-400">{ar ? '✓ مُعتمد' : '✓ approved'}</span>}
                 </h3>
                 <MarkdownLite text={s.content} />
               </section>
@@ -423,15 +459,15 @@ function PackagesTab({ opp, hasStudy }: { opp: OpportunityRecord; hasStudy: bool
 
 // ───────────────────────── Concept sketches ─────────────────────────
 
-const FIELD_DEFS: Array<{ key: string; label: string; kind: 'number' | 'text' | 'list' }> = [
-  { key: 'plotAreaSqm', label: 'Plot area (m²)', kind: 'number' },
-  { key: 'builtUpAreaSqm', label: 'Built-up area (m²)', kind: 'number' },
-  { key: 'floors', label: 'Floors', kind: 'number' },
-  { key: 'functionalZones', label: 'Functional zones (comma-separated)', kind: 'list' },
-  { key: 'approxDimensions', label: 'Approx. dimensions', kind: 'text' },
-  { key: 'capacity', label: 'Capacity', kind: 'text' },
-  { key: 'writtenNotes', label: 'Written notes (comma-separated)', kind: 'list' },
-  { key: 'keyAssumptions', label: 'Key assumptions (comma-separated)', kind: 'list' },
+const FIELD_DEFS: Array<{ key: string; label: string; labelAr: string; kind: 'number' | 'text' | 'list' }> = [
+  { key: 'plotAreaSqm', label: 'Plot area (m²)', labelAr: 'مساحة الأرض (م²)', kind: 'number' },
+  { key: 'builtUpAreaSqm', label: 'Built-up area (m²)', labelAr: 'المسطح المبني (م²)', kind: 'number' },
+  { key: 'floors', label: 'Floors', labelAr: 'عدد الطوابق', kind: 'number' },
+  { key: 'functionalZones', label: 'Functional zones (comma-separated)', labelAr: 'النطاقات الوظيفية (مفصولة بفواصل)', kind: 'list' },
+  { key: 'approxDimensions', label: 'Approx. dimensions', labelAr: 'الأبعاد التقريبية', kind: 'text' },
+  { key: 'capacity', label: 'Capacity', labelAr: 'السعة', kind: 'text' },
+  { key: 'writtenNotes', label: 'Written notes (comma-separated)', labelAr: 'الملاحظات المكتوبة (مفصولة بفواصل)', kind: 'list' },
+  { key: 'keyAssumptions', label: 'Key assumptions (comma-separated)', labelAr: 'الافتراضات الرئيسية (مفصولة بفواصل)', kind: 'list' },
 ];
 
 function SketchesTab({
@@ -441,6 +477,8 @@ function SketchesTab({
   documents: ConceptDocumentRecord[];
   refresh: () => Promise<void>;
 }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const [reviewing, setReviewing] = useState<ConceptDocumentRecord | null>(null);
@@ -454,9 +492,9 @@ function SketchesTab({
         method: 'POST',
         body: JSON.stringify({ filename: file.name, mimeType: file.type || 'application/octet-stream', contentBase64: b64 }),
       });
-      toast.success('Sketch uploaded', file.name);
+      toast.success(ar ? 'تم رفع الرسم' : 'Sketch uploaded', file.name);
       await refresh();
-    } catch (e) { toast.error('Upload failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل الرفع' : 'Upload failed', (e as Error).message); }
     finally { setBusy(null); if (fileRef.current) fileRef.current.value = ''; }
   };
 
@@ -465,22 +503,26 @@ function SketchesTab({
     try {
       const updated = await api<ConceptDocumentRecord>(`/feasibility/documents/${doc.id}/extract`, { method: 'POST' });
       if (updated.extractionStatus === 'extracted') {
-        toast.success('Extraction proposed', 'Review the fields, edit if needed, then confirm.');
+        toast.success(ar ? 'تم اقتراح الاستخراج' : 'Extraction proposed', ar ? 'راجع الحقول، وعدّلها عند الحاجة، ثم اعتمدها.' : 'Review the fields, edit if needed, then confirm.');
         setReviewing(updated);
       } else {
-        toast.error('Extraction not available', updated.extractionError ?? 'unknown');
+        toast.error(ar ? 'الاستخراج غير متاح' : 'Extraction not available', updated.extractionError ?? (ar ? 'غير معروف' : 'unknown'));
         if (updated.extractionStatus === 'manual') setReviewing(updated);
       }
       await refresh();
-    } catch (e) { toast.error('Extraction failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل الاستخراج' : 'Extraction failed', (e as Error).message); }
     finally { setBusy(null); }
   };
+
+  const statusAr: Record<string, string> = { confirmed: 'مُعتمد', extracted: 'مُستخرج', failed: 'فشل', manual: 'يدوي', pending: 'قيد الانتظار' };
 
   return (
     <div className="space-y-5">
       <Card
-        title="Upload a concept sketch / preliminary drawing"
-        hint="PNG, JPEG, WEBP, GIF or PDF · max 15 MB · OCR + vision extraction proposes the inputs; a human confirms before anything is applied"
+        title={ar ? 'رفع رسم مفاهيمي / مخطط أولي' : 'Upload a concept sketch / preliminary drawing'}
+        hint={ar
+          ? 'PNG أو JPEG أو WEBP أو GIF أو PDF · بحد أقصى 15 ميجابايت · يقترح الاستخراج عبر OCR والرؤية الحاسوبية المُدخلات؛ ويعتمدها مختص بشري قبل تطبيق أي شيء'
+          : 'PNG, JPEG, WEBP, GIF or PDF · max 15 MB · OCR + vision extraction proposes the inputs; a human confirms before anything is applied'}
       >
         <input
           ref={fileRef}
@@ -493,7 +535,7 @@ function SketchesTab({
       </Card>
 
       {documents.length === 0 ? (
-        <EmptyState title="No concept documents" description="Many investors start with a simple sketch or handwritten notes — upload one to extract plot area, BUA, floors, zones, unit mix and notes." />
+        <EmptyState title={ar ? 'لا توجد وثائق مفاهيمية' : 'No concept documents'} description={ar ? 'يبدأ كثير من المستثمرين برسم بسيط أو ملاحظات بخط اليد — ارفع أحدها لاستخراج مساحة الأرض والمسطح المبني BUA وعدد الطوابق والنطاقات ومزيج الوحدات والملاحظات.' : 'Many investors start with a simple sketch or handwritten notes — upload one to extract plot area, BUA, floors, zones, unit mix and notes.'} />
       ) : (
         <div className="space-y-2.5">
           {documents.map((d) => (
@@ -506,20 +548,20 @@ function SketchesTab({
                   : d.extractionStatus === 'extracted' ? 'sky'
                   : d.extractionStatus === 'failed' ? 'rose'
                   : d.extractionStatus === 'manual' ? 'amber' : 'slate'
-                }>{d.extractionStatus}</Pill>
+                }>{ar ? (statusAr[d.extractionStatus] ?? d.extractionStatus) : d.extractionStatus}</Pill>
                 {(d.extractionStatus === 'pending' || d.extractionStatus === 'failed') && (
                   <Button variant="primary" size="sm" disabled={busy === d.id} onClick={() => extract(d)}>
-                    <IconSparkles className="h-3.5 w-3.5" /> {busy === d.id ? 'Extracting…' : 'AI extract'}
+                    <IconSparkles className="h-3.5 w-3.5" /> {busy === d.id ? (ar ? 'جارٍ الاستخراج…' : 'Extracting…') : (ar ? 'استخراج بالذكاء الاصطناعي' : 'AI extract')}
                   </Button>
                 )}
                 {d.extractionStatus !== 'confirmed' && d.extractionStatus !== 'pending' && (
-                  <Button variant="ghost" size="sm" onClick={() => setReviewing(d)}>Review & confirm</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setReviewing(d)}>{ar ? 'مراجعة واعتماد' : 'Review & confirm'}</Button>
                 )}
               </div>
               {d.extractionError && <p className="mt-1.5 text-[11px] text-amber-300/90">{d.extractionError}</p>}
               {d.extractionStatus === 'confirmed' && d.confirmedFields && (
                 <p className="mt-1.5 text-[11px] text-emerald-300/80">
-                  Applied to feasibility inputs{d.confirmedBy ? ` by ${d.confirmedBy}` : ''}: {summarizeFields(d.confirmedFields)}
+                  {ar ? 'طُبّقت على مُدخلات دراسة الجدوى' : 'Applied to feasibility inputs'}{d.confirmedBy ? (ar ? ` بواسطة ${d.confirmedBy}` : ` by ${d.confirmedBy}`) : ''}: {summarizeFields(d.confirmedFields, ar)}
                 </p>
               )}
             </div>
@@ -545,6 +587,8 @@ function ConfirmFieldsForm({
   onDone: () => Promise<void>;
   onCancel: () => void;
 }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const proposed = (doc.extraction?.fields ?? {}) as Record<string, unknown>;
@@ -573,9 +617,9 @@ function ConfirmFieldsForm({
       await api(`/feasibility/documents/${doc.id}/confirm`, {
         method: 'POST', body: JSON.stringify({ fields }),
       });
-      toast.success('Fields confirmed', 'Merged into the opportunity inputs — re-run the assessment to use them.');
+      toast.success(ar ? 'تم اعتماد الحقول' : 'Fields confirmed', ar ? 'دُمجت في مُدخلات الفرصة — أعِد تشغيل التقييم للاستفادة منها.' : 'Merged into the opportunity inputs — re-run the assessment to use them.');
       await onDone();
-    } catch (err) { toast.error('Confirm failed', (err as Error).message); }
+    } catch (err) { toast.error(ar ? 'فشل الاعتماد' : 'Confirm failed', (err as Error).message); }
     finally { setBusy(false); }
   };
 
@@ -583,15 +627,17 @@ function ConfirmFieldsForm({
 
   return (
     <Card
-      title={`Review extracted fields — ${doc.filename}`}
+      title={ar ? `مراجعة الحقول المُستخرجة — ${doc.filename}` : `Review extracted fields — ${doc.filename}`}
       hint={doc.extraction?.confidence !== undefined
-        ? `AI proposal at ${((doc.extraction.confidence ?? 0) * 100).toFixed(0)}% confidence — you are the approval gate`
-        : 'Manual entry — fill in what the sketch shows'}
+        ? (ar
+            ? `اقتراح الذكاء الاصطناعي بثقة ${((doc.extraction.confidence ?? 0) * 100).toFixed(0)}٪ — أنت بوابة الاعتماد`
+            : `AI proposal at ${((doc.extraction.confidence ?? 0) * 100).toFixed(0)}% confidence — you are the approval gate`)
+        : (ar ? 'إدخال يدوي — املأ ما يُظهره الرسم' : 'Manual entry — fill in what the sketch shows')}
     >
       <form onSubmit={submit} className="grid gap-3 md:grid-cols-2">
         {FIELD_DEFS.map((f) => (
           <div key={f.key} className={f.kind === 'list' ? 'md:col-span-2' : ''}>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">{f.label}</label>
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-400">{ar ? f.labelAr : f.label}</label>
             <input
               className={field}
               type={f.kind === 'number' ? 'number' : 'text'}
@@ -602,21 +648,21 @@ function ConfirmFieldsForm({
           </div>
         ))}
         <div className="md:col-span-2 flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button type="submit" variant="success" disabled={busy}>{busy ? 'Confirming…' : 'Confirm & apply to inputs'}</Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>{ar ? 'إلغاء' : 'Cancel'}</Button>
+          <Button type="submit" variant="success" disabled={busy}>{busy ? (ar ? 'جارٍ الاعتماد…' : 'Confirming…') : (ar ? 'اعتماد وتطبيق على المُدخلات' : 'Confirm & apply to inputs')}</Button>
         </div>
       </form>
     </Card>
   );
 }
 
-function summarizeFields(f: Record<string, unknown>): string {
+function summarizeFields(f: Record<string, unknown>, ar = false): string {
   const bits: string[] = [];
-  if (f.plotAreaSqm) bits.push(`plot ${f.plotAreaSqm} m²`);
-  if (f.builtUpAreaSqm) bits.push(`BUA ${f.builtUpAreaSqm} m²`);
-  if (f.floors) bits.push(`${f.floors} floors`);
-  if (Array.isArray(f.functionalZones) && f.functionalZones.length) bits.push(`${(f.functionalZones as string[]).length} zones`);
-  return bits.join(' · ') || 'fields saved';
+  if (f.plotAreaSqm) bits.push(ar ? `الأرض ${f.plotAreaSqm} م²` : `plot ${f.plotAreaSqm} m²`);
+  if (f.builtUpAreaSqm) bits.push(ar ? `المسطح المبني ${f.builtUpAreaSqm} م²` : `BUA ${f.builtUpAreaSqm} m²`);
+  if (f.floors) bits.push(ar ? `${f.floors} طوابق` : `${f.floors} floors`);
+  if (Array.isArray(f.functionalZones) && f.functionalZones.length) bits.push(ar ? `${(f.functionalZones as string[]).length} نطاقات` : `${(f.functionalZones as string[]).length} zones`);
+  return bits.join(' · ') || (ar ? 'تم حفظ الحقول' : 'fields saved');
 }
 
 function toBase64(file: File): Promise<string> {

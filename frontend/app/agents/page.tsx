@@ -116,9 +116,9 @@ function AgentsPage() {
     setBusy('pipeline');
     try {
       const r = await api<unknown[]>('/agents/pipeline/run', { method: 'POST', body: JSON.stringify({ projectKey }) });
-      toast.success(ar ? 'تم تشغيل خط الأنابيب' : 'Pipeline ran', ar ? `${Array.isArray(r) ? r.length : 0} وكلاء L1→L8 على ${projectKey}.` : `${Array.isArray(r) ? r.length : 0} agents L1→L8 against ${projectKey}.`);
+      toast.success(ar ? 'تم تشغيل سلسلة الوكلاء' : 'Pipeline ran', ar ? `${Array.isArray(r) ? r.length : 0} وكلاء L1→L8 على ${projectKey}.` : `${Array.isArray(r) ? r.length : 0} agents L1→L8 against ${projectKey}.`);
       await load();
-    } catch (e) { toast.error(ar ? 'فشل خط الأنابيب' : 'Pipeline failed', (e as Error).message); }
+    } catch (e) { toast.error(ar ? 'فشل تشغيل السلسلة' : 'Pipeline failed', (e as Error).message); }
     finally { setBusy(null); }
   };
 
@@ -135,7 +135,7 @@ function AgentsPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> {ar ? 'تحديث' : 'Refresh'}</Button>
-            {canRun && <Button variant="primary" size="sm" disabled={busy === 'pipeline'} onClick={runPipeline}><IconSparkles className="h-3.5 w-3.5" /> {busy === 'pipeline' ? (ar ? 'جارٍ التشغيل…' : 'Running…') : (ar ? 'تشغيل خط الأنابيب الكامل' : 'Run full pipeline')}</Button>}
+            {canRun && <Button variant="primary" size="sm" disabled={busy === 'pipeline'} onClick={runPipeline}><IconSparkles className="h-3.5 w-3.5" /> {busy === 'pipeline' ? (ar ? 'جارٍ التشغيل…' : 'Running…') : (ar ? 'تشغيل سلسلة الوكلاء الكاملة' : 'Run full pipeline')}</Button>}
           </div>
         }
       />

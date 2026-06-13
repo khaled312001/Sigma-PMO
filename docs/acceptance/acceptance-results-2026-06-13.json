@@ -1,0 +1,530 @@
+{
+  "projectKey": "P-1000",
+  "ranAt": null,
+  "total": 23,
+  "passed": 23,
+  "failed": 0,
+  "skipped": 0,
+  "results": [
+    {
+      "id": "TEST-01",
+      "title": "Opportunity Intelligence",
+      "lifecycleStage": "Origination",
+      "agentKey": "ext.opportunity",
+      "status": "pass",
+      "evidence": {
+        "executionId": "b0a2a1d0-e59f-4c3c-929f-b5184842c6e6",
+        "status": "completed",
+        "governanceStatus": "yellow",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "screeningId": "5ea8250f-457e-4b66-ae83-e79a30779d3b",
+          "code": "OPP-0002",
+          "opportunityScore": 58.2,
+          "marketAttractiveness": 69.1,
+          "competitionScore": 14,
+          "fundingAttractiveness": 66.3,
+          "regulatoryComplexity": 24.4,
+          "recommendation": "watchlist",
+          "scored": true
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-02",
+      "title": "Rapid Feasibility",
+      "lifecycleStage": "Pre-Feasibility",
+      "agentKey": "ext.investment",
+      "status": "pass",
+      "evidence": {
+        "executionId": "b226cfdf-a67d-4be7-a5f4-357f372df3d6",
+        "status": "completed",
+        "governanceStatus": "yellow",
+        "confidence": 0.93,
+        "outputRefs": {
+          "assessmentId": "005a40e2-0cdf-4fc3-ac91-cfec4d955af7",
+          "opportunityId": "f2e94444-23c9-4c4c-9f3a-5824c169a60d",
+          "recommendation": "proceed_with_conditions",
+          "riskRating": "moderate",
+          "npv": 2034733.73,
+          "projectIrr": 0.1091,
+          "paybackYears": 6.36,
+          "attractivenessScore": 38
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-03",
+      "title": "Professional Feasibility",
+      "lifecycleStage": "Feasibility",
+      "agentKey": "ext.investment",
+      "status": "pass",
+      "evidence": {
+        "executionId": "43130f8a-1773-455b-90da-b5f536faf616",
+        "status": "completed",
+        "governanceStatus": "yellow",
+        "confidence": 0.93,
+        "outputRefs": {
+          "assessmentId": "0f11da16-f685-4fd2-bdb5-d821039247d2",
+          "opportunityId": "f2e94444-23c9-4c4c-9f3a-5824c169a60d",
+          "recommendation": "proceed_with_conditions",
+          "riskRating": "moderate",
+          "npv": 2034733.73,
+          "projectIrr": 0.1091,
+          "paybackYears": 6.36,
+          "attractivenessScore": 38
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-04",
+      "title": "Bankability Assessment",
+      "lifecycleStage": "Feasibility",
+      "agentKey": "ext.bankability",
+      "status": "pass",
+      "evidence": {
+        "executionId": "1426aa31-ff75-45e1-bcc7-4202e70189e9",
+        "status": "completed",
+        "governanceStatus": "green",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "bankabilityScore": 84,
+          "verdict": "bankable",
+          "facilities": 1,
+          "findings": 0,
+          "effectiveDscr": 1.54,
+          "capex": 26600000,
+          "fundingGap": -23400000,
+          "debtScheduleYears": 10
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-05",
+      "title": "Sketch Intelligence",
+      "lifecycleStage": "Concept",
+      "agentKey": "ext.investment",
+      "status": "pass",
+      "evidence": {
+        "executionId": "a6e5905c-9cf2-406a-adbc-db9a1e37bb73",
+        "status": "completed",
+        "governanceStatus": "yellow",
+        "confidence": 0.93,
+        "outputRefs": {
+          "assessmentId": "318bd5c0-3612-452f-9026-b96046523c1d",
+          "opportunityId": "f2e94444-23c9-4c4c-9f3a-5824c169a60d",
+          "recommendation": "proceed_with_conditions",
+          "riskRating": "moderate",
+          "npv": 2034733.73,
+          "projectIrr": 0.1091,
+          "paybackYears": 6.36,
+          "attractivenessScore": 38
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-06",
+      "title": "BIM Quantity Extraction",
+      "lifecycleStage": "Design",
+      "agentKey": "ext.quantity_survey",
+      "status": "pass",
+      "evidence": {
+        "executionId": "bf753681-7868-4bbe-a5ba-3490f02b10d0",
+        "status": "completed",
+        "governanceStatus": "yellow",
+        "confidence": 0.8,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "findingCount": 2,
+          "byType": {},
+          "crossSource": 0,
+          "chainVariance": 2,
+          "subjectsTracked": 1,
+          "critical": 0,
+          "warning": 2
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-07",
+      "title": "BOQ Validation",
+      "lifecycleStage": "Design",
+      "agentKey": "ext.quantity_survey",
+      "status": "pass",
+      "evidence": {
+        "executionId": "e7943774-8ad8-496f-a51d-a46a6654c4a0",
+        "status": "completed",
+        "governanceStatus": "yellow",
+        "confidence": 0.8,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "findingCount": 2,
+          "byType": {},
+          "crossSource": 0,
+          "chainVariance": 2,
+          "subjectsTracked": 1,
+          "critical": 0,
+          "warning": 2
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-08",
+      "title": "Procurement Intelligence",
+      "lifecycleStage": "Procurement",
+      "agentKey": "ext.procurement",
+      "status": "pass",
+      "evidence": {
+        "executionId": "ae54fa04-33a7-41bb-baae-e8c072737843",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "findingCount": 5,
+          "byType": {
+            "delivery-delay": 2,
+            "long-lead-exposure": 1,
+            "qty-bim-vs-procured": 1,
+            "qty-procured-vs-installed": 1
+          },
+          "critical": 3,
+          "warning": 2
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-09",
+      "title": "Primavera Integration",
+      "lifecycleStage": "Planning",
+      "status": "pass",
+      "evidence": {
+        "projectId": "172a66e6-1bbb-44c7-9a7e-ebbf2282e3aa",
+        "activities": 102,
+        "criticalActivities": 0
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-10",
+      "title": "Project Controls",
+      "lifecycleStage": "Execution",
+      "agentKey": "l4.analytics",
+      "status": "pass",
+      "evidence": {
+        "executionId": "d87c21bd-37ca-42ac-92ed-d4cc2e782a5c",
+        "status": "completed",
+        "governanceStatus": null,
+        "confidence": 0.4,
+        "outputRefs": {
+          "spi": null,
+          "cpi": 0.92,
+          "eac": 4564947.84,
+          "vac": -364947.84,
+          "scheduleHealth": "on-track"
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-11",
+      "title": "Risk Intelligence",
+      "lifecycleStage": "Execution",
+      "agentKey": "l5.risk",
+      "status": "pass",
+      "evidence": {
+        "executionId": "fb4f95d1-f897-49f5-b4c2-82e5ce04233d",
+        "status": "completed",
+        "governanceStatus": null,
+        "confidence": 0.8,
+        "outputRefs": {
+          "riskCount": 8,
+          "maxPriority": 0.85,
+          "escalations": 6
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-12",
+      "title": "Safety Governance",
+      "lifecycleStage": "Execution",
+      "agentKey": "ext.safety",
+      "status": "pass",
+      "evidence": {
+        "executionId": "5b2c0b21-029a-4c85-a0ce-1f22962a08da",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "complianceScore": 65,
+          "hsePerformanceIndex": 48,
+          "trend": "worsening",
+          "records": 5,
+          "findings": 5,
+          "stopWorkChains": 1,
+          "claimReady": 0,
+          "openIncidents": 2
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-13",
+      "title": "Stop Work Scenario",
+      "lifecycleStage": "Execution",
+      "agentKey": "ext.safety",
+      "status": "pass",
+      "evidence": {
+        "executionId": "69ca3251-c10a-4dd6-a735-10f9087c6f35",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "complianceScore": 65,
+          "hsePerformanceIndex": 48,
+          "trend": "worsening",
+          "records": 5,
+          "findings": 5,
+          "stopWorkChains": 1,
+          "claimReady": 0,
+          "openIncidents": 2
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-14",
+      "title": "Fire Governance",
+      "lifecycleStage": "Compliance",
+      "agentKey": "ext.fire_life_safety",
+      "status": "pass",
+      "evidence": {
+        "executionId": "69a8e8ad-632e-4103-b890-a7c222b7ec95",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "fireReadiness": 50,
+          "records": 2,
+          "findings": 1,
+          "approved": 1,
+          "rejected": 0,
+          "outstandingComments": 6
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-15",
+      "title": "Authority Governance",
+      "lifecycleStage": "Compliance",
+      "agentKey": "ext.authority",
+      "status": "pass",
+      "evidence": {
+        "executionId": "feefd409-dee5-4b4b-bdf5-6551e553f3f0",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "authorityReadiness": 50,
+          "submissions": 2,
+          "findings": 2,
+          "approved": 1,
+          "pending": 1,
+          "totalDelayExposureDays": 92,
+          "criticalPathImpacts": 0
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-16",
+      "title": "Utility Governance",
+      "lifecycleStage": "Compliance",
+      "agentKey": "ext.utility",
+      "status": "pass",
+      "evidence": {
+        "executionId": "18cff82a-45b0-4bb7-b82d-1e87f696eaa6",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "utilityReadiness": 50,
+          "connections": 2,
+          "findings": 2,
+          "connected": 1,
+          "atRisk": 1,
+          "maxDelayExposureDays": 91,
+          "totalDelayExposureDays": 91
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-17",
+      "title": "Operational Readiness",
+      "lifecycleStage": "Handover",
+      "agentKey": "ext.operational_readiness",
+      "status": "pass",
+      "evidence": {
+        "executionId": "4c8a0edf-51ad-47cb-95e8-d438afe98120",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "readinessScore": 47,
+          "items": 3,
+          "findings": 6,
+          "goLiveReadiness": 0,
+          "handoverReadiness": 70,
+          "commissioningReadiness": 0,
+          "overdue": 0
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-18",
+      "title": "Claims Intelligence",
+      "lifecycleStage": "Execution",
+      "agentKey": "l6.claims",
+      "status": "pass",
+      "evidence": {
+        "executionId": "33f72deb-5448-470e-a95b-5e75a1b3998c",
+        "status": "completed",
+        "governanceStatus": null,
+        "confidence": 0.72,
+        "outputRefs": {
+          "claimsIdentified": 2,
+          "delayEvents": 48
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-19",
+      "title": "Revenue Governance",
+      "lifecycleStage": "Operation",
+      "agentKey": "ext.revenue_governance",
+      "status": "pass",
+      "evidence": {
+        "executionId": "9588b478-83a5-4be2-bbab-9ad4895da2de",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.76,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "chainFindings": 1,
+          "subjectsTracked": 1,
+          "revenueRatio": 0.82,
+          "deltaNpv": -5154252.07,
+          "deltaIrrPct": -0.0373
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-20",
+      "title": "Funding Governance",
+      "lifecycleStage": "Operation",
+      "agentKey": "ext.funding",
+      "status": "pass",
+      "evidence": {
+        "executionId": "35a48907-e80f-4c03-9f1e-5dc2ceb94cdb",
+        "status": "completed",
+        "governanceStatus": "orange",
+        "confidence": 0.78,
+        "outputRefs": {
+          "projectKey": "P-1000",
+          "fundingHealth": 57,
+          "facilities": 1,
+          "findings": 3,
+          "committed": 50000000,
+          "drawn": 48000000,
+          "outstanding": 48000000
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-21",
+      "title": "Executive Intelligence",
+      "lifecycleStage": "Governance",
+      "agentKey": "l7.executive",
+      "status": "pass",
+      "evidence": {
+        "executionId": "bfb2151d-1d6b-460c-9a66-b619c12d4252",
+        "status": "completed",
+        "governanceStatus": null,
+        "confidence": 0.85,
+        "outputRefs": {
+          "governanceStatus": "red",
+          "scheduleHealth": "on-track",
+          "costHealth": "over-budget",
+          "spi": null,
+          "cpi": 0.92,
+          "projectedCostOverrunPct": 8.689,
+          "riskExposure": 0.85,
+          "criticalRisks": 2,
+          "potentialClaims": 2,
+          "openCorrectiveActions": 5
+        }
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-22",
+      "title": "Audit Trail Validation",
+      "lifecycleStage": "Governance",
+      "status": "pass",
+      "evidence": {
+        "auditRows": 50,
+        "withAgentKey": 50,
+        "withInputRefs": 50,
+        "withOutputRefs": 20,
+        "withConfidenceScore": 50,
+        "fullyTraceable": 20
+      },
+      "reason": null
+    },
+    {
+      "id": "TEST-23",
+      "title": "End-to-End Sigma Validation",
+      "lifecycleStage": "Full Lifecycle",
+      "status": "pass",
+      "evidence": {
+        "agentsRun": 8,
+        "agentsCompleted": 8,
+        "agentKeys": [
+          "l1.data_collection",
+          "l2.validation",
+          "l3.compliance",
+          "l4.analytics",
+          "l5.risk",
+          "l6.claims",
+          "l7.executive",
+          "l8.sigma_governance"
+        ],
+        "finalGovernanceStatus": "red"
+      },
+      "reason": null
+    }
+  ]
+}

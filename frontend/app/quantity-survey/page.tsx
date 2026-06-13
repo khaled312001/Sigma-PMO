@@ -55,8 +55,8 @@ function QuantitySurveyPage() {
       ]);
       setEstimates(est);
       setFindings(finds);
-    } catch (e) { toast.error('Failed to load QS data', (e as Error).message); }
-  }, [projectKey, toast]);
+    } catch (e) { toast.error(ar ? 'تعذّر تحميل بيانات الكميات' : 'Failed to load QS data', (e as Error).message); }
+  }, [projectKey, toast, ar]);
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
@@ -120,8 +120,8 @@ function TraceabilityTab({ projectKey }: { projectKey: string }) {
   useEffect(() => { api<ChainsInfo>('/quantity-survey/traceability/chains').then(setChains).catch(() => {}); }, []);
   const load = useCallback(async () => {
     try { setChain(await api<ChainResponse>(`/quantity-survey/traceability/chain?projectKey=${encodeURIComponent(projectKey)}&dimension=${dimension}&subjectKey=${encodeURIComponent(subjectKey)}`)); }
-    catch (e) { toast.error('Failed', (e as Error).message); }
-  }, [projectKey, dimension, subjectKey, toast]);
+    catch (e) { toast.error(ar ? 'تعذّر تحميل سلسلة التتبّع' : 'Failed to load traceability chain', (e as Error).message); }
+  }, [projectKey, dimension, subjectKey, toast, ar]);
   useEffect(() => { void load(); }, [load]);
 
   const labelFor = (stage: string) => (ar ? chains?.[dimension]?.labelsAr?.[stage] : chains?.[dimension]?.labels?.[stage]) ?? stage;
@@ -179,13 +179,14 @@ function EstimatesTab({ projectKey, estimates, onChange }: { projectKey: string;
   };
   const field = 'rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-100';
   const stageAr: Record<string, string> = { conceptual: 'مفاهيمي', budget: 'ميزانية', 'cost-plan': 'خطة تكلفة', tender: 'مناقصة', forecast: 'توقّع', 'final-account': 'حساب ختامي' };
+  const projectTypeAr: Record<string, string> = { residential: 'سكني', commercial_office: 'مكتبي تجاري', retail: 'تجزئة', hospitality: 'ضيافة', industrial: 'صناعي', logistics: 'لوجستي', healthcare: 'رعاية صحية', education: 'تعليمي', mixed_use: 'متعدد الاستخدامات' };
 
   return (
     <div className="space-y-5">
       <Card title={ar ? 'تقدير تكلفة مصنّف جديد' : 'New classified cost estimate'} hint={ar ? 'المساحة × المرجع المعياري لـ Sigma، موزّعاً على عناصر التصنيف' : 'Area × Sigma benchmark, distributed across the classification elements'}>
         <form onSubmit={create} className="flex flex-wrap items-end gap-3">
           <label className="text-xs text-slate-400">{ar ? 'المرحلة' : 'Stage'}<select className={`mt-1 block ${field}`} value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })}>{STAGES.map((s) => <option key={s} value={s}>{ar ? (stageAr[s] ?? s) : s}</option>)}</select></label>
-          <label className="text-xs text-slate-400">{ar ? 'نوع المشروع' : 'Project type'}<select className={`mt-1 block ${field}`} value={form.projectType} onChange={(e) => setForm({ ...form, projectType: e.target.value })}>{PROJECT_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+          <label className="text-xs text-slate-400">{ar ? 'نوع المشروع' : 'Project type'}<select className={`mt-1 block ${field}`} value={form.projectType} onChange={(e) => setForm({ ...form, projectType: e.target.value })}>{PROJECT_TYPES.map((s) => <option key={s} value={s}>{ar ? (projectTypeAr[s] ?? s) : s}</option>)}</select></label>
           <label className="text-xs text-slate-400">{ar ? 'المساحة (م²)' : 'Area (m²)'}<input className={`mt-1 block ${field}`} type="number" value={form.areaSqm} onChange={(e) => setForm({ ...form, areaSqm: e.target.value })} /></label>
           <label className="text-xs text-slate-400">{ar ? 'المعيار' : 'Standard'}<select className={`mt-1 block ${field}`} value={form.standard} onChange={(e) => setForm({ ...form, standard: e.target.value as ClassificationStandard })}>{STANDARDS.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
           <label className="text-xs text-slate-400">{ar ? 'المدينة' : 'City'}<input className={`mt-1 block ${field}`} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
@@ -198,7 +199,7 @@ function EstimatesTab({ projectKey, estimates, onChange }: { projectKey: string;
       ) : estimates.map((e) => (
         <div key={e.id} className="rounded-xl border border-slate-700/70 bg-slate-900/60">
           <button onClick={() => setOpen(open === e.id ? null : e.id)} className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-start">
-            <Pill tone="violet">{e.stage}</Pill>
+            <Pill tone="violet">{ar ? (stageAr[e.stage] ?? e.stage) : e.stage}</Pill>
             <span className="flex-1 truncate text-sm font-semibold text-slate-100">{e.title}</span>
             <Pill tone="sky">{e.standard}</Pill>
             <span className="font-mono text-sm tabular-nums text-emerald-300" dir="ltr">{e.currency} {(Number(e.totalAmount) / 1_000_000).toFixed(2)}M</span>

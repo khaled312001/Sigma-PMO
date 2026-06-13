@@ -58,8 +58,8 @@ function ReviewPage() {
       for (const d of decs) (map[d.alertId] ??= []).push(d);
       setDecisionsByAlert(map);
       setSummary(s[0] ?? null);
-    } catch (e) { toast.error('Failed to load alerts', (e as Error).message); }
-  }, [toast, projectKey]);
+    } catch (e) { toast.error(lang === 'ar' ? 'تعذّر تحميل التنبيهات' : 'Failed to load alerts', (e as Error).message); }
+  }, [toast, projectKey, lang]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -82,8 +82,13 @@ function ReviewPage() {
         method: 'POST', body: JSON.stringify({ ruleEvaluationId: evalResult.evaluationId, projectKey }),
       });
       await refresh();
-      toast.success('Evaluation complete', `${evalResult.alertCount} alerts · ${dec.decisionCount} decisions`);
-    } catch (e) { toast.error('Evaluation failed', (e as Error).message); }
+      toast.success(
+        lang === 'ar' ? 'اكتمل التقييم' : 'Evaluation complete',
+        lang === 'ar'
+          ? `${evalResult.alertCount} تنبيه · ${dec.decisionCount} قرار`
+          : `${evalResult.alertCount} alerts · ${dec.decisionCount} decisions`,
+      );
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل التقييم' : 'Evaluation failed', (e as Error).message); }
     finally { setBusy(false); }
   };
 
@@ -98,10 +103,14 @@ function ReviewPage() {
       });
       await refresh();
       toast.success(
-        scope === 'all' ? 'Governance workflow complete (all projects)' : 'Governance workflow complete',
-        `${result.projectCount} project(s) · ${result.totalAlertCount} alerts · ${result.totalDecisionCount} decisions`,
+        lang === 'ar'
+          ? (scope === 'all' ? 'اكتمل سير عمل الحوكمة (كل المشاريع)' : 'اكتمل سير عمل الحوكمة')
+          : (scope === 'all' ? 'Governance workflow complete (all projects)' : 'Governance workflow complete'),
+        lang === 'ar'
+          ? `${result.projectCount} مشروع · ${result.totalAlertCount} تنبيه · ${result.totalDecisionCount} قرار`
+          : `${result.projectCount} project(s) · ${result.totalAlertCount} alerts · ${result.totalDecisionCount} decisions`,
       );
-    } catch (e) { toast.error('Workflow failed', (e as Error).message); }
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل سير العمل' : 'Workflow failed', (e as Error).message); }
     finally { setWorkflowBusy(null); }
   };
 
@@ -112,8 +121,11 @@ function ReviewPage() {
         method: 'POST', body: JSON.stringify({ projectKey, periodDays: 7, locale: lang }),
       });
       setSummary(next);
-      toast.success('Summary generated', `Source: ${next.source}`);
-    } catch (e) { toast.error('Summary failed', (e as Error).message); }
+      toast.success(
+        lang === 'ar' ? 'تم إنشاء الملخّص' : 'Summary generated',
+        lang === 'ar' ? `المصدر: ${next.source}` : `Source: ${next.source}`,
+      );
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل إنشاء الملخّص' : 'Summary failed', (e as Error).message); }
     finally { setGeneratingSummary(false); }
   };
 
@@ -133,18 +145,20 @@ function ReviewPage() {
               size="sm"
               disabled={workflowBusy !== null}
               onClick={() => runWorkflow('project')}
-              title="Run evaluate + decide for the current project"
+              title={lang === 'ar' ? 'تشغيل التقييم واتخاذ القرار للمشروع الحالي' : 'Run evaluate + decide for the current project'}
             >
-              {workflowBusy === 'project' ? t('common.loading') : `Run governance workflow · ${projectKey}`}
+              {workflowBusy === 'project'
+                ? t('common.loading')
+                : `${lang === 'ar' ? 'تشغيل سير عمل الحوكمة' : 'Run governance workflow'} · ${projectKey}`}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               disabled={workflowBusy !== null}
               onClick={() => runWorkflow('all')}
-              title="Run evaluate + decide across every current project"
+              title={lang === 'ar' ? 'تشغيل التقييم واتخاذ القرار عبر كل المشاريع الحالية' : 'Run evaluate + decide across every current project'}
             >
-              {workflowBusy === 'all' ? t('common.loading') : 'Run · All projects'}
+              {workflowBusy === 'all' ? t('common.loading') : (lang === 'ar' ? 'تشغيل · كل المشاريع' : 'Run · All projects')}
             </Button>
             <Button variant="primary" size="sm" disabled={generatingSummary} onClick={generateSummary}>
               <IconSparkles className="h-3.5 w-3.5" /> {generatingSummary ? t('common.loading') : t('review.weeklySummary')}
@@ -154,7 +168,7 @@ function ReviewPage() {
       />
 
       {alerts.length > 0 && (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter alerts by severity">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={lang === 'ar' ? 'تصفية التنبيهات حسب الخطورة' : 'Filter alerts by severity'}>
           <FilterChip label={t('review.filter.all')}      value="all"      active={filter === 'all'}      count={counts.all}      onClick={setFilter} />
           <FilterChip label={t('review.filter.critical')} value="critical" active={filter === 'critical'} count={counts.critical} onClick={setFilter} tone="rose" />
           <FilterChip label={t('review.filter.warning')}  value="warning"  active={filter === 'warning'}  count={counts.warning}  onClick={setFilter} tone="amber" />
@@ -170,7 +184,10 @@ function ReviewPage() {
             action={<Button variant="success" disabled={busy} onClick={evaluate}>{busy ? t('common.loading') : t('review.evaluate')}</Button>}
           />
         ) : (
-          <EmptyState title={`No ${filter} alerts`} description="Try a different filter." />
+          <EmptyState
+            title={lang === 'ar' ? `لا توجد تنبيهات من نوع «${t(`review.filter.${filter}`)}»` : `No ${filter} alerts`}
+            description={lang === 'ar' ? 'جرّب تصفية مختلفة.' : 'Try a different filter.'}
+          />
         )
       ) : (
         <section className="space-y-3">
@@ -183,12 +200,16 @@ function ReviewPage() {
 
       {summary && (
         <Card
-          title="Weekly executive summary"
+          title={lang === 'ar' ? 'الملخّص التنفيذي الأسبوعي' : 'Weekly executive summary'}
           hint={`${summary.periodStart} → ${summary.periodEnd}`}
           actions={
             <>
               <Pill tone={summary.source === 'llm' ? 'violet' : 'slate'}>{summary.source}</Pill>
-              <Pill tone="emerald">{(summary.confidenceAverage * 100).toFixed(1)}% confidence</Pill>
+              <Pill tone="emerald">
+                {lang === 'ar'
+                  ? `${(summary.confidenceAverage * 100).toFixed(1)}٪ ثقة`
+                  : `${(summary.confidenceAverage * 100).toFixed(1)}% confidence`}
+              </Pill>
             </>
           }
         >

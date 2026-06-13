@@ -21,6 +21,16 @@ import { RevenueModule } from './modules/revenue/revenue.module';
 import { OpportunityModule } from './modules/opportunity/opportunity.module';
 import { FundingModule } from './modules/funding/funding.module';
 import { PredictiveModule } from './modules/predictive/predictive.module';
+// Full governance lifecycle (Mr. Ayham, 2026-06-13).
+import { BankabilityModule } from './modules/bankability/bankability.module';
+import { SafetyModule } from './modules/safety/safety.module';
+import { FireLifeSafetyModule } from './modules/fire-life-safety/fire-life-safety.module';
+import { AuthorityModule } from './modules/authority/authority.module';
+import { UtilityModule } from './modules/utility/utility.module';
+import { OperationalReadinessModule } from './modules/operational-readiness/operational-readiness.module';
+// Sigma Validation / Acceptance Program (Mr. Ayham, 2026-06-13) — the formal
+// 23-test acceptance framework for declaring Sigma production-ready.
+import { AcceptanceModule } from './modules/acceptance/acceptance.module';
 import { BoqModule } from './modules/boq/boq.module';
 import { CanonicalModule } from './modules/canonical/canonical.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -182,6 +192,22 @@ import { SummaryModule } from './modules/summary/summary.module';
     OpportunityModule,
     FundingModule,
     PredictiveModule,
+    // Full governance lifecycle (Mr. Ayham, 2026-06-13) — Sigma as a complete
+    // Investment, Delivery & Governance OS. Six agents completing the 17-stage
+    // chain: Bankability Intelligence (feasibility → lender package, ext.bankability)
+    // + the five site-governance layers Safety / Fire & Life Safety / Authority /
+    // Utility / Operational Readiness, each wired to schedule/cost/risk/claims and
+    // traced Decision → Finding → Agent → Evidence → Source. All plug in via the
+    // registry with zero edits to L0–L8.
+    BankabilityModule,
+    SafetyModule,
+    FireLifeSafetyModule,
+    AuthorityModule,
+    UtilityModule,
+    OperationalReadinessModule,
+    // Sigma Validation / Acceptance Program (2026-06-13): the 23-test formal
+    // acceptance framework + /acceptance runner that exercises every layer.
+    AcceptanceModule,
   ],
   controllers: [HealthController],
 })

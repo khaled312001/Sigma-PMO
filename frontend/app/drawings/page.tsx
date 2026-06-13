@@ -17,6 +17,7 @@ import { useToast } from '../../components/ToastProvider';
 import { CAPABILITIES } from '../../lib/capabilities';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
+import { useI18n } from '../../lib/i18n';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { IconRefresh, IconSparkles, IconUpload } from '../../components/Icons';
 
@@ -67,6 +68,8 @@ export default function DrawingsRoute() {
 }
 
 function DrawingsPage() {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   const toast = useToast();
   const router = useRouter();
   const projectKey = useCurrentProjectKey();
@@ -114,17 +117,19 @@ function DrawingsPage() {
           }),
         });
         toast.success(
-          'Planning started from drawings',
-          `${detectedFloors(pkg)} floor(s) detected — the WBS scales accordingly. Opening /baselines…`,
+          isAr ? 'بدأ التخطيط انطلاقاً من المخططات' : 'Planning started from drawings',
+          isAr
+            ? `تم رصد ${detectedFloors(pkg)} طابق(طوابق) — تتوسّع هيكلة العمل (WBS) تبعاً لذلك. جارٍ فتح ‎/baselines…`
+            : `${detectedFloors(pkg)} floor(s) detected — the WBS scales accordingly. Opening /baselines…`,
         );
         router.push('/baselines');
       } catch (e) {
-        toast.error('Generation failed', (e as Error).message);
+        toast.error(isAr ? 'فشل التوليد' : 'Generation failed', (e as Error).message);
       } finally {
         setBusyId(null);
       }
     },
-    [projectKey, me?.user?.displayName, toast, router],
+    [projectKey, me?.user?.displayName, toast, router, isAr],
   );
 
   return (

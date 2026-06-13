@@ -16,6 +16,7 @@ import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
 import { CAPABILITIES } from '../../lib/capabilities';
+import { useI18n } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 
@@ -74,6 +75,8 @@ const LIKELIHOOD_TONE: Record<string, 'emerald' | 'amber' | 'rose'> = {
 
 function ClaimsPage() {
   const toast = useToast();
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   const projectKey = useCurrentProjectKey();
   const { me } = useMe();
   const canRun = !!(me?.user?.role && CAPABILITIES[me.user.role].canEvaluateRules);
@@ -113,9 +116,12 @@ function ClaimsPage() {
     setBusy(true);
     try {
       await api(`/agents/l6.claims/run`, { method: 'POST', body: JSON.stringify({ projectKey }) });
-      toast.success('Claims agent ran', 'Register refreshed from delay analysis + governance decisions.');
+      toast.success(
+        isAr ? 'تم تشغيل وكيل المطالبات' : 'Claims agent ran',
+        isAr ? 'تم تحديث السجلّ من تحليل التأخير وقرارات الحوكمة.' : 'Register refreshed from delay analysis + governance decisions.',
+      );
       await load();
-    } catch (e) { toast.error('Claims run failed', (e as Error).message); }
+    } catch (e) { toast.error(isAr ? 'فشل تشغيل المطالبات' : 'Claims run failed', (e as Error).message); }
     finally { setBusy(false); }
   };
 
@@ -129,20 +135,22 @@ function ClaimsPage() {
       try {
         const pkg = await api<ClaimPackage>(`/claims/${claimId}/package`);
         setPackages((s) => ({ ...s, [claimId]: pkg }));
-      } catch (e) { toast.error('Package failed', (e as Error).message); }
+      } catch (e) { toast.error(isAr ? 'فشل توليد الحزمة' : 'Package failed', (e as Error).message); }
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Layer 6 · Claims & Disputes"
-        title="Claims Register"
-        description="Potential claims identified deterministically from delay events and governance decisions — with FIDIC clause, responsibility, entitlement screening, readiness scoring and an evidence-linked package."
+        eyebrow={isAr ? 'الطبقة 6 · المطالبات والنزاعات' : 'Layer 6 · Claims & Disputes'}
+        title={isAr ? 'سجلّ المطالبات' : 'Claims Register'}
+        description={isAr
+          ? 'مطالبات محتملة مُستنبطة حتمياً من أحداث التأخير وقرارات الحوكمة — مع بند FIDIC والمسؤولية وفحص الاستحقاق وتقييم الجاهزية وحزمة مدعومة بالأدلة.'
+          : 'Potential claims identified deterministically from delay events and governance decisions — with FIDIC clause, responsibility, entitlement screening, readiness scoring and an evidence-linked package.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>
-            {canRun && <Button variant="primary" size="sm" disabled={busy} onClick={run}><IconSparkles className="h-3.5 w-3.5" /> {busy ? 'Running…' : 'Run claims agent'}</Button>}
+            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> {isAr ? 'تحديث' : 'Refresh'}</Button>
+            {canRun && <Button variant="primary" size="sm" disabled={busy} onClick={run}><IconSparkles className="h-3.5 w-3.5" /> {busy ? (isAr ? 'جارٍ التشغيل…' : 'Running…') : (isAr ? 'تشغيل وكيل المطالبات' : 'Run claims agent')}</Button>}
           </div>
         }
       />
@@ -151,7 +159,12 @@ function ClaimsPage() {
       {rows === null ? (
         <Card><div className="h-24 animate-pulse rounded bg-slate-800/40" /></Card>
       ) : rows.length === 0 ? (
-        <EmptyState title="No potential claims" description={canRun ? 'Run the claims agent to identify potential claims from current findings.' : 'The register appears once a reviewer runs the claims agent.'} />
+        <EmptyState
+          title={isAr ? 'لا توجد مطالبات محتملة' : 'No potential claims'}
+          description={canRun
+            ? (isAr ? 'شغّل وكيل المطالبات لتحديد المطالبات المحتملة من الملاحظات الحالية.' : 'Run the claims agent to identify potential claims from current findings.')
+            : (isAr ? 'يظهر السجلّ بمجرّد أن يُشغّل المراجع وكيل المطالبات.' : 'The register appears once a reviewer runs the claims agent.')}
+        />
       ) : (
         <div className="space-y-2">
           {rows.map((c) => {
@@ -167,7 +180,7 @@ function ClaimsPage() {
                   {c.fidicClause && <Pill tone="rose"><span className="font-mono" dir="ltr">{c.fidicClause}</span></Pill>}
                   {ent && (
                     <Pill tone={LIKELIHOOD_TONE[ent.entitlementLikelihood]}>
-                      entitlement: {ent.entitlementLikelihood} ({ent.passedCount}/{ent.decidableCount})
+                      {isAr ? 'الاستحقاق' : 'entitlement'}: {ent.entitlementLikelihood} ({ent.passedCount}/{ent.decidableCount})
                     </Pill>
                   )}
                   <span className="text-sm font-medium text-slate-100">{c.title}</span>
@@ -175,15 +188,15 @@ function ClaimsPage() {
                 <p className="mt-2 text-sm text-slate-300">{c.basis}</p>
 
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                  {c.estimatedDays !== null && <span>Time impact: <strong className="text-slate-200">{c.estimatedDays} d</strong></span>}
-                  {c.estimatedAmount && <span>Cost impact: <strong className="text-slate-200" dir="ltr">{c.estimatedAmount}</strong></span>}
-                  <span>Responsibility: <strong className="text-slate-200">{c.responsibleParty}</strong></span>
-                  <span>Confidence: <strong className="text-slate-200">{Math.round(c.confidence * 100)}%</strong></span>
-                  <span className="inline-flex items-center gap-1"><IconBook className="h-3 w-3" /> {c.evidenceRefs.length} evidence link(s)</span>
+                  {c.estimatedDays !== null && <span>{isAr ? 'الأثر الزمني' : 'Time impact'}: <strong className="text-slate-200">{c.estimatedDays} {isAr ? 'يوم' : 'd'}</strong></span>}
+                  {c.estimatedAmount && <span>{isAr ? 'الأثر المالي' : 'Cost impact'}: <strong className="text-slate-200" dir="ltr">{c.estimatedAmount}</strong></span>}
+                  <span>{isAr ? 'المسؤولية' : 'Responsibility'}: <strong className="text-slate-200">{c.responsibleParty}</strong></span>
+                  <span>{isAr ? 'الثقة' : 'Confidence'}: <strong className="text-slate-200">{Math.round(c.confidence * 100)}%</strong></span>
+                  <span className="inline-flex items-center gap-1"><IconBook className="h-3 w-3" /> {c.evidenceRefs.length} {isAr ? 'رابط أدلة' : 'evidence link(s)'}</span>
                 </div>
 
                 {/* Readiness bar */}
-                {ready && <ReadinessBar ready={ready} />}
+                {ready && <ReadinessBar ready={ready} isAr={isAr} />}
 
                 {/* Entitlement criteria expand */}
                 {ent && (
@@ -194,7 +207,9 @@ function ClaimsPage() {
                       className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
                     >
                       <IconChevronRight className={`h-3.5 w-3.5 transition-transform ${criteriaOpen ? 'rotate-90' : ''}`} />
-                      {criteriaOpen ? 'Hide' : 'Show'} entitlement criteria
+                      {isAr
+                        ? `${criteriaOpen ? 'إخفاء' : 'عرض'} معايير الاستحقاق`
+                        : `${criteriaOpen ? 'Hide' : 'Show'} entitlement criteria`}
                     </button>
                     {criteriaOpen && (
                       <ul className="mt-2 space-y-1 border-s border-slate-800 ps-3 text-[11px]">
@@ -216,13 +231,15 @@ function ClaimsPage() {
                     className="inline-flex items-center gap-1 text-xs text-sky-300 hover:text-sky-200"
                   >
                     <IconChevronRight className={`h-3.5 w-3.5 transition-transform ${pkgOpen ? 'rotate-90' : ''}`} />
-                    {pkgOpen ? 'Hide' : 'View'} claim package
+                    {isAr
+                      ? `${pkgOpen ? 'إخفاء' : 'عرض'} حزمة المطالبة`
+                      : `${pkgOpen ? 'Hide' : 'View'} claim package`}
                   </button>
-                  <Link href="/letters" className="text-xs text-sky-300 underline-offset-2 hover:underline">Draft a FIDIC letter for this claim →</Link>
+                  <Link href="/letters" className="text-xs text-sky-300 underline-offset-2 hover:underline">{isAr ? 'صياغة خطاب FIDIC لهذه المطالبة →' : 'Draft a FIDIC letter for this claim →'}</Link>
                 </div>
 
                 {pkgOpen && (
-                  <ClaimPackageView pkg={packages[c.id]} />
+                  <ClaimPackageView pkg={packages[c.id]} isAr={isAr} />
                 )}
               </Card>
             );
@@ -233,15 +250,18 @@ function ClaimsPage() {
   );
 }
 
-function ReadinessBar({ ready }: { ready: ReadinessResult }) {
+function ReadinessBar({ ready, isAr }: { ready: ReadinessResult; isAr: boolean }) {
   const tone = ready.label === 'ready' ? 'bg-emerald-500' : ready.label === 'developing' ? 'bg-amber-400' : 'bg-rose-500';
   const pillTone = ready.label === 'ready' ? 'emerald' : ready.label === 'developing' ? 'amber' : 'rose';
+  const labelText = isAr
+    ? (ready.label === 'ready' ? 'جاهزة' : ready.label === 'developing' ? 'قيد التطوير' : 'ضعيفة')
+    : ready.label;
   return (
     <div className="mt-2">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="text-slate-500">Claim readiness</span>
+        <span className="text-slate-500">{isAr ? 'جاهزية المطالبة' : 'Claim readiness'}</span>
         <span className="flex items-center gap-2">
-          <Pill tone={pillTone}>{ready.label}</Pill>
+          <Pill tone={pillTone}>{labelText}</Pill>
           <span className="tabular-nums text-slate-300" dir="ltr">{ready.readinessScore}/100</span>
         </span>
       </div>
@@ -249,16 +269,16 @@ function ReadinessBar({ ready }: { ready: ReadinessResult }) {
         <div className={`h-full ${tone}`} style={{ width: `${ready.readinessScore}%` }} />
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-slate-500">
-        <span>evidence {ready.breakdown.evidenceLinked.points}/{ready.breakdown.evidenceLinked.max}</span>
-        <span>entitlement {ready.breakdown.entitlement.points}/{ready.breakdown.entitlement.max}</span>
-        <span>quantum {ready.breakdown.quantumDocumented.points}/{ready.breakdown.quantumDocumented.max}</span>
-        <span>narrative {ready.breakdown.narrativePresent.points}/{ready.breakdown.narrativePresent.max}</span>
+        <span>{isAr ? 'الأدلة' : 'evidence'} {ready.breakdown.evidenceLinked.points}/{ready.breakdown.evidenceLinked.max}</span>
+        <span>{isAr ? 'الاستحقاق' : 'entitlement'} {ready.breakdown.entitlement.points}/{ready.breakdown.entitlement.max}</span>
+        <span>{isAr ? 'القيمة المالية' : 'quantum'} {ready.breakdown.quantumDocumented.points}/{ready.breakdown.quantumDocumented.max}</span>
+        <span>{isAr ? 'السرد' : 'narrative'} {ready.breakdown.narrativePresent.points}/{ready.breakdown.narrativePresent.max}</span>
       </div>
     </div>
   );
 }
 
-function ClaimPackageView({ pkg }: { pkg: ClaimPackage | undefined }) {
+function ClaimPackageView({ pkg, isAr }: { pkg: ClaimPackage | undefined; isAr: boolean }) {
   if (!pkg) {
     return <div className="mt-2 h-16 animate-pulse rounded bg-slate-800/40" />;
   }
@@ -270,7 +290,7 @@ function ClaimPackageView({ pkg }: { pkg: ClaimPackage | undefined }) {
     const w = window.open('', '_blank', 'width=860,height=1000');
     if (!w) { window.print(); return; }
     w.document.write(
-      `<html><head><title>Claim package — ${escapeHtml(pkg.claim.title)}</title>` +
+      `<html><head><title>${isAr ? 'حزمة المطالبة' : 'Claim package'} — ${escapeHtml(pkg.claim.title)}</title>` +
       `<style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;color:#14171f;padding:28px;line-height:1.5}` +
       `h2{margin:0 0 4px}h3{margin:18px 0 6px;border-bottom:1px solid #ddd;padding-bottom:3px}` +
       `table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #ddd;padding:4px 6px;text-align:left}` +
@@ -284,31 +304,31 @@ function ClaimPackageView({ pkg }: { pkg: ClaimPackage | undefined }) {
   return (
     <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Evidence-linked claim package</span>
-        <Button variant="ghost" size="sm" onClick={print}>Print / PDF</Button>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{isAr ? 'حزمة المطالبة المدعومة بالأدلة' : 'Evidence-linked claim package'}</span>
+        <Button variant="ghost" size="sm" onClick={print}>{isAr ? 'طباعة / PDF' : 'Print / PDF'}</Button>
       </div>
 
       <div id={printId} className="space-y-3 text-sm text-slate-200">
         <section>
           <h2 className="text-base font-semibold text-slate-100">{pkg.claim.title}</h2>
           <p className="muted text-[11px] text-slate-500">
-            Project {pkg.projectKey} · generated {new Date(pkg.generatedAt).toISOString().slice(0, 16).replace('T', ' ')} UTC
+            {isAr ? 'المشروع' : 'Project'} {pkg.projectKey} · {isAr ? 'أُنشئت' : 'generated'} {new Date(pkg.generatedAt).toISOString().slice(0, 16).replace('T', ' ')} UTC
           </p>
         </section>
 
-        <PkgSection title="Delay analysis">
+        <PkgSection title={isAr ? 'تحليل التأخير' : 'Delay analysis'}>
           <KeyVals
             rows={[
-              ['Type', pkg.delayAnalysis.type],
-              ['Estimated days', pkg.delayAnalysis.estimatedDays === null ? '—' : String(pkg.delayAnalysis.estimatedDays)],
-              ['Estimated amount', pkg.delayAnalysis.estimatedAmount ?? '—'],
-              ['FIDIC clause', pkg.delayAnalysis.fidicClause ?? '—'],
-              ['Responsible party', pkg.delayAnalysis.responsibleParty],
+              [isAr ? 'النوع' : 'Type', pkg.delayAnalysis.type],
+              [isAr ? 'الأيام المقدّرة' : 'Estimated days', pkg.delayAnalysis.estimatedDays === null ? '—' : String(pkg.delayAnalysis.estimatedDays)],
+              [isAr ? 'المبلغ المقدّر' : 'Estimated amount', pkg.delayAnalysis.estimatedAmount ?? '—'],
+              [isAr ? 'بند FIDIC' : 'FIDIC clause', pkg.delayAnalysis.fidicClause ?? '—'],
+              [isAr ? 'الطرف المسؤول' : 'Responsible party', pkg.delayAnalysis.responsibleParty],
             ]}
           />
         </PkgSection>
 
-        <PkgSection title={`Entitlement — ${pkg.entitlement.entitlementLikelihood} (${pkg.entitlement.passedCount}/${pkg.entitlement.decidableCount})`}>
+        <PkgSection title={`${isAr ? 'الاستحقاق' : 'Entitlement'} — ${pkg.entitlement.entitlementLikelihood} (${pkg.entitlement.passedCount}/${pkg.entitlement.decidableCount})`}>
           <ul className="space-y-1 text-[12px]">
             {pkg.entitlement.criteria.map((cr) => (
               <li key={cr.key}>
@@ -319,20 +339,20 @@ function ClaimPackageView({ pkg }: { pkg: ClaimPackage | undefined }) {
           </ul>
         </PkgSection>
 
-        <PkgSection title={`Readiness — ${pkg.readiness.readinessScore}/100 (${pkg.readiness.label})`}>
+        <PkgSection title={`${isAr ? 'الجاهزية' : 'Readiness'} — ${pkg.readiness.readinessScore}/100 (${isAr ? (pkg.readiness.label === 'ready' ? 'جاهزة' : pkg.readiness.label === 'developing' ? 'قيد التطوير' : 'ضعيفة') : pkg.readiness.label})`}>
           <KeyVals
             rows={[
-              ['Evidence', `${pkg.readiness.breakdown.evidenceLinked.points}/${pkg.readiness.breakdown.evidenceLinked.max}`],
-              ['Entitlement', `${pkg.readiness.breakdown.entitlement.points}/${pkg.readiness.breakdown.entitlement.max}`],
-              ['Quantum', `${pkg.readiness.breakdown.quantumDocumented.points}/${pkg.readiness.breakdown.quantumDocumented.max}`],
-              ['Narrative', `${pkg.readiness.breakdown.narrativePresent.points}/${pkg.readiness.breakdown.narrativePresent.max}`],
+              [isAr ? 'الأدلة' : 'Evidence', `${pkg.readiness.breakdown.evidenceLinked.points}/${pkg.readiness.breakdown.evidenceLinked.max}`],
+              [isAr ? 'الاستحقاق' : 'Entitlement', `${pkg.readiness.breakdown.entitlement.points}/${pkg.readiness.breakdown.entitlement.max}`],
+              [isAr ? 'القيمة المالية' : 'Quantum', `${pkg.readiness.breakdown.quantumDocumented.points}/${pkg.readiness.breakdown.quantumDocumented.max}`],
+              [isAr ? 'السرد' : 'Narrative', `${pkg.readiness.breakdown.narrativePresent.points}/${pkg.readiness.breakdown.narrativePresent.max}`],
             ]}
           />
         </PkgSection>
 
-        <PkgSection title={`Related alerts (${pkg.relatedAlerts.length})`}>
+        <PkgSection title={`${isAr ? 'التنبيهات ذات الصلة' : 'Related alerts'} (${pkg.relatedAlerts.length})`}>
           {pkg.relatedAlerts.length === 0 ? (
-            <p className="text-[12px] text-slate-500">No related alerts in window.</p>
+            <p className="text-[12px] text-slate-500">{isAr ? 'لا توجد تنبيهات ذات صلة ضمن الفترة.' : 'No related alerts in window.'}</p>
           ) : (
             <ul className="space-y-1 text-[12px]">
               {pkg.relatedAlerts.slice(0, 20).map((a) => (
@@ -340,17 +360,17 @@ function ClaimPackageView({ pkg }: { pkg: ClaimPackage | undefined }) {
                   <span className="font-mono text-[11px] text-slate-400" dir="ltr">[{a.severity}] {a.code}</span> — {a.summary}
                 </li>
               ))}
-              {pkg.relatedAlerts.length > 20 && <li className="text-slate-500">… {pkg.relatedAlerts.length - 20} more</li>}
+              {pkg.relatedAlerts.length > 20 && <li className="text-slate-500">… {pkg.relatedAlerts.length - 20} {isAr ? 'أخرى' : 'more'}</li>}
             </ul>
           )}
         </PkgSection>
 
-        <PkgSection title="Source references">
+        <PkgSection title={isAr ? 'المراجع المصدرية' : 'Source references'}>
           <KeyVals
             rows={[
-              ['Evidence refs', pkg.sourceRefs.evidenceRefs.length ? pkg.sourceRefs.evidenceRefs.join(', ') : '—'],
-              ['Linked letters', pkg.sourceRefs.linkedLetterIds.length ? String(pkg.sourceRefs.linkedLetterIds.length) : '0'],
-              ['Related alerts', String(pkg.sourceRefs.relatedAlertIds.length)],
+              [isAr ? 'مراجع الأدلة' : 'Evidence refs', pkg.sourceRefs.evidenceRefs.length ? pkg.sourceRefs.evidenceRefs.join(', ') : '—'],
+              [isAr ? 'الخطابات المرتبطة' : 'Linked letters', pkg.sourceRefs.linkedLetterIds.length ? String(pkg.sourceRefs.linkedLetterIds.length) : '0'],
+              [isAr ? 'التنبيهات ذات الصلة' : 'Related alerts', String(pkg.sourceRefs.relatedAlertIds.length)],
             ]}
           />
         </PkgSection>

@@ -17,6 +17,7 @@ import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
 import { CAPABILITIES } from '../../lib/capabilities';
+import { useI18n, type Lang } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 
@@ -34,6 +35,20 @@ const TYPE_LABEL: Record<string, string> = {
   'bim-model': 'BIM Model', other: 'Other',
 };
 
+// Domain-appropriate Arabic labels for the L1 record families. English
+// acronyms (RFI / NCR / BIM / OCR) are kept per standards convention.
+const TYPE_LABEL_AR: Record<string, string> = {
+  rfi: 'RFI', submittal: 'مستند اعتماد', ncr: 'NCR', 'change-request': 'طلب تغيير',
+  'procurement-log': 'المشتريات', 'resource-log': 'سجل الموارد', 'cost-report': 'تقرير التكلفة',
+  'site-photo': 'صورة موقع', 'email-correspondence': 'مراسلة', 'ocr-document': 'مستند OCR',
+  'bim-model': 'نموذج BIM', other: 'أخرى',
+};
+
+/** Localized record-family label; falls back to the raw type key. */
+function typeLabel(t: string, lang: Lang): string {
+  return (lang === 'ar' ? TYPE_LABEL_AR[t] : TYPE_LABEL[t]) ?? TYPE_LABEL[t] ?? t;
+}
+
 export default function RepositoryRoute() {
   return (
     <AuthGate surface="Document Repository">
@@ -44,6 +59,7 @@ export default function RepositoryRoute() {
 
 function RepositoryPage() {
   const toast = useToast();
+  const { lang } = useI18n();
   const projectKey = useCurrentProjectKey();
   const { me } = useMe();
   const canIngest = !!(me?.user?.role && CAPABILITIES[me.user.role].canIngest);
@@ -89,14 +105,17 @@ function RepositoryPage() {
     setBusyClassify(id);
     try {
       await api(`/records/${id}/classify`, { method: 'POST' });
-      toast.success('Re-classified', 'Tags refreshed from the deterministic keyword classifier.');
+      toast.success(
+        lang === 'ar' ? 'أُعيد التصنيف' : 'Re-classified',
+        lang === 'ar' ? 'حُدِّثت الوسوم عبر مُصنِّف الكلمات المفتاحية الحتمي.' : 'Tags refreshed from the deterministic keyword classifier.',
+      );
       await load();
       if (query.trim() && projectKey) {
         setSearchRows(await api<RecordRow[]>(`/records/search?projectKey=${encodeURIComponent(projectKey)}&q=${encodeURIComponent(query.trim())}`));
       }
-    } catch (e) { toast.error('Classify failed', (e as Error).message); }
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل التصنيف' : 'Classify failed', (e as Error).message); }
     finally { setBusyClassify(null); }
-  }, [load, toast, query, projectKey]);
+  }, [load, toast, query, projectKey, lang]);
 
   const filtered = useMemo(
     () => (searchRows ? searchRows : filter === 'all' ? rows ?? [] : (rows ?? []).filter((r) => r.recordType === filter)),
@@ -107,13 +126,15 @@ function RepositoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Layer 1 · Data Collection"
-        title="Document Repository"
-        description="Every collected project record — RFIs, Submittals, NCRs, Change Requests, Procurement / Resource / Cost logs, Site Photos, Email correspondence and OCR-scanned documents — append-only, versioned, auto-tagged, and searchable."
+        eyebrow={lang === 'ar' ? 'الطبقة 1 · جمع البيانات' : 'Layer 1 · Data Collection'}
+        title={lang === 'ar' ? 'مستودع الوثائق' : 'Document Repository'}
+        description={lang === 'ar'
+          ? 'كل سجل مشروع تم جمعه — طلبات المعلومات (RFI) ومستندات الاعتماد وتقارير عدم المطابقة (NCR) وطلبات التغيير وسجلات المشتريات والموارد والتكلفة وصور الموقع والمراسلات والمستندات الممسوحة ضوئياً (OCR) — إضافة فقط، مؤرشف بالإصدارات، موسوم تلقائياً، وقابل للبحث.'
+          : 'Every collected project record — RFIs, Submittals, NCRs, Change Requests, Procurement / Resource / Cost logs, Site Photos, Email correspondence and OCR-scanned documents — append-only, versioned, auto-tagged, and searchable.'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> Refresh</Button>
-            {canIngest && <Button variant="primary" size="sm" onClick={() => setShowForm((v) => !v)}><IconUpload className="h-3.5 w-3.5" /> Register record</Button>}
+            <Button variant="ghost" size="sm" onClick={load}><IconRefresh className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تحديث' : 'Refresh'}</Button>
+            {canIngest && <Button variant="primary" size="sm" onClick={() => setShowForm((v) => !v)}><IconUpload className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تسجيل سجل' : 'Register record'}</Button>}
           </div>
         }
       />
@@ -128,18 +149,23 @@ function RepositoryPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search records — ref number, title, tags, email body, OCR text…"
+            placeholder={lang === 'ar' ? 'ابحث في السجلات — الرقم المرجعي، العنوان، الوسوم، نص المراسلة، نص الـ OCR…' : 'Search records — ref number, title, tags, email body, OCR text…'}
             className="w-full rounded-lg border border-slate-800 bg-slate-950/60 ps-9 pe-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
           />
         </div>
         {searchRows && (
-          <p className="mt-2 text-[11px] text-slate-500">{searchRows.length} match(es) for “{query.trim()}”. Clear the box to browse by type.</p>
+          <p className="mt-2 text-[11px] text-slate-500">
+            {lang === 'ar'
+              ? `${searchRows.length} نتيجة لـ "${query.trim()}". أفرغ الحقل للتصفح حسب النوع.`
+              : `${searchRows.length} match(es) for “${query.trim()}”. Clear the box to browse by type.`}
+          </p>
         )}
       </Card>
 
       {canIngest && showForm && (
         <RecordForms
           projectKey={projectKey}
+          lang={lang}
           onCancel={() => setShowForm(false)}
           onSaved={async () => { setShowForm(false); await load(); }}
           toast={toast}
@@ -148,10 +174,10 @@ function RepositoryPage() {
 
       {!searchRows && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <button type="button" onClick={() => setFilter('all')} aria-pressed={filter === 'all'} className={chip(filter === 'all')}>All <span className="ms-1 font-mono text-[9px] text-slate-400">{total}</span></button>
+          <button type="button" onClick={() => setFilter('all')} aria-pressed={filter === 'all'} className={chip(filter === 'all')}>{lang === 'ar' ? 'الكل' : 'All'} <span className="ms-1 font-mono text-[9px] text-slate-400">{total}</span></button>
           {Object.entries(inventory).map(([t, n]) => (
             <button key={t} type="button" onClick={() => setFilter(t)} aria-pressed={filter === t} className={chip(filter === t)}>
-              {TYPE_LABEL[t] ?? t} <span className="ms-1 font-mono text-[9px] text-slate-400">{n}</span>
+              {typeLabel(t, lang)} <span className="ms-1 font-mono text-[9px] text-slate-400">{n}</span>
             </button>
           ))}
         </div>
@@ -160,23 +186,29 @@ function RepositoryPage() {
       {rows === null ? (
         <Card><div className="h-24 animate-pulse rounded bg-slate-800/40" /></Card>
       ) : (searchRows ? searchRows.length === 0 : filtered.length === 0) ? (
-        <EmptyState icon={<IconDatabase className="h-8 w-8" />} title={searchRows ? 'No matching records' : 'No records'} description={canIngest ? 'Register the first project record to populate L1.' : 'Records appear here once collected.'} />
+        <EmptyState
+          icon={<IconDatabase className="h-8 w-8" />}
+          title={lang === 'ar' ? (searchRows ? 'لا توجد سجلات مطابقة' : 'لا توجد سجلات') : (searchRows ? 'No matching records' : 'No records')}
+          description={lang === 'ar'
+            ? (canIngest ? 'سجّل أول سجل مشروع لتعبئة الطبقة 1.' : 'تظهر السجلات هنا بمجرد جمعها.')
+            : (canIngest ? 'Register the first project record to populate L1.' : 'Records appear here once collected.')}
+        />
       ) : (
         <Card padded={false}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-4 py-2 text-start">Type</th><th className="px-4 py-2 text-start">Ref</th>
-                  <th className="px-4 py-2 text-start">Title &amp; tags</th><th className="px-4 py-2 text-start">Status</th>
-                  <th className="px-4 py-2 text-start">Party</th><th className="px-4 py-2 text-start">Due</th>
-                  {canIngest && <th className="px-4 py-2 text-end">Actions</th>}
+                  <th className="px-4 py-2 text-start">{lang === 'ar' ? 'النوع' : 'Type'}</th><th className="px-4 py-2 text-start">{lang === 'ar' ? 'المرجع' : 'Ref'}</th>
+                  <th className="px-4 py-2 text-start">{lang === 'ar' ? 'العنوان والوسوم' : 'Title & tags'}</th><th className="px-4 py-2 text-start">{lang === 'ar' ? 'الحالة' : 'Status'}</th>
+                  <th className="px-4 py-2 text-start">{lang === 'ar' ? 'الطرف' : 'Party'}</th><th className="px-4 py-2 text-start">{lang === 'ar' ? 'تاريخ الاستحقاق' : 'Due'}</th>
+                  {canIngest && <th className="px-4 py-2 text-end">{lang === 'ar' ? 'الإجراءات' : 'Actions'}</th>}
                 </tr>
               </thead>
               <tbody>
                 {(searchRows ?? filtered).map((r) => (
                   <tr key={r.id} className="border-b border-slate-800/50 last:border-b-0 align-top">
-                    <td className="px-4 py-2"><Pill tone="sky">{TYPE_LABEL[r.recordType] ?? r.recordType}</Pill></td>
+                    <td className="px-4 py-2"><Pill tone="sky">{typeLabel(r.recordType, lang)}</Pill></td>
                     <td className="px-4 py-2 font-mono text-xs text-slate-300" dir="ltr">{r.refNumber}</td>
                     <td className="px-4 py-2 text-slate-100">
                       <div>{r.title}</div>
@@ -188,7 +220,7 @@ function RepositoryPage() {
                         </div>
                       )}
                       {r.recordType === 'ocr-document' && r.details?.ocrSource === 'manual-pending' && (
-                        <div className="mt-1 inline-flex items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-200 ring-1 ring-amber-500/30">OCR pending — AI offline</div>
+                        <div className="mt-1 inline-flex items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-200 ring-1 ring-amber-500/30">{lang === 'ar' ? 'OCR قيد الانتظار — الذكاء الاصطناعي غير متصل' : 'OCR pending — AI offline'}</div>
                       )}
                     </td>
                     <td className="px-4 py-2 text-slate-300">{r.status ?? '—'}</td>
@@ -197,7 +229,7 @@ function RepositoryPage() {
                     {canIngest && (
                       <td className="px-4 py-2 text-end">
                         <Button variant="ghost" size="sm" disabled={busyClassify === r.id} onClick={() => void classify(r.id)}>
-                          {busyClassify === r.id ? 'Classifying…' : 'Classify'}
+                          {busyClassify === r.id ? (lang === 'ar' ? 'جارٍ التصنيف…' : 'Classifying…') : (lang === 'ar' ? 'تصنيف' : 'Classify')}
                         </Button>
                       </td>
                     )}
@@ -219,24 +251,28 @@ function chip(active: boolean): string {
 type FormMode = 'record' | 'email' | 'ocr';
 
 function RecordForms({
-  projectKey, onCancel, onSaved, toast,
+  projectKey, lang, onCancel, onSaved, toast,
 }: {
   projectKey: string;
+  lang: Lang;
   onCancel: () => void;
   onSaved: () => void | Promise<void>;
   toast: ReturnType<typeof useToast>;
 }) {
   const [mode, setMode] = useState<FormMode>('record');
+  const modes: [FormMode, string][] = lang === 'ar'
+    ? [['record', 'سجل قياسي'], ['email', 'مراسلة'], ['ocr', 'مستند OCR']]
+    : [['record', 'Standard record'], ['email', 'Email correspondence'], ['ocr', 'OCR document']];
   return (
-    <Card title="Register a project record">
+    <Card title={lang === 'ar' ? 'تسجيل سجل مشروع' : 'Register a project record'}>
       <div className="mb-3 flex flex-wrap gap-1.5">
-        {([['record', 'Standard record'], ['email', 'Email correspondence'], ['ocr', 'OCR document']] as [FormMode, string][]).map(([m, label]) => (
+        {modes.map(([m, label]) => (
           <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m} className={chip(mode === m)}>{label}</button>
         ))}
       </div>
-      {mode === 'record' && <StandardRecordForm projectKey={projectKey} onCancel={onCancel} onSaved={onSaved} toast={toast} />}
-      {mode === 'email' && <EmailForm projectKey={projectKey} onCancel={onCancel} onSaved={onSaved} toast={toast} />}
-      {mode === 'ocr' && <OcrForm projectKey={projectKey} onCancel={onCancel} onSaved={onSaved} toast={toast} />}
+      {mode === 'record' && <StandardRecordForm projectKey={projectKey} lang={lang} onCancel={onCancel} onSaved={onSaved} toast={toast} />}
+      {mode === 'email' && <EmailForm projectKey={projectKey} lang={lang} onCancel={onCancel} onSaved={onSaved} toast={toast} />}
+      {mode === 'ocr' && <OcrForm projectKey={projectKey} lang={lang} onCancel={onCancel} onSaved={onSaved} toast={toast} />}
     </Card>
   );
 }
@@ -245,9 +281,9 @@ const cls = 'mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3
 const lab = 'text-[11px] font-semibold uppercase tracking-wider text-slate-400';
 
 function StandardRecordForm({
-  projectKey, onCancel, onSaved, toast,
+  projectKey, lang, onCancel, onSaved, toast,
 }: {
-  projectKey: string; onCancel: () => void; onSaved: () => void | Promise<void>; toast: ReturnType<typeof useToast>;
+  projectKey: string; lang: Lang; onCancel: () => void; onSaved: () => void | Promise<void>; toast: ReturnType<typeof useToast>;
 }) {
   const [recordType, setRecordType] = useState('rfi');
   const [refNumber, setRefNumber] = useState('');
@@ -264,31 +300,38 @@ function StandardRecordForm({
     setBusy(true);
     try {
       await api('/records', { method: 'POST', body: JSON.stringify({ projectKey, projectBusinessKey: projectKey, recordType, refNumber: refNumber.trim(), title: title.trim(), status, party, dueDate: dueDate || null }) });
-      toast.success('Record registered', `${refNumber.trim()} added to L1.`);
+      toast.success(
+        lang === 'ar' ? 'تم تسجيل السجل' : 'Record registered',
+        lang === 'ar' ? `أُضيف ${refNumber.trim()} إلى الطبقة 1.` : `${refNumber.trim()} added to L1.`,
+      );
       await onSaved();
-    } catch (e) { toast.error('Register failed', (e as Error).message); }
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل التسجيل' : 'Register failed', (e as Error).message); }
     finally { setBusy(false); }
   };
+
+  const partyLabel = (p: string): string => (lang === 'ar'
+    ? ({ contractor: 'المقاول', consultant: 'الاستشاري', client: 'المالك', subcontractor: 'مقاول الباطن' } as Record<string, string>)[p] ?? p
+    : p);
 
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div><label className={lab}>Type</label><select className={cls} value={recordType} onChange={(e) => setRecordType(e.target.value)}>{standardTypes.map((v) => <option key={v} value={v}>{TYPE_LABEL[v] ?? v}</option>)}</select></div>
-        <div><label className={lab}>Ref number</label><input className={`${cls} font-mono`} dir="ltr" value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="RFI-014" /></div>
-        <div><label className={lab}>Status</label><input className={cls} value={status} onChange={(e) => setStatus(e.target.value)} /></div>
-        <div className="sm:col-span-2"><label className={lab}>Title</label><input className={cls} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-        <div><label className={lab}>Party</label><select className={cls} value={party} onChange={(e) => setParty(e.target.value)}>{['contractor', 'consultant', 'client', 'subcontractor'].map((p) => <option key={p} value={p}>{p}</option>)}</select></div>
-        <div><label className={lab}>Due date</label><input type="date" className={cls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'النوع' : 'Type'}</label><select className={cls} value={recordType} onChange={(e) => setRecordType(e.target.value)}>{standardTypes.map((v) => <option key={v} value={v}>{typeLabel(v, lang)}</option>)}</select></div>
+        <div><label className={lab}>{lang === 'ar' ? 'الرقم المرجعي' : 'Ref number'}</label><input className={`${cls} font-mono`} dir="ltr" value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="RFI-014" /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'الحالة' : 'Status'}</label><input className={cls} value={status} onChange={(e) => setStatus(e.target.value)} /></div>
+        <div className="sm:col-span-2"><label className={lab}>{lang === 'ar' ? 'العنوان' : 'Title'}</label><input className={cls} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'الطرف' : 'Party'}</label><select className={cls} value={party} onChange={(e) => setParty(e.target.value)}>{['contractor', 'consultant', 'client', 'subcontractor'].map((p) => <option key={p} value={p}>{partyLabel(p)}</option>)}</select></div>
+        <div><label className={lab}>{lang === 'ar' ? 'تاريخ الاستحقاق' : 'Due date'}</label><input type="date" className={cls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
       </div>
-      <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button><Button variant="primary" size="sm" disabled={busy || !refNumber.trim() || !title.trim()} onClick={submit}>{busy ? 'Saving…' : 'Register'}</Button></div>
+      <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={onCancel}>{lang === 'ar' ? 'إلغاء' : 'Cancel'}</Button><Button variant="primary" size="sm" disabled={busy || !refNumber.trim() || !title.trim()} onClick={submit}>{busy ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : (lang === 'ar' ? 'تسجيل' : 'Register')}</Button></div>
     </div>
   );
 }
 
 function EmailForm({
-  projectKey, onCancel, onSaved, toast,
+  projectKey, lang, onCancel, onSaved, toast,
 }: {
-  projectKey: string; onCancel: () => void; onSaved: () => void | Promise<void>; toast: ReturnType<typeof useToast>;
+  projectKey: string; lang: Lang; onCancel: () => void; onSaved: () => void | Promise<void>; toast: ReturnType<typeof useToast>;
 }) {
   const [refNumber, setRefNumber] = useState('');
   const [subject, setSubject] = useState('');
@@ -311,31 +354,34 @@ function EmailForm({
           details: { from: from.trim(), to: to.trim(), subject: subject.trim(), sentAt: sentAt || null, body: body.trim() },
         }),
       });
-      toast.success('Email captured', `${refNumber.trim()} added to L1 (auto-tagged).`);
+      toast.success(
+        lang === 'ar' ? 'تم حفظ المراسلة' : 'Email captured',
+        lang === 'ar' ? `أُضيف ${refNumber.trim()} إلى الطبقة 1 (موسوم تلقائياً).` : `${refNumber.trim()} added to L1 (auto-tagged).`,
+      );
       await onSaved();
-    } catch (e) { toast.error('Capture failed', (e as Error).message); }
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل الحفظ' : 'Capture failed', (e as Error).message); }
     finally { setBusy(false); }
   };
 
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className={lab}>Ref number</label><input className={`${cls} font-mono`} dir="ltr" value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="EMAIL-2026-014" /></div>
-        <div><label className={lab}>Sent at</label><input type="date" className={cls} value={sentAt} onChange={(e) => setSentAt(e.target.value)} /></div>
-        <div className="sm:col-span-2"><label className={lab}>Subject</label><input className={cls} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="EoT notice — concurrent delay on Level 3 slab" /></div>
-        <div><label className={lab}>From</label><input className={cls} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="contractor PM" /></div>
-        <div><label className={lab}>To</label><input className={cls} value={to} onChange={(e) => setTo(e.target.value)} placeholder="engineer" /></div>
-        <div className="sm:col-span-2"><label className={lab}>Body</label><textarea className={cls} rows={4} value={body} onChange={(e) => setBody(e.target.value)} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'الرقم المرجعي' : 'Ref number'}</label><input className={`${cls} font-mono`} dir="ltr" value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="EMAIL-2026-014" /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'تاريخ الإرسال' : 'Sent at'}</label><input type="date" className={cls} value={sentAt} onChange={(e) => setSentAt(e.target.value)} /></div>
+        <div className="sm:col-span-2"><label className={lab}>{lang === 'ar' ? 'الموضوع' : 'Subject'}</label><input className={cls} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder={lang === 'ar' ? 'إشعار تمديد مدة (EoT) — تأخير متزامن في بلاطة الطابق الثالث' : 'EoT notice — concurrent delay on Level 3 slab'} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'من' : 'From'}</label><input className={cls} value={from} onChange={(e) => setFrom(e.target.value)} placeholder={lang === 'ar' ? 'مدير مشروع المقاول' : 'contractor PM'} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'إلى' : 'To'}</label><input className={cls} value={to} onChange={(e) => setTo(e.target.value)} placeholder={lang === 'ar' ? 'المهندس' : 'engineer'} /></div>
+        <div className="sm:col-span-2"><label className={lab}>{lang === 'ar' ? 'النص' : 'Body'}</label><textarea className={cls} rows={4} value={body} onChange={(e) => setBody(e.target.value)} /></div>
       </div>
-      <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button><Button variant="primary" size="sm" disabled={busy || !refNumber.trim() || !subject.trim()} onClick={submit}>{busy ? 'Saving…' : 'Capture email'}</Button></div>
+      <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={onCancel}>{lang === 'ar' ? 'إلغاء' : 'Cancel'}</Button><Button variant="primary" size="sm" disabled={busy || !refNumber.trim() || !subject.trim()} onClick={submit}>{busy ? (lang === 'ar' ? 'جارٍ الحفظ…' : 'Saving…') : (lang === 'ar' ? 'حفظ المراسلة' : 'Capture email')}</Button></div>
     </div>
   );
 }
 
 function OcrForm({
-  projectKey, onCancel, onSaved, toast,
+  projectKey, lang, onCancel, onSaved, toast,
 }: {
-  projectKey: string; onCancel: () => void; onSaved: () => void | Promise<void>; toast: ReturnType<typeof useToast>;
+  projectKey: string; lang: Lang; onCancel: () => void; onSaved: () => void | Promise<void>; toast: ReturnType<typeof useToast>;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [refNumber, setRefNumber] = useState('');
@@ -347,11 +393,19 @@ function OcrForm({
   const setFileSafe = (f: File | null) => {
     if (!f) { setFile(null); return; }
     if (!/^image\//.test(f.type) && f.type !== 'application/pdf') {
-      toast.error('Unsupported file', 'OCR accepts image/* or PDF only.');
+      toast.error(
+        lang === 'ar' ? 'نوع ملف غير مدعوم' : 'Unsupported file',
+        lang === 'ar' ? 'يقبل الـ OCR ملفات الصور (image/*) أو PDF فقط.' : 'OCR accepts image/* or PDF only.',
+      );
       return;
     }
     if (f.size > 20 * 1024 * 1024) {
-      toast.error('File too large', `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 20 MB limit.`);
+      toast.error(
+        lang === 'ar' ? 'الملف كبير جداً' : 'File too large',
+        lang === 'ar'
+          ? `${(f.size / 1024 / 1024).toFixed(1)} ميجابايت تتجاوز الحد الأقصى 20 ميجابايت.`
+          : `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 20 MB limit.`,
+      );
       return;
     }
     setFile(f);
@@ -376,18 +430,26 @@ function OcrForm({
       });
       const src = String(r.details?.ocrSource ?? 'manual-pending');
       setPreview({ text: r.details?.extractedText ?? null, source: src });
-      if (src === 'ai-vision') toast.success('OCR extracted', 'Verbatim text captured via AI Vision.');
-      else toast.info('Archived — OCR pending', 'AI is offline; the scan is stored for manual transcription later.');
+      if (src === 'ai-vision') toast.success(
+        lang === 'ar' ? 'تم استخراج النص' : 'OCR extracted',
+        lang === 'ar' ? 'تم التقاط النص حرفياً عبر AI Vision.' : 'Verbatim text captured via AI Vision.',
+      );
+      else toast.info(
+        lang === 'ar' ? 'مؤرشف — OCR قيد الانتظار' : 'Archived — OCR pending',
+        lang === 'ar'
+          ? 'الذكاء الاصطناعي غير متصل؛ حُفظ المسح الضوئي للتفريغ اليدوي لاحقاً.'
+          : 'AI is offline; the scan is stored for manual transcription later.',
+      );
       await onSaved();
-    } catch (e) { toast.error('OCR failed', (e as Error).message); }
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل الـ OCR' : 'OCR failed', (e as Error).message); }
     finally { setBusy(false); }
   };
 
   return (
     <div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div><label className={lab}>Ref number (optional)</label><input className={`${cls} font-mono`} dir="ltr" value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder="defaults to filename" /></div>
-        <div><label className={lab}>Title (optional)</label><input className={cls} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'الرقم المرجعي (اختياري)' : 'Ref number (optional)'}</label><input className={`${cls} font-mono`} dir="ltr" value={refNumber} onChange={(e) => setRefNumber(e.target.value)} placeholder={lang === 'ar' ? 'يُستخدم اسم الملف افتراضياً' : 'defaults to filename'} /></div>
+        <div><label className={lab}>{lang === 'ar' ? 'العنوان (اختياري)' : 'Title (optional)'}</label><input className={cls} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
       </div>
       <div className={`mt-3 flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed px-5 py-5 border-slate-700 bg-slate-900/30`}>
         <div className="grid h-11 w-11 place-items-center rounded-full bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30">
@@ -395,28 +457,30 @@ function OcrForm({
         </div>
         <div className="min-w-0 flex-1">
           {file ? <p className="text-sm font-medium text-slate-100" dir="ltr">{file.name} <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(2)} MB)</span></p>
-            : <p className="text-sm text-slate-200">Choose a scanned image or PDF to OCR.</p>}
+            : <p className="text-sm text-slate-200">{lang === 'ar' ? 'اختر صورة ممسوحة ضوئياً أو ملف PDF لإجراء الـ OCR.' : 'Choose a scanned image or PDF to OCR.'}</p>}
         </div>
-        <input ref={fileInput} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label="Document to OCR" />
-        <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>Browse</Button>
-        <Button variant="primary" size="sm" disabled={!file || busy} onClick={submit}>{busy ? 'Extracting…' : 'Upload & OCR'}</Button>
+        <input ref={fileInput} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label={lang === 'ar' ? 'مستند لإجراء الـ OCR' : 'Document to OCR'} />
+        <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>{lang === 'ar' ? 'استعراض' : 'Browse'}</Button>
+        <Button variant="primary" size="sm" disabled={!file || busy} onClick={submit}>{busy ? (lang === 'ar' ? 'جارٍ الاستخراج…' : 'Extracting…') : (lang === 'ar' ? 'رفع وإجراء OCR' : 'Upload & OCR')}</Button>
       </div>
 
       {preview && (
         <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3">
           <div className="mb-1 flex items-center gap-2">
-            <Pill tone={preview.source === 'ai-vision' ? 'emerald' : 'amber'}>{preview.source === 'ai-vision' ? 'AI Vision OCR' : 'manual-pending'}</Pill>
-            <span className="text-[11px] text-slate-500">extracted-text preview</span>
+            <Pill tone={preview.source === 'ai-vision' ? 'emerald' : 'amber'}>{preview.source === 'ai-vision' ? (lang === 'ar' ? 'OCR عبر AI Vision' : 'AI Vision OCR') : (lang === 'ar' ? 'بانتظار التفريغ اليدوي' : 'manual-pending')}</Pill>
+            <span className="text-[11px] text-slate-500">{lang === 'ar' ? 'معاينة النص المُستخرَج' : 'extracted-text preview'}</span>
           </div>
           {preview.text ? (
             <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-[12px] text-slate-200">{preview.text.slice(0, 4000)}</pre>
           ) : (
-            <p className="text-sm text-amber-200">AI is offline — the document is archived (SHA-256) and awaits manual transcription. Re-upload once a key is configured to auto-extract.</p>
+            <p className="text-sm text-amber-200">{lang === 'ar'
+              ? 'الذكاء الاصطناعي غير متصل — المستند مؤرشف (SHA-256) وبانتظار التفريغ اليدوي. أعد الرفع بعد تهيئة المفتاح للاستخراج التلقائي.'
+              : 'AI is offline — the document is archived (SHA-256) and awaits manual transcription. Re-upload once a key is configured to auto-extract.'}</p>
           )}
         </div>
       )}
 
-      <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={onCancel}>Close</Button></div>
+      <div className="mt-3 flex justify-end gap-2"><Button variant="ghost" size="sm" onClick={onCancel}>{lang === 'ar' ? 'إغلاق' : 'Close'}</Button></div>
     </div>
   );
 }

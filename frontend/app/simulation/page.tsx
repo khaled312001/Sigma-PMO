@@ -38,7 +38,7 @@ export default function SimulationPageRoute() {
 }
 
 function SimulationPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const toast = useToast();
   const confirm = useConfirm();
   const { current } = useProject();
@@ -97,12 +97,16 @@ function SimulationPage() {
   /** Promote-to-canonical (Wave 7 — live). Confirm → POST → refresh. */
   const onPromote = async (id: string) => {
     const ok = await confirm({
-      title: 'Promote this scenario to canonical?',
+      title: lang === 'ar' ? 'هل تريد اعتماد هذا السيناريو كحالة مرجعية؟' : 'Promote this scenario to canonical?',
       description:
-        'The scenario is marked committed, the promotion is stamped on its audit trail, and a ' +
-        'simulation.scenario.promoted event notifies the downstream layers. Clash-impact scenarios ' +
-        'are refused here — apply those from /clashes so the schedule revision + claim letter issue atomically.',
-      confirmLabel: 'Promote',
+        lang === 'ar'
+          ? 'سيُعلَّم السيناريو كمعتمَد، ويُختَم الاعتماد على سجلّ التدقيق الخاص به، ويُرسَل حدث ' +
+            'simulation.scenario.promoted لإشعار الطبقات اللاحقة. أمّا سيناريوهات تأثير التضارب فتُرفَض هنا — ' +
+            'فطبّقها من صفحة /clashes كي تصدر مراجعة الجدول وخطاب المطالبة معاً كوحدة واحدة.'
+          : 'The scenario is marked committed, the promotion is stamped on its audit trail, and a ' +
+            'simulation.scenario.promoted event notifies the downstream layers. Clash-impact scenarios ' +
+            'are refused here — apply those from /clashes so the schedule revision + claim letter issue atomically.',
+      confirmLabel: lang === 'ar' ? 'اعتماد' : 'Promote',
     });
     if (!ok) return;
     setActing(id);
@@ -112,12 +116,16 @@ function SimulationPage() {
         { method: 'POST', body: JSON.stringify({ promotedBy: me?.user?.displayName ?? 'unknown' }) },
       );
       toast.success(
-        'Scenario promoted',
-        r.outboxEventId ? `Outbox event ${r.outboxEventId.slice(0, 8)} dispatched.` : 'Committed.',
+        lang === 'ar' ? 'تم اعتماد السيناريو' : 'Scenario promoted',
+        r.outboxEventId
+          ? lang === 'ar'
+            ? `تم إرسال حدث صندوق الصادر ${r.outboxEventId.slice(0, 8)}.`
+            : `Outbox event ${r.outboxEventId.slice(0, 8)} dispatched.`
+          : lang === 'ar' ? 'تم الاعتماد.' : 'Committed.',
       );
       await refresh();
     } catch (e) {
-      toast.error('Promote failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل الاعتماد' : 'Promote failed', (e as Error).message);
     } finally {
       setActing(null);
     }
@@ -239,6 +247,7 @@ interface PortfolioWhatIfResponse {
 }
 
 function PortfolioScenarioPlanning() {
+  const { lang } = useI18n();
   const toast = useToast();
   const { projects } = useProject();
   const [impact, setImpact] = useState<PortfolioImpactResponse | null>(null);
@@ -269,7 +278,7 @@ function PortfolioScenarioPlanning() {
   }, [projects, projectKey]);
 
   const runWhatIf = async () => {
-    if (!projectKey) { toast.error('Pick a project first'); return; }
+    if (!projectKey) { toast.error(lang === 'ar' ? 'اختر مشروعاً أولاً' : 'Pick a project first'); return; }
     setRunning(true);
     try {
       const r = await api<PortfolioWhatIfResponse>('/simulation/portfolio-whatif', {
@@ -278,7 +287,7 @@ function PortfolioScenarioPlanning() {
       });
       setWhatIf(r);
     } catch (e) {
-      toast.error('What-if failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل تحليل ماذا-لو' : 'What-if failed', (e as Error).message);
     } finally {
       setRunning(false);
     }
@@ -292,57 +301,65 @@ function PortfolioScenarioPlanning() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300/80">
-            Portfolio scenario planning
+            {lang === 'ar' ? 'تخطيط السيناريوهات على مستوى المحفظة' : 'Portfolio scenario planning'}
           </p>
           <h2 className="mt-1 text-lg font-semibold text-slate-100">
-            Open scenarios across the portfolio
+            {lang === 'ar' ? 'السيناريوهات المفتوحة عبر المحفظة' : 'Open scenarios across the portfolio'}
           </h2>
           <p className="mt-1 max-w-2xl text-xs text-slate-400">
-            Every OPEN scenario across all projects, plus a deterministic what-if to price an
-            injected delay. Nothing here mutates canonical truth.
+            {lang === 'ar'
+              ? 'كل سيناريو مفتوح عبر جميع المشاريع، إضافةً إلى تحليل ماذا-لو حِسابي لتقدير كُلفة تأخير مُفترَض. لا شيء هنا يُعدّل الحالة المرجعية المعتمدة.'
+              : 'Every OPEN scenario across all projects, plus a deterministic what-if to price an injected delay. Nothing here mutates canonical truth.'}
           </p>
         </div>
-        <Button variant="ghost" onClick={() => void load()}>Refresh</Button>
+        <Button variant="ghost" onClick={() => void load()}>{lang === 'ar' ? 'تحديث' : 'Refresh'}</Button>
       </div>
 
       {err && <ErrorBanner message={err} />}
 
       {impact === null ? (
-        <Card><p className="text-sm text-slate-400">Loading…</p></Card>
+        <Card><p className="text-sm text-slate-400">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p></Card>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <StatTile label="Open scenarios" value={impact.totals.openScenarios} />
-            <StatTile label="Projects with scenarios" value={impact.totals.projectsWithScenarios} />
+            <StatTile label={lang === 'ar' ? 'سيناريوهات مفتوحة' : 'Open scenarios'} value={impact.totals.openScenarios} />
+            <StatTile label={lang === 'ar' ? 'مشاريع ذات سيناريوهات' : 'Projects with scenarios'} value={impact.totals.projectsWithScenarios} />
             <StatTile
-              label="Impact data"
-              value={impact.allImpactsArePlaceholders ? 'Placeholder' : impact.scenarios.length ? 'Partial' : '—'}
+              label={lang === 'ar' ? 'بيانات الأثر' : 'Impact data'}
+              value={
+                impact.allImpactsArePlaceholders
+                  ? lang === 'ar' ? 'مؤقّتة' : 'Placeholder'
+                  : impact.scenarios.length
+                    ? lang === 'ar' ? 'جزئية' : 'Partial'
+                    : '—'
+              }
               tone={impact.allImpactsArePlaceholders ? 'amber' : 'slate'}
             />
           </div>
 
           {impact.allImpactsArePlaceholders && impact.scenarios.length > 0 && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
-              Scenario snapshots currently freeze a baseline only — no before/after delta is stored,
-              so the schedule/cost impact columns below are placeholders. Baseline counters are real.
+              {lang === 'ar'
+                ? 'تُجمِّد لقطات السيناريو حالياً خط الأساس فقط — دون تخزين فرق قبل/بعد، لذا فإن عمودَي أثر الجدول والكُلفة أدناه قيم مؤقّتة. أمّا عدّادات خط الأساس فهي حقيقية.'
+                : 'Scenario snapshots currently freeze a baseline only — no before/after delta is stored, so the schedule/cost impact columns below are placeholders. Baseline counters are real.'}
             </p>
           )}
 
           {impact.scenarios.length === 0 ? (
-            <Card><p className="text-sm text-slate-400">No open scenarios across the portfolio.</p></Card>
+            <Card><p className="text-sm text-slate-400">{lang === 'ar' ? 'لا توجد سيناريوهات مفتوحة عبر المحفظة.' : 'No open scenarios across the portfolio.'}</p></Card>
           ) : (
             <Card padded={false}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
                     <tr>
-                      <th className="px-3 py-2 text-start">Scenario</th>
-                      <th className="px-3 py-2 text-start">Project</th>
-                      <th className="px-3 py-2 text-end">Schedule Δ (d)</th>
-                      <th className="px-3 py-2 text-end">Cost Δ</th>
-                      <th className="px-3 py-2 text-end">Activities</th>
-                      <th className="px-3 py-2 text-end">Critical</th>
-                      <th className="px-3 py-2 text-end">Forked</th>
+                      <th className="px-3 py-2 text-start">{lang === 'ar' ? 'السيناريو' : 'Scenario'}</th>
+                      <th className="px-3 py-2 text-start">{lang === 'ar' ? 'المشروع' : 'Project'}</th>
+                      <th className="px-3 py-2 text-end">{lang === 'ar' ? 'فرق الجدول (يوم)' : 'Schedule Δ (d)'}</th>
+                      <th className="px-3 py-2 text-end">{lang === 'ar' ? 'فرق الكُلفة' : 'Cost Δ'}</th>
+                      <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الأنشطة' : 'Activities'}</th>
+                      <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الحرجة' : 'Critical'}</th>
+                      <th className="px-3 py-2 text-end">{lang === 'ar' ? 'تاريخ النسخ' : 'Forked'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/80">
@@ -385,19 +402,23 @@ function PortfolioScenarioPlanning() {
 
       {/* What-if mini-form */}
       <Card
-        title="Delay what-if"
-        hint="Deterministic arithmetic only — projects a shifted finish and a naive cost-of-delay. Persists nothing."
+        title={lang === 'ar' ? 'تحليل ماذا-لو للتأخير' : 'Delay what-if'}
+        hint={
+          lang === 'ar'
+            ? 'حساب رقمي بحت — يُسقِط تاريخ إنجاز مُزاحاً وكُلفة تأخير تقريبية. لا يحفظ أي بيانات.'
+            : 'Deterministic arithmetic only — projects a shifted finish and a naive cost-of-delay. Persists nothing.'
+        }
       >
         <div className="flex flex-wrap items-end gap-3">
           <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Project</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{lang === 'ar' ? 'المشروع' : 'Project'}</span>
             <select
               value={projectKey}
               onChange={(e) => setProjectKey(e.target.value)}
               className="mt-1 block min-w-56 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-500/60"
               dir="ltr"
             >
-              {projects.length === 0 && <option value="">No projects</option>}
+              {projects.length === 0 && <option value="">{lang === 'ar' ? 'لا توجد مشاريع' : 'No projects'}</option>}
               {projects.map((p) => (
                 <option key={p.businessKey} value={p.businessKey}>
                   {p.businessKey} · {p.name}
@@ -406,7 +427,7 @@ function PortfolioScenarioPlanning() {
             </select>
           </label>
           <label className="block">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Delay (days)</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{lang === 'ar' ? 'التأخير (أيام)' : 'Delay (days)'}</span>
             <input
               type="number"
               min={0}
@@ -418,24 +439,26 @@ function PortfolioScenarioPlanning() {
             />
           </label>
           <Button variant="primary" onClick={runWhatIf} disabled={running || !projectKey}>
-            <IconSparkles className="h-4 w-4" /> {running ? 'Computing…' : 'Run what-if'}
+            <IconSparkles className="h-4 w-4" /> {running ? (lang === 'ar' ? 'جارٍ الحساب…' : 'Computing…') : (lang === 'ar' ? 'تشغيل ماذا-لو' : 'Run what-if')}
           </Button>
         </div>
 
         {whatIf && (
           <div className="mt-4 space-y-3">
-            <p className="text-[11px] text-slate-500" dir="ltr">
-              Basis: {whatIf.basis.formula} · overhead {Math.round(whatIf.basis.overheadFactor * 100)}%
+            <p className="text-[11px] text-slate-500">
+              <span dir="ltr">{lang === 'ar' ? 'الأساس الحسابي' : 'Basis'}: {whatIf.basis.formula}</span>
+              {' · '}
+              {lang === 'ar' ? 'نسبة المصاريف العامة' : 'overhead'} {Math.round(whatIf.basis.overheadFactor * 100)}%
             </p>
             <div className="overflow-x-auto rounded-lg border border-slate-800">
               <table className="w-full text-sm">
                 <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
                   <tr>
-                    <th className="px-3 py-2 text-start">Project</th>
-                    <th className="px-3 py-2 text-end">Current finish</th>
-                    <th className="px-3 py-2 text-end">Delay (d)</th>
-                    <th className="px-3 py-2 text-end">Adjusted finish</th>
-                    <th className="px-3 py-2 text-end">Cost of delay</th>
+                    <th className="px-3 py-2 text-start">{lang === 'ar' ? 'المشروع' : 'Project'}</th>
+                    <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الإنجاز الحالي' : 'Current finish'}</th>
+                    <th className="px-3 py-2 text-end">{lang === 'ar' ? 'التأخير (يوم)' : 'Delay (d)'}</th>
+                    <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الإنجاز المُعدَّل' : 'Adjusted finish'}</th>
+                    <th className="px-3 py-2 text-end">{lang === 'ar' ? 'كُلفة التأخير' : 'Cost of delay'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
@@ -456,7 +479,9 @@ function PortfolioScenarioPlanning() {
                 <tfoot className="border-t border-slate-700 bg-slate-900/60">
                   <tr className="text-xs">
                     <td className="px-3 py-2 font-semibold text-slate-300">
-                      Totals · {whatIf.totals.projectsAnalyzed} project(s)
+                      {lang === 'ar'
+                        ? `الإجماليات · ${whatIf.totals.projectsAnalyzed} مشروع`
+                        : `Totals · ${whatIf.totals.projectsAnalyzed} project(s)`}
                     </td>
                     <td />
                     <td className="px-3 py-2 text-end tabular-nums text-slate-300" dir="ltr">{whatIf.totals.totalDelayDays}</td>
@@ -484,7 +509,8 @@ function StatTile({ label, value, tone = 'slate' }: { label: string; value: numb
 }
 
 function PlaceholderCell() {
-  return <span className="text-[10px] uppercase tracking-wide text-slate-500">placeholder</span>;
+  const { lang } = useI18n();
+  return <span className="text-[10px] uppercase tracking-wide text-slate-500">{lang === 'ar' ? 'مؤقّت' : 'placeholder'}</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -505,7 +531,7 @@ function ScenarioCard({
   onPromote: () => void;
   onDiscard: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const status = scenario.status as 'open' | 'committed' | 'discarded';
   const isMutable = status === 'open';
   const expiresAt = scenario.expiresAt ? new Date(scenario.expiresAt) : null;
@@ -546,10 +572,16 @@ function ScenarioCard({
           <span
             title={
               !canPromote
-                ? 'Promoting requires canEditPolicy (PD / Client / Admin).'
+                ? lang === 'ar'
+                  ? 'الاعتماد يتطلّب صلاحية canEditPolicy (مدير المشروع / العميل / مسؤول النظام).'
+                  : 'Promoting requires canEditPolicy (PD / Client / Admin).'
                 : !isMutable
-                  ? 'Only open scenarios can be promoted.'
-                  : 'Mark committed + notify downstream layers via the Outbox.'
+                  ? lang === 'ar'
+                    ? 'لا يمكن اعتماد سوى السيناريوهات المفتوحة.'
+                    : 'Only open scenarios can be promoted.'
+                  : lang === 'ar'
+                    ? 'تعليم السيناريو كمعتمَد وإشعار الطبقات اللاحقة عبر صندوق الصادر.'
+                    : 'Mark committed + notify downstream layers via the Outbox.'
             }
           >
             <Button
@@ -661,14 +693,19 @@ function SnapshotStructuredView({
   snapshot: FrozenSnapshot;
   currentProject: { businessKey: string; name: string; status: string | null; clientName: string | null; dataDate: string | null } | null;
 }) {
+  const { lang } = useI18n();
   // Engine-generated scenarios (clash-impact / compression) carry a `kind` —
   // their summary line already narrates the what-if, so show the note only.
   if (snapshot.kind) {
     return (
       <p className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2.5 text-xs text-violet-100">
         {snapshot.kind === 'clash-impact'
-          ? 'لقطة تأثير تضارب — الأرقام الكاملة (قبل/بعد) ظهرت في نافذة المحاكاة وقت إنشائها، وملخّصها مدوَّن أعلى البطاقة.'
-          : 'لقطة اقتراح ضغط الجدول — تفاصيل الأساليب والوفورات معروضة في صفحة خطط بريمافيرا.'}
+          ? lang === 'ar'
+            ? 'لقطة تأثير تضارب — الأرقام الكاملة (قبل/بعد) ظهرت في نافذة المحاكاة وقت إنشائها، وملخّصها مدوَّن أعلى البطاقة.'
+            : 'Clash-impact snapshot — the full before/after figures appeared in the simulation dialog when it was created; the summary is recorded at the top of the card.'
+          : lang === 'ar'
+            ? 'لقطة اقتراح ضغط الجدول — تفاصيل الأساليب والوفورات معروضة في صفحة خطط بريمافيرا.'
+            : 'Schedule-compression proposal snapshot — the techniques and savings are detailed on the Primavera baselines page.'}
       </p>
     );
   }
@@ -693,18 +730,18 @@ function SnapshotStructuredView({
         <table className="w-full text-xs">
           <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
             <tr>
-              <th className="px-3 py-2 text-start">البند</th>
-              <th className="px-3 py-2 text-start">لقطة المرجع (المجمَّدة)</th>
-              <th className="px-3 py-2 text-start">المشروع الحالي</th>
+              <th className="px-3 py-2 text-start">{lang === 'ar' ? 'البند' : 'Item'}</th>
+              <th className="px-3 py-2 text-start">{lang === 'ar' ? 'لقطة المرجع (المجمَّدة)' : 'Reference snapshot (frozen)'}</th>
+              <th className="px-3 py-2 text-start">{lang === 'ar' ? 'المشروع الحالي' : 'Current project'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/80">
             {([
-              ['الاسم', p.name ?? '—', currentProject?.name ?? '—'],
-              ['الحالة', p.status ?? '—', currentProject?.status ?? '—'],
-              ['تاريخ البيانات', p.dataDate ?? '—', currentProject?.dataDate ?? '—'],
-              ['بداية الجدول', p.plannedStart ?? '—', '—'],
-              ['نهاية الجدول', p.plannedFinish ?? '—', '—'],
+              [lang === 'ar' ? 'الاسم' : 'Name', p.name ?? '—', currentProject?.name ?? '—'],
+              [lang === 'ar' ? 'الحالة' : 'Status', p.status ?? '—', currentProject?.status ?? '—'],
+              [lang === 'ar' ? 'تاريخ البيانات' : 'Data date', p.dataDate ?? '—', currentProject?.dataDate ?? '—'],
+              [lang === 'ar' ? 'بداية الجدول' : 'Planned start', p.plannedStart ?? '—', '—'],
+              [lang === 'ar' ? 'نهاية الجدول' : 'Planned finish', p.plannedFinish ?? '—', '—'],
             ] as Array<[string, string, string]>).map(([label, frozen, cur]) => (
               <tr key={label} className={frozen !== cur && cur !== '—' ? 'bg-amber-500/10' : ''}>
                 <td className="px-3 py-1.5 font-semibold text-slate-200">{label}</td>
@@ -718,31 +755,31 @@ function SnapshotStructuredView({
 
       {/* Schedule + alert counters */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        <CounterTile label="الأنشطة" value={sched.activityCount ?? 0} tone="sky" />
-        <CounterTile label="مكتملة" value={sched.completed ?? 0} tone="emerald" />
-        <CounterTile label="جارية" value={sched.inProgress ?? 0} tone="amber" />
-        <CounterTile label="لم تبدأ" value={sched.notStarted ?? 0} tone="slate" />
-        <CounterTile label="التنبيهات" value={al.total ?? 0} tone="sky" />
-        <CounterTile label="حرجة" value={al.critical ?? 0} tone="rose" />
-        <CounterTile label="تحذير" value={al.warning ?? 0} tone="amber" />
+        <CounterTile label={lang === 'ar' ? 'الأنشطة' : 'Activities'} value={sched.activityCount ?? 0} tone="sky" />
+        <CounterTile label={lang === 'ar' ? 'مكتملة' : 'Completed'} value={sched.completed ?? 0} tone="emerald" />
+        <CounterTile label={lang === 'ar' ? 'جارية' : 'In progress'} value={sched.inProgress ?? 0} tone="amber" />
+        <CounterTile label={lang === 'ar' ? 'لم تبدأ' : 'Not started'} value={sched.notStarted ?? 0} tone="slate" />
+        <CounterTile label={lang === 'ar' ? 'التنبيهات' : 'Alerts'} value={al.total ?? 0} tone="sky" />
+        <CounterTile label={lang === 'ar' ? 'حرجة' : 'Critical'} value={al.critical ?? 0} tone="rose" />
+        <CounterTile label={lang === 'ar' ? 'تحذير' : 'Warning'} value={al.warning ?? 0} tone="amber" />
       </div>
 
       {/* Frozen activities table */}
       {acts.length > 0 && (
         <div>
           <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            الأنشطة المجمَّدة وقت النسخ ({acts.length})
+            {lang === 'ar' ? `الأنشطة المجمَّدة وقت النسخ (${acts.length})` : `Activities frozen at fork time (${acts.length})`}
           </p>
           <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-700/70">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-slate-900 text-[10px] uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="px-3 py-2 text-start">المعرّف</th>
-                  <th className="px-3 py-2 text-start">النشاط</th>
-                  <th className="px-3 py-2 text-end">البداية</th>
-                  <th className="px-3 py-2 text-end">النهاية</th>
-                  <th className="px-3 py-2 text-end">المدة</th>
-                  <th className="px-3 py-2 text-end">الإنجاز</th>
+                  <th className="px-3 py-2 text-start">{lang === 'ar' ? 'المعرّف' : 'ID'}</th>
+                  <th className="px-3 py-2 text-start">{lang === 'ar' ? 'النشاط' : 'Activity'}</th>
+                  <th className="px-3 py-2 text-end">{lang === 'ar' ? 'البداية' : 'Start'}</th>
+                  <th className="px-3 py-2 text-end">{lang === 'ar' ? 'النهاية' : 'Finish'}</th>
+                  <th className="px-3 py-2 text-end">{lang === 'ar' ? 'المدة' : 'Duration'}</th>
+                  <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الإنجاز' : 'Progress'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80">
@@ -767,8 +804,9 @@ function SnapshotStructuredView({
       )}
 
       {snapshot.frozenAt && (
-        <p className="text-[10px] text-slate-500" dir="ltr">
-          Frozen at {new Date(snapshot.frozenAt).toLocaleString()}
+        <p className="text-[10px] text-slate-500">
+          {lang === 'ar' ? 'جُمِّدت في' : 'Frozen at'}{' '}
+          <span dir="ltr">{new Date(snapshot.frozenAt).toLocaleString()}</span>
         </p>
       )}
     </div>

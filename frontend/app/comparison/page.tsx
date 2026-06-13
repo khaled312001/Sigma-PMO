@@ -32,6 +32,7 @@ import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
 import { api } from '../../lib/api';
 import { CAPABILITIES } from '../../lib/capabilities';
+import { useI18n, type Lang } from '../../lib/i18n';
 import { useMe } from '../../lib/me-context';
 import { useCurrentProjectKey } from '../../lib/project-context';
 
@@ -55,10 +56,10 @@ interface ComparisonRecord {
 }
 
 const TASK_KINDS = [
-  { value: 'baseline', label: 'Baseline schedule' },
-  { value: 'clash-resolution', label: 'Clash resolution' },
-  { value: 'letter-draft', label: 'Letter draft' },
-  { value: 'monthly-report', label: 'Monthly report' },
+  { value: 'baseline', label: 'Baseline schedule', labelAr: 'الجدول الزمني الأساسي' },
+  { value: 'clash-resolution', label: 'Clash resolution', labelAr: 'حل التضاربات' },
+  { value: 'letter-draft', label: 'Letter draft', labelAr: 'مسودة خطاب' },
+  { value: 'monthly-report', label: 'Monthly report', labelAr: 'التقرير الشهري' },
 ] as const;
 
 // ──────────────────────────── route wrapper ────────────────────────────
@@ -75,6 +76,7 @@ export default function ComparisonPageRoute() {
 
 function ComparisonPage() {
   const toast = useToast();
+  const { lang } = useI18n();
   const { me } = useMe();
   const projectKey = useCurrentProjectKey();
 
@@ -132,12 +134,17 @@ function ComparisonPage() {
           humanSummary: input.humanSummary,
         }),
       });
-      toast.success('Comparison registered', 'Both outputs are now side-by-side for a verdict.');
+      toast.success(
+        lang === 'ar' ? 'تم تسجيل المقارنة' : 'Comparison registered',
+        lang === 'ar'
+          ? 'أصبح المُخرَجان معروضين جنباً إلى جنب لإصدار الحكم.'
+          : 'Both outputs are now side-by-side for a verdict.',
+      );
       setFormOpen(false);
       await refresh();
       setSelectedId(created.id);
     } catch (e) {
-      toast.error('Registration failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر التسجيل' : 'Registration failed', (e as Error).message);
     } finally {
       setBusy(null);
     }
@@ -155,10 +162,15 @@ function ComparisonPage() {
           reconciliation: reconciliation.trim() || null,
         }),
       });
-      toast.success('Verdict recorded', 'This pair now feeds persona refinement as a labelled example.');
+      toast.success(
+        lang === 'ar' ? 'تم تسجيل الحكم' : 'Verdict recorded',
+        lang === 'ar'
+          ? 'يُغذّي هذا الزوج الآن تحسين الشخصية الخبيرة كمثال مُصنَّف.'
+          : 'This pair now feeds persona refinement as a labelled example.',
+      );
       await refresh();
     } catch (e) {
-      toast.error('Verdict failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر تسجيل الحكم' : 'Verdict failed', (e as Error).message);
     } finally {
       setBusy(null);
     }
@@ -167,21 +179,25 @@ function ComparisonPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Insights · Quality"
-        title="AI vs Human"
+        eyebrow={lang === 'ar' ? 'الرؤى التحليلية · الجودة' : 'Insights · Quality'}
+        title={lang === 'ar' ? 'الذكاء الاصطناعي مقابل الخبير البشري' : 'AI vs Human'}
         description={
-          'Side-by-side comparison of AI output and the human planner’s output for the same task. ' +
-          'A project director reads both and records which was closer to correct — every verdict is a ' +
-          'labelled training example for persona refinement (correction-plan §2.10).'
+          lang === 'ar'
+            ? 'مقارنة جنباً إلى جنب بين مُخرَج الذكاء الاصطناعي ومُخرَج المخطِّط البشري لنفس المهمة. ' +
+              'يطّلع مدير المشروع على الاثنين ويُسجّل أيهما كان أقرب إلى الصواب — وكل حكم يُمثّل ' +
+              'مثالاً تدريبياً مُصنَّفاً لتحسين الشخصية الخبيرة (خطة التصحيح §2.10).'
+            : 'Side-by-side comparison of AI output and the human planner’s output for the same task. ' +
+              'A project director reads both and records which was closer to correct — every verdict is a ' +
+              'labelled training example for persona refinement (correction-plan §2.10).'
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={refresh}>
-              <IconRefresh className="h-3.5 w-3.5" /> Refresh
+              <IconRefresh className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تحديث' : 'Refresh'}
             </Button>
             {canRegister && (
               <Button variant="primary" size="sm" onClick={() => setFormOpen((v) => !v)}>
-                <IconSparkles className="h-3.5 w-3.5" /> Register comparison
+                <IconSparkles className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تسجيل مقارنة' : 'Register comparison'}
               </Button>
             )}
           </div>
@@ -193,6 +209,7 @@ function ComparisonPage() {
       {formOpen && canRegister && (
         <CreateForm
           projectKey={projectKey}
+          lang={lang}
           busy={busy === 'create'}
           onCancel={() => setFormOpen(false)}
           onSubmit={create}
@@ -211,19 +228,23 @@ function ComparisonPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<IconUsers className="h-8 w-8" />}
-          title="No comparisons registered yet"
+          title={lang === 'ar' ? 'لا توجد مقارنات مُسجَّلة بعد' : 'No comparisons registered yet'}
           description={
             canRegister
-              ? 'Register a pair: the AI artefact id (a baseline job, letter, or report) and the human planner’s equivalent.'
-              : 'Once a reviewer registers an AI-vs-human pair for this project it will appear here.'
+              ? lang === 'ar'
+                ? 'سجّل زوجاً: مُعرّف مُخرَج الذكاء الاصطناعي (مهمة جدول أساسي أو خطاب أو تقرير) وما يقابله من مُخرَج المخطِّط البشري.'
+                : 'Register a pair: the AI artefact id (a baseline job, letter, or report) and the human planner’s equivalent.'
+              : lang === 'ar'
+                ? 'بمجرّد أن يُسجّل أحد المراجعين زوجاً (ذكاء اصطناعي مقابل بشري) لهذا المشروع، سيظهر هنا.'
+                : 'Once a reviewer registers an AI-vs-human pair for this project it will appear here.'
           }
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-          <ul className="space-y-2" aria-label="Comparison list">
+          <ul className="space-y-2" aria-label={lang === 'ar' ? 'قائمة المقارنات' : 'Comparison list'}>
             {rows.map((r) => (
               <li key={r.id}>
-                <RowCard row={r} selected={r.id === selectedId} onSelect={() => setSelectedId(r.id)} />
+                <RowCard row={r} lang={lang} selected={r.id === selectedId} onSelect={() => setSelectedId(r.id)} />
               </li>
             ))}
           </ul>
@@ -231,14 +252,19 @@ function ComparisonPage() {
             {selected ? (
               <DetailCard
                 row={selected}
+                lang={lang}
                 canDecide={canDecide}
                 busy={busy === selected.id}
                 onDecide={(verdict, notes) => decide(selected.id, verdict, notes)}
               />
             ) : (
               <EmptyState
-                title="Select a comparison"
-                description="Pick a pair on the left to read both outputs side-by-side and record a verdict."
+                title={lang === 'ar' ? 'اختر مقارنة' : 'Select a comparison'}
+                description={
+                  lang === 'ar'
+                    ? 'اختر زوجاً من القائمة على اليسار لقراءة المُخرَجين جنباً إلى جنب وتسجيل الحكم.'
+                    : 'Pick a pair on the left to read both outputs side-by-side and record a verdict.'
+                }
               />
             )}
           </div>
@@ -250,25 +276,30 @@ function ComparisonPage() {
 
 // ──────────────────────────── verdict pill ────────────────────────────
 
-function VerdictPill({ verdict }: { verdict: string }) {
-  if (verdict === 'ai-correct') return <Pill tone="sky">AI correct</Pill>;
-  if (verdict === 'human-correct') return <Pill tone="emerald">Human correct</Pill>;
-  if (verdict === 'both-merit') return <Pill tone="amber">Both have merit</Pill>;
-  return <Pill tone="slate">Pending verdict</Pill>;
+function VerdictPill({ verdict, lang }: { verdict: string; lang: Lang }) {
+  const isAr = lang === 'ar';
+  if (verdict === 'ai-correct') return <Pill tone="sky">{isAr ? 'الذكاء الاصطناعي أصحّ' : 'AI correct'}</Pill>;
+  if (verdict === 'human-correct') return <Pill tone="emerald">{isAr ? 'الخبير البشري أصحّ' : 'Human correct'}</Pill>;
+  if (verdict === 'both-merit') return <Pill tone="amber">{isAr ? 'لكليهما وجاهة' : 'Both have merit'}</Pill>;
+  return <Pill tone="slate">{isAr ? 'بانتظار الحكم' : 'Pending verdict'}</Pill>;
 }
 
-function taskKindLabel(kind: string): string {
-  return TASK_KINDS.find((t) => t.value === kind)?.label ?? kind;
+function taskKindLabel(kind: string, lang: Lang): string {
+  const found = TASK_KINDS.find((t) => t.value === kind);
+  if (!found) return kind;
+  return lang === 'ar' ? found.labelAr : found.label;
 }
 
 // ──────────────────────────── row card ────────────────────────────
 
 function RowCard({
   row,
+  lang,
   selected,
   onSelect,
 }: {
   row: ComparisonRecord;
+  lang: Lang;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -284,13 +315,13 @@ function RowCard({
       }`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <VerdictPill verdict={row.verdict} />
-        <Pill tone="slate">{taskKindLabel(row.taskKind)}</Pill>
+        <VerdictPill verdict={row.verdict} lang={lang} />
+        <Pill tone="slate">{taskKindLabel(row.taskKind, lang)}</Pill>
       </div>
       <h3 className="mt-2 text-sm font-medium text-slate-100">{row.title}</h3>
       <p className="mt-1 text-[11px] text-slate-500" dir="ltr">
         {new Date(row.createdAt).toLocaleString()}
-        {row.decidedBy ? ` · decided by ${row.decidedBy}` : ''}
+        {row.decidedBy ? (lang === 'ar' ? ` · بقرار ${row.decidedBy}` : ` · decided by ${row.decidedBy}`) : ''}
       </p>
     </button>
   );
@@ -300,11 +331,13 @@ function RowCard({
 
 function DetailCard({
   row,
+  lang,
   canDecide,
   busy,
   onDecide,
 }: {
   row: ComparisonRecord;
+  lang: Lang;
   canDecide: boolean;
   busy: boolean;
   onDecide: (verdict: string, reconciliation: string) => void;
@@ -317,13 +350,17 @@ function DetailCard({
     <Card padded={false}>
       <div className="px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
-          <VerdictPill verdict={row.verdict} />
-          <Pill tone="slate">{taskKindLabel(row.taskKind)}</Pill>
+          <VerdictPill verdict={row.verdict} lang={lang} />
+          <Pill tone="slate">{taskKindLabel(row.taskKind, lang)}</Pill>
         </div>
         <h2 className="mt-2 text-base font-semibold text-slate-100">{row.title}</h2>
         <p className="mt-1 text-[11px] text-slate-500" dir="ltr">
-          Registered {new Date(row.createdAt).toLocaleString()} · project {row.projectBusinessKey}
-          {row.decidedAt ? ` · verdict ${new Date(row.decidedAt).toLocaleString()} by ${row.decidedBy}` : ''}
+          {lang === 'ar' ? 'سُجِّلت' : 'Registered'} {new Date(row.createdAt).toLocaleString()} · {lang === 'ar' ? 'مشروع' : 'project'} {row.projectBusinessKey}
+          {row.decidedAt
+            ? lang === 'ar'
+              ? ` · الحكم ${new Date(row.decidedAt).toLocaleString()} بقرار ${row.decidedBy}`
+              : ` · verdict ${new Date(row.decidedAt).toLocaleString()} by ${row.decidedBy}`
+            : ''}
         </p>
       </div>
 
@@ -333,7 +370,7 @@ function DetailCard({
           <div className="flex items-center gap-1.5">
             <IconSparkles className="h-3.5 w-3.5 text-sky-300" />
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-sky-300">
-              AI output
+              {lang === 'ar' ? 'مُخرَج الذكاء الاصطناعي' : 'AI output'}
             </h3>
           </div>
           <p className="mt-1 font-mono text-[10px] text-slate-500" dir="ltr">ref: {row.aiOutputId}</p>
@@ -345,11 +382,11 @@ function DetailCard({
           <div className="flex items-center gap-1.5">
             <IconUsers className="h-3.5 w-3.5 text-emerald-300" />
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
-              Human output
+              {lang === 'ar' ? 'مُخرَج الخبير البشري' : 'Human output'}
             </h3>
           </div>
           <p className="mt-1 font-mono text-[10px] text-slate-500" dir="ltr">
-            ref: {row.humanOutputId ?? '(outside the platform)'}
+            ref: {row.humanOutputId ?? (lang === 'ar' ? '(خارج المنصّة)' : '(outside the platform)')}
           </p>
           <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-100">
             {row.humanSummary}
@@ -360,14 +397,18 @@ function DetailCard({
       {/* Reconciliation + verdict bar. */}
       <div className="border-t border-slate-800/70 px-5 py-4">
         <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-          Reconciliation notes
+          {lang === 'ar' ? 'ملاحظات التسوية' : 'Reconciliation notes'}
         </label>
         {canDecide ? (
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            placeholder="What differed? Which durations / clauses / quantities were closer to reality, and why?"
+            placeholder={
+              lang === 'ar'
+                ? 'ما أوجه الاختلاف؟ أي المدد / البنود / الكميات كانت أقرب إلى الواقع، ولماذا؟'
+                : 'What differed? Which durations / clauses / quantities were closer to reality, and why?'
+            }
             className="mt-1 w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none"
           />
         ) : (
@@ -379,19 +420,21 @@ function DetailCard({
         {canDecide && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Button variant="primary" size="sm" disabled={busy} onClick={() => onDecide('ai-correct', notes)}>
-              <IconSparkles className="h-3.5 w-3.5" /> Mark AI as correct
+              <IconSparkles className="h-3.5 w-3.5" /> {lang === 'ar' ? 'اعتماد الذكاء الاصطناعي كأصحّ' : 'Mark AI as correct'}
             </Button>
             <Button variant="success" size="sm" disabled={busy} onClick={() => onDecide('human-correct', notes)}>
-              <IconUsers className="h-3.5 w-3.5" /> Mark human as correct
+              <IconUsers className="h-3.5 w-3.5" /> {lang === 'ar' ? 'اعتماد الخبير البشري كأصحّ' : 'Mark human as correct'}
             </Button>
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => onDecide('both-merit', notes)}>
-              <IconCheck className="h-3.5 w-3.5" /> Both have merit
+              <IconCheck className="h-3.5 w-3.5" /> {lang === 'ar' ? 'لكليهما وجاهة' : 'Both have merit'}
             </Button>
           </div>
         )}
         {!canDecide && row.verdict === 'pending' && (
           <p className="mt-2 text-[11px] text-slate-500">
-            Verdicts are recorded by the project-director tier (policy editors).
+            {lang === 'ar'
+              ? 'يُسجَّل الحكم على مستوى مدير المشروع (محرِّري سياسة الحوكمة).'
+              : 'Verdicts are recorded by the project-director tier (policy editors).'}
           </p>
         )}
       </div>
@@ -403,11 +446,13 @@ function DetailCard({
 
 function CreateForm({
   projectKey,
+  lang,
   busy,
   onCancel,
   onSubmit,
 }: {
   projectKey: string;
+  lang: Lang;
   busy: boolean;
   onCancel: () => void;
   onSubmit: (input: {
@@ -436,7 +481,10 @@ function CreateForm({
   const labelCls = 'block text-[11px] font-semibold uppercase tracking-wider text-slate-400';
 
   return (
-    <Card title="Register an AI-vs-Human pair" hint={`Project: ${projectKey}`}>
+    <Card
+      title={lang === 'ar' ? 'تسجيل زوج (ذكاء اصطناعي مقابل بشري)' : 'Register an AI-vs-Human pair'}
+      hint={lang === 'ar' ? `المشروع: ${projectKey}` : `Project: ${projectKey}`}
+    >
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -447,20 +495,24 @@ function CreateForm({
       >
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className={labelCls}>Task kind</label>
+            <label className={labelCls}>{lang === 'ar' ? 'نوع المهمة' : 'Task kind'}</label>
             <select value={taskKind} onChange={(e) => setTaskKind(e.target.value)} className={inputCls}>
               {TASK_KINDS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+                <option key={t.value} value={t.value}>{lang === 'ar' ? t.labelAr : t.label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Title</label>
+            <label className={labelCls}>{lang === 'ar' ? 'العنوان' : 'Title'}</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder='e.g. "Baseline B-1 — tower A superstructure"'
+              placeholder={
+                lang === 'ar'
+                  ? 'مثال: «الجدول الأساسي B-1 — الهيكل الإنشائي للبرج A»'
+                  : 'e.g. "Baseline B-1 — tower A superstructure"'
+              }
               className={inputCls}
               required
             />
@@ -468,12 +520,12 @@ function CreateForm({
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className={labelCls}>AI output id</label>
+            <label className={labelCls}>{lang === 'ar' ? 'مُعرّف مُخرَج الذكاء الاصطناعي' : 'AI output id'}</label>
             <input
               type="text"
               value={aiOutputId}
               onChange={(e) => setAiOutputId(e.target.value)}
-              placeholder="Baseline job / letter / report uuid"
+              placeholder={lang === 'ar' ? 'مُعرّف (uuid) مهمة الجدول / الخطاب / التقرير' : 'Baseline job / letter / report uuid'}
               className={`${inputCls} font-mono`}
               dir="ltr"
               spellCheck={false}
@@ -481,12 +533,16 @@ function CreateForm({
             />
           </div>
           <div>
-            <label className={labelCls}>Human output id (optional)</label>
+            <label className={labelCls}>{lang === 'ar' ? 'مُعرّف المُخرَج البشري (اختياري)' : 'Human output id (optional)'}</label>
             <input
               type="text"
               value={humanOutputId}
               onChange={(e) => setHumanOutputId(e.target.value)}
-              placeholder="SourceFile uuid of the planner's artefact, if uploaded"
+              placeholder={
+                lang === 'ar'
+                  ? 'مُعرّف (uuid) ملف المصدر لمُخرَج المخطِّط، إن كان مرفوعاً'
+                  : "SourceFile uuid of the planner's artefact, if uploaded"
+              }
               className={`${inputCls} font-mono`}
               dir="ltr"
               spellCheck={false}
@@ -495,23 +551,31 @@ function CreateForm({
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className={labelCls}>AI output summary</label>
+            <label className={labelCls}>{lang === 'ar' ? 'ملخّص مُخرَج الذكاء الاصطناعي' : 'AI output summary'}</label>
             <textarea
               value={aiSummary}
               onChange={(e) => setAiSummary(e.target.value)}
               rows={4}
-              placeholder="What did the AI produce? Key durations, clauses, quantities…"
+              placeholder={
+                lang === 'ar'
+                  ? 'ماذا أنتج الذكاء الاصطناعي؟ أبرز المدد والبنود والكميات…'
+                  : 'What did the AI produce? Key durations, clauses, quantities…'
+              }
               className={inputCls}
               required
             />
           </div>
           <div>
-            <label className={labelCls}>Human output summary</label>
+            <label className={labelCls}>{lang === 'ar' ? 'ملخّص المُخرَج البشري' : 'Human output summary'}</label>
             <textarea
               value={humanSummary}
               onChange={(e) => setHumanSummary(e.target.value)}
               rows={4}
-              placeholder="What did the human planner produce for the same task?"
+              placeholder={
+                lang === 'ar'
+                  ? 'ماذا أنتج المخطِّط البشري لنفس المهمة؟'
+                  : 'What did the human planner produce for the same task?'
+              }
               className={inputCls}
               required
             />
@@ -519,10 +583,10 @@ function CreateForm({
         </div>
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
-            <IconX className="h-3.5 w-3.5" /> Cancel
+            <IconX className="h-3.5 w-3.5" /> {lang === 'ar' ? 'إلغاء' : 'Cancel'}
           </Button>
           <Button variant="primary" size="sm" type="submit" disabled={!valid || busy}>
-            {busy ? 'Registering…' : 'Register pair'}
+            {busy ? (lang === 'ar' ? 'جارٍ التسجيل…' : 'Registering…') : lang === 'ar' ? 'تسجيل الزوج' : 'Register pair'}
           </Button>
         </div>
       </form>

@@ -58,7 +58,7 @@ export default function AuthPage() {
   const router = useRouter();
   const toast = useToast();
   const { refresh } = useMe();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [reveal, setReveal] = useState(false);
@@ -155,7 +155,7 @@ export default function AuthPage() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400" style={{ animation: 'ring-ping 2s cubic-bezier(0,0,0.2,1) infinite' }} />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
               </span>
-              Official
+              {lang === 'ar' ? 'رسمي' : 'Official'}
             </span>
           </header>
 

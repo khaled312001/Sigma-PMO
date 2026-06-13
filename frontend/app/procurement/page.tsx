@@ -45,8 +45,8 @@ function ProcurementPage() {
         api<ProcurementFindingRecord[]>(`/procurement/governance/findings?projectKey=${encodeURIComponent(projectKey)}`),
       ]);
       setPackages(pkgs); setVendors(vnds); setFindings(finds);
-    } catch (e) { toast.error('Failed to load procurement data', (e as Error).message); }
-  }, [projectKey, toast]);
+    } catch (e) { toast.error(ar ? 'تعذّر تحميل بيانات المشتريات' : 'Failed to load procurement data', (e as Error).message); }
+  }, [projectKey, toast, ar]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
