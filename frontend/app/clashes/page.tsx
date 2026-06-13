@@ -154,7 +154,7 @@ export default function ClashesPageRoute() {
 // ─────────────────────────── page ───────────────────────────
 
 function ClashesPage() {
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
   const toast = useToast();
   const projectKey = useCurrentProjectKey();
   const { me } = useMe();
@@ -214,18 +214,26 @@ function ClashesPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Layer 1 — Engineering"
-        title={t('clashes.title') /* falls back to 'clashes.title' literal if dict misses */}
-        description="Navisworks / Revit clash review. Upload one report at a time; the BIM clash analyst persona proposes three options per clash, then a PM / PD picks one and submits a decision."
+        eyebrow={lang === 'ar' ? 'الطبقة 1 — الهندسة' : 'Layer 1 — Engineering'}
+        title={lang === 'ar' ? 'مراجعة التضاربات' : 'Clashes'}
+        description={
+          lang === 'ar'
+            ? 'مراجعة تضاربات Navisworks / Revit. ارفع تقريراً واحداً في كل مرة؛ تقترح الشخصية الخبيرة لمحلّل تضاربات BIM ثلاثة خيارات لكل تضارب، ثم يختار مدير المشروع / مدير البرنامج أحدها ويعتمد القرار.'
+            : 'Navisworks / Revit clash review. Upload one report at a time; the BIM clash analyst persona proposes three options per clash, then a PM / PD picks one and submits a decision.'
+        }
         actions={
           <span className="flex items-center gap-2">
             <PersonaActiveBadge
               personaSlug="revit-clash-analyst"
-              expertise="BIM clash analyst — 10-20 years Revit / Navisworks coordination. Cost numbers from the BoQ only; durations from the approved baseline only."
+              expertise={
+                lang === 'ar'
+                  ? 'محلّل تضاربات BIM — خبرة 10-20 عاماً في التنسيق عبر Revit / Navisworks. أرقام التكلفة من جدول الكميات (BoQ) فقط؛ المدد من الجدول الزمني المعتمد فقط.'
+                  : 'BIM clash analyst — 10-20 years Revit / Navisworks coordination. Cost numbers from the BoQ only; durations from the approved baseline only.'
+              }
               surface="engineering"
             />
             <Button variant="ghost" size="sm" onClick={refresh}>
-              <IconRefresh className="h-3.5 w-3.5" /> Refresh
+              <IconRefresh className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تحديث' : 'Refresh'}
             </Button>
           </span>
         }
@@ -234,8 +242,8 @@ function ClashesPage() {
       <ErrorBanner message={loadError} />
 
       <p className="rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-[13px] text-slate-300">
-        Working from BIM models? Upload IFC sets and run model-validation checks in the{' '}
-        <a href="/drawings" className="text-sky-300 underline-offset-2 hover:underline">BIM Models (IFC) section on Drawings</a>.
+        {lang === 'ar' ? 'تعمل من نماذج BIM؟ ارفع مجموعات IFC ونفّذ فحوص التحقق من النماذج في ' : 'Working from BIM models? Upload IFC sets and run model-validation checks in the'}{' '}
+        <a href="/drawings" className="text-sky-300 underline-offset-2 hover:underline">{lang === 'ar' ? 'قسم نماذج BIM (IFC) ضمن المخططات' : 'BIM Models (IFC) section on Drawings'}</a>.
       </p>
 
       <PolicyAddonInline projectKey={projectKey} surface="engineering" />
@@ -244,21 +252,26 @@ function ClashesPage() {
         projectKey={projectKey}
         canIngest={!!me?.user && CAPABILITIES[me.user.role].canIngest}
         onUploaded={async () => { await refresh(); }}
+        lang={lang}
       />
 
-      <FilterChips counts={counts} filter={filter} setFilter={setFilter} />
+      <FilterChips counts={counts} filter={filter} setFilter={setFilter} lang={lang} />
 
       {clashes === null ? (
-        <Card title="Clashes" hint={`Project ${projectKey}`}>
-          <p className="text-sm text-slate-400">Loading…</p>
+        <Card title={lang === 'ar' ? 'التضاربات' : 'Clashes'} hint={lang === 'ar' ? `المشروع ${projectKey}` : `Project ${projectKey}`}>
+          <p className="text-sm text-slate-400">{lang === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>
         </Card>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title="No clashes match this filter"
+          title={lang === 'ar' ? 'لا توجد تضاربات مطابقة لهذا التصفية' : 'No clashes match this filter'}
           description={
             rows.length === 0
-              ? 'Upload a Navisworks / Revit Interference Check export to see clashes for this project.'
-              : 'Try the All chip to clear the filter.'
+              ? lang === 'ar'
+                ? 'ارفع تصدير فحص التداخل من Navisworks / Revit لعرض تضاربات هذا المشروع.'
+                : 'Upload a Navisworks / Revit Interference Check export to see clashes for this project.'
+              : lang === 'ar'
+                ? 'استخدم تصفية «الكل» لإزالة عوامل التصفية.'
+                : 'Try the All chip to clear the filter.'
           }
         />
       ) : (
@@ -272,6 +285,7 @@ function ClashesPage() {
               canApprove={canApprove}
               approverName={approverName}
               onUpdated={onClashUpdated}
+              lang={lang}
             />
           ))}
         </div>
@@ -286,10 +300,12 @@ function UploadCard({
   projectKey,
   canIngest,
   onUploaded,
+  lang,
 }: {
   projectKey: string;
   canIngest: boolean;
   onUploaded: () => Promise<void> | void;
+  lang: Lang;
 }) {
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
@@ -301,11 +317,19 @@ function UploadCard({
   const setFileSafe = (f: File | null) => {
     if (!f) { setFile(null); return; }
     if (!ACCEPTED_EXT.test(f.name)) {
-      toast.error('Unsupported file', 'Clash reports must be .xlsx or .xlsm');
+      toast.error(
+        lang === 'ar' ? 'صيغة غير مدعومة' : 'Unsupported file',
+        lang === 'ar' ? 'يجب أن تكون تقارير التضاربات بصيغة ‎.xlsx أو ‎.xlsm' : 'Clash reports must be .xlsx or .xlsm',
+      );
       return;
     }
     if (f.size > MAX_BYTES) {
-      toast.error('File too large', `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 24 MB limit.`);
+      toast.error(
+        lang === 'ar' ? 'الملف كبير جداً' : 'File too large',
+        lang === 'ar'
+          ? `${(f.size / 1024 / 1024).toFixed(1)} ميغابايت تتجاوز الحد الأقصى 24 ميغابايت.`
+          : `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 24 MB limit.`,
+      );
       return;
     }
     setFile(f);
@@ -329,12 +353,14 @@ function UploadCard({
       setOutcome(r);
       setFile(null);
       toast.success(
-        'Clash report ingested',
-        `${r.counts.clashesPersisted}/${r.counts.clashesParsed} clashes (${r.counts.rejectedRows} rejected)`,
+        lang === 'ar' ? 'تم استيراد تقرير التضاربات' : 'Clash report ingested',
+        lang === 'ar'
+          ? `${r.counts.clashesPersisted}/${r.counts.clashesParsed} تضارب (${r.counts.rejectedRows} مرفوض)`
+          : `${r.counts.clashesPersisted}/${r.counts.clashesParsed} clashes (${r.counts.rejectedRows} rejected)`,
       );
       await onUploaded();
     } catch (e) {
-      toast.error('Ingestion failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر الاستيراد' : 'Ingestion failed', (e as Error).message);
     } finally {
       setUploading(false);
     }
@@ -342,12 +368,18 @@ function UploadCard({
 
   return (
     <Card
-      title="Upload clash report"
-      hint={`Drops directly into project ${projectKey}. Accepted formats: .xlsx, .xlsm.`}
+      title={lang === 'ar' ? 'رفع تقرير التضاربات' : 'Upload clash report'}
+      hint={
+        lang === 'ar'
+          ? `يُحفظ مباشرةً في المشروع ${projectKey}. الصيغ المقبولة: ‎.xlsx، ‎.xlsm.`
+          : `Drops directly into project ${projectKey}. Accepted formats: .xlsx, .xlsm.`
+      }
     >
       {!canIngest && (
         <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-          Your role can read clashes but not ingest. Ask a Sigma admin, consultant, or contractor to upload.
+          {lang === 'ar'
+            ? 'يتيح دورك الاطّلاع على التضاربات دون استيرادها. اطلب من مسؤول Sigma أو الاستشاري أو المقاول رفع التقرير.'
+            : 'Your role can read clashes but not ingest. Ask a Sigma admin, consultant, or contractor to upload.'}
         </div>
       )}
       <div
@@ -368,7 +400,7 @@ function UploadCard({
               : 'border-slate-700 bg-slate-900/30'
         }`}
         role="region"
-        aria-label="Drop zone for clash report upload"
+        aria-label={lang === 'ar' ? 'منطقة إفلات تقرير التضاربات' : 'Drop zone for clash report upload'}
       >
         <div className="grid h-12 w-12 place-items-center rounded-full bg-sky-500/10 text-sky-300 ring-1 ring-sky-500/30">
           <IconUpload className="h-5 w-5" />
@@ -380,8 +412,8 @@ function UploadCard({
           </>
         ) : (
           <>
-            <p className="text-sm text-slate-200">Drag a Navisworks / Revit clash report here</p>
-            <p className="text-xs text-slate-400">or click below to browse</p>
+            <p className="text-sm text-slate-200">{lang === 'ar' ? 'اسحب تقرير تضاربات Navisworks / Revit إلى هنا' : 'Drag a Navisworks / Revit clash report here'}</p>
+            <p className="text-xs text-slate-400">{lang === 'ar' ? 'أو انقر بالأسفل للاستعراض' : 'or click below to browse'}</p>
           </>
         )}
         <div className="flex items-center gap-2">
@@ -391,14 +423,14 @@ function UploadCard({
             accept=".xlsx,.xlsm"
             onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)}
             className="hidden"
-            aria-label="Clash report to ingest"
+            aria-label={lang === 'ar' ? 'تقرير التضاربات المراد استيراده' : 'Clash report to ingest'}
             disabled={!canIngest}
           />
           <Button variant="ghost" size="sm" disabled={!canIngest} onClick={() => fileInput.current?.click()}>
-            Browse
+            {lang === 'ar' ? 'استعراض' : 'Browse'}
           </Button>
           <Button variant="primary" size="sm" disabled={!canIngest || !file || uploading} onClick={upload}>
-            {uploading ? 'Ingesting…' : 'Ingest'}
+            {uploading ? (lang === 'ar' ? 'جارٍ الاستيراد…' : 'Ingesting…') : lang === 'ar' ? 'استيراد' : 'Ingest'}
           </Button>
         </div>
       </div>
@@ -406,16 +438,16 @@ function UploadCard({
       {outcome && (
         <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
           <div className="flex flex-wrap items-center gap-2">
-            <span>Ingested via</span>
+            <span>{lang === 'ar' ? 'تمّ الاستيراد عبر' : 'Ingested via'}</span>
             <Pill tone="emerald">{outcome.parser}</Pill>
             <Pill tone="slate">{outcome.status}</Pill>
-            <Pill tone="emerald">{outcome.counts.clashesPersisted} clash(es)</Pill>
+            <Pill tone="emerald">{lang === 'ar' ? `${outcome.counts.clashesPersisted} تضارب` : `${outcome.counts.clashesPersisted} clash(es)`}</Pill>
             {outcome.counts.rejectedRows > 0 && (
-              <Pill tone="amber">{outcome.counts.rejectedRows} rejected</Pill>
+              <Pill tone="amber">{lang === 'ar' ? `${outcome.counts.rejectedRows} مرفوض` : `${outcome.counts.rejectedRows} rejected`}</Pill>
             )}
           </div>
           {outcome.parserMeta?.sheetName && (
-            <p className="mt-2 text-xs text-emerald-100/80">Sheet: {outcome.parserMeta.sheetName}</p>
+            <p className="mt-2 text-xs text-emerald-100/80">{lang === 'ar' ? 'ورقة العمل:' : 'Sheet:'} {outcome.parserMeta.sheetName}</p>
           )}
         </div>
       )}
@@ -429,17 +461,20 @@ function FilterChips({
   counts,
   filter,
   setFilter,
+  lang,
 }: {
   counts: { all: number; pending: number; proposed: number; decided: number; critical: number };
   filter: 'all' | Status | 'critical';
   setFilter: (f: 'all' | Status | 'critical') => void;
+  lang: Lang;
 }) {
+  const isAr = lang === 'ar';
   const chips: Array<{ key: 'all' | Status | 'critical'; label: string }> = [
-    { key: 'all',      label: 'All' },
-    { key: 'pending',  label: 'Pending' },
-    { key: 'proposed', label: 'Proposed' },
-    { key: 'decided',  label: 'Decided' },
-    { key: 'critical', label: 'Critical only' },
+    { key: 'all',      label: isAr ? 'الكل' : 'All' },
+    { key: 'pending',  label: isAr ? 'قيد الانتظار' : 'Pending' },
+    { key: 'proposed', label: isAr ? 'مُقترَح' : 'Proposed' },
+    { key: 'decided',  label: isAr ? 'تمّ البتّ فيه' : 'Decided' },
+    { key: 'critical', label: isAr ? 'الحرجة فقط' : 'Critical only' },
   ];
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -471,6 +506,7 @@ function ClashCard({
   canApprove,
   approverName,
   onUpdated,
+  lang,
 }: {
   clash: ClashItem;
   canAct: boolean;
@@ -478,6 +514,7 @@ function ClashCard({
   canApprove: boolean;
   approverName: string;
   onUpdated: (next: ClashItem) => void;
+  lang: Lang;
 }) {
   const toast = useToast();
   const status = deriveStatus(clash);
@@ -511,13 +548,19 @@ function ClashCard({
       const refreshed = await api<ClashItem>(`/clashes/${clash.id}`);
       onUpdated(refreshed);
       toast.success(
-        r.aiEnabled ? 'Options proposed' : 'AI offline — operator must propose',
         r.aiEnabled
-          ? `${r.options.length} option(s) from ${r.personaSlug ?? 'persona'} v${r.personaVersion ?? '?'}`
-          : 'Placeholder options written; please replace them with real proposals.',
+          ? (lang === 'ar' ? 'تم اقتراح الخيارات' : 'Options proposed')
+          : (lang === 'ar' ? 'الذكاء الاصطناعي غير متاح — يلزم اقتراح المشغّل' : 'AI offline — operator must propose'),
+        r.aiEnabled
+          ? (lang === 'ar'
+              ? `${r.options.length} خيار من ${r.personaSlug ?? 'الشخصية الخبيرة'} الإصدار ${r.personaVersion ?? '؟'}`
+              : `${r.options.length} option(s) from ${r.personaSlug ?? 'persona'} v${r.personaVersion ?? '?'}`)
+          : (lang === 'ar'
+              ? 'كُتبت خيارات مبدئية؛ يُرجى استبدالها بمقترحات فعلية.'
+              : 'Placeholder options written; please replace them with real proposals.'),
       );
     } catch (e) {
-      toast.error('Propose failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر اقتراح الخيارات' : 'Propose failed', (e as Error).message);
     } finally {
       setProposing(false);
     }
@@ -535,7 +578,7 @@ function ClashCard({
       setProjection(p);
       setModalOpen(true);
     } catch (e) {
-      toast.error('Simulation failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّرت المحاكاة' : 'Simulation failed', (e as Error).message);
     } finally {
       setSimulating(false);
     }
@@ -557,13 +600,16 @@ function ClashCard({
       const refreshed = await api<ClashItem>(`/clashes/${clash.id}`);
       onUpdated(refreshed);
       toast.success(
-        'Resolution applied',
-        `${r.revisedActivityKeys.length} activity revision(s) at rev ${r.revisionNumber}` +
-          (r.claimLetterId ? ` · claim letter drafted (${r.claimLetterId.slice(0, 8)})` : ' · letter pending — see warnings'),
+        lang === 'ar' ? 'تم تطبيق الحل' : 'Resolution applied',
+        lang === 'ar'
+          ? `${r.revisedActivityKeys.length} مراجعة أنشطة عند الإصدار ${r.revisionNumber}` +
+              (r.claimLetterId ? ` · صياغة خطاب المطالبة (${r.claimLetterId.slice(0, 8)})` : ' · الخطاب قيد الانتظار — راجع التنبيهات')
+          : `${r.revisedActivityKeys.length} activity revision(s) at rev ${r.revisionNumber}` +
+              (r.claimLetterId ? ` · claim letter drafted (${r.claimLetterId.slice(0, 8)})` : ' · letter pending — see warnings'),
       );
-      for (const w of r.warnings) toast.error('Note', w);
+      for (const w of r.warnings) toast.error(lang === 'ar' ? 'ملاحظة' : 'Note', w);
     } catch (e) {
-      toast.error('Apply failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر التطبيق' : 'Apply failed', (e as Error).message);
     } finally {
       setApplying(false);
     }
@@ -576,18 +622,18 @@ function ClashCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs text-slate-200" dir="ltr">{clash.clashRef}</span>
-            <ClashSeverityPill severity={clash.severity} />
-            <StatusPill status={status} />
+            <ClashSeverityPill severity={clash.severity} lang={lang} />
+            <StatusPill status={status} lang={lang} />
             {clash.disciplinesInvolved.map((d) => (
               <Pill key={d} tone="violet">{d}</Pill>
             ))}
           </div>
           <p className="mt-2 text-sm text-slate-200">{clash.description}</p>
-          <p className="mt-1 text-[11px] text-slate-500" dir="ltr">
-            Ingested {new Date(clash.createdAt).toLocaleString()}
+          <p className="mt-1 text-[11px] text-slate-500" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+            {lang === 'ar' ? 'تم الاستيراد' : 'Ingested'} <span dir="ltr">{new Date(clash.createdAt).toLocaleString()}</span>
             {' · '}
             <a href={`/clashes/${clash.id}`} className="text-sky-300 underline-offset-2 hover:underline">
-              Open detail page →
+              {lang === 'ar' ? 'فتح صفحة التفاصيل ←' : 'Open detail page →'}
             </a>
           </p>
         </div>
@@ -598,8 +644,9 @@ function ClashCard({
         {!hasOptions ? (
           <div className="flex flex-col items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/30 px-4 py-4">
             <p className="text-sm text-slate-300">
-              No options proposed yet. Trigger the BIM clash analyst persona to draft three options
-              (time-impact / cost-impact / scope-coordination).
+              {lang === 'ar'
+                ? 'لم تُقترَح خيارات بعد. شغّل الشخصية الخبيرة لمحلّل تضاربات BIM لصياغة ثلاثة خيارات (أثر زمني / أثر تكلفة / تنسيق نطاق).'
+                : 'No options proposed yet. Trigger the BIM clash analyst persona to draft three options (time-impact / cost-impact / scope-coordination).'}
             </p>
             <Button
               variant="primary"
@@ -608,11 +655,13 @@ function ClashCard({
               onClick={onPropose}
             >
               <IconSparkles className="h-3.5 w-3.5" />
-              {proposing ? 'Proposing…' : 'Propose options'}
+              {proposing ? (lang === 'ar' ? 'جارٍ الاقتراح…' : 'Proposing…') : lang === 'ar' ? 'اقتراح الخيارات' : 'Propose options'}
             </Button>
             {!canAct && (
               <p className="text-[11px] text-slate-500">
-                Your role can view clashes but cannot trigger a persona call. `canEvaluateRules` is required.
+                {lang === 'ar'
+                  ? 'يتيح دورك الاطّلاع على التضاربات دون تشغيل الشخصية الخبيرة. يلزم توفّر صلاحية `canEvaluateRules`.'
+                  : 'Your role can view clashes but cannot trigger a persona call. `canEvaluateRules` is required.'}
               </p>
             )}
           </div>
@@ -622,15 +671,16 @@ function ClashCard({
             picked={picked}
             setPicked={setPicked}
             disabled={decided || !canAct}
+            lang={lang}
           />
         )}
 
         {hasOptions && !decided && (
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-800/70 pt-3">
             <p className="text-[11px] text-slate-500">
-              Pick an option, then run the simulation to see the time/cost impact
-              before approving. Approval issues an append-only schedule revision
-              and drafts the FIDIC claim letter.
+              {lang === 'ar'
+                ? 'اختر خياراً، ثم شغّل المحاكاة لمعاينة الأثر الزمني / الكلفوي قبل الاعتماد. يُصدر الاعتماد مراجعة جدول زمني بنظام الإضافة فقط ويصوغ خطاب المطالبة وفق FIDIC.'
+                : 'Pick an option, then run the simulation to see the time/cost impact before approving. Approval issues an append-only schedule revision and drafts the FIDIC claim letter.'}
             </p>
             <Button
               variant="primary"
@@ -638,12 +688,12 @@ function ClashCard({
               disabled={!canSimulate || picked === null || simulating}
               onClick={onSimulate}
             >
-              {simulating ? 'Simulating…' : 'Simulate impact'}
+              {simulating ? (lang === 'ar' ? 'جارٍ المحاكاة…' : 'Simulating…') : lang === 'ar' ? 'محاكاة الأثر' : 'Simulate impact'}
             </Button>
           </div>
         )}
 
-        {decided && <DecisionAuditRow clash={clash} />}
+        {decided && <DecisionAuditRow clash={clash} lang={lang} />}
       </div>
 
       <SimulationModal
@@ -652,7 +702,12 @@ function ClashCard({
         projection={projection}
         applying={applying}
         onApprove={canApprove ? onApprove : () => {
-          toast.error('Not permitted', 'Approving requires the canEditPolicy capability (PD / Client / Admin).');
+          toast.error(
+            lang === 'ar' ? 'غير مصرّح' : 'Not permitted',
+            lang === 'ar'
+              ? 'يتطلّب الاعتماد صلاحية canEditPolicy (مدير المشروع / العميل / المسؤول).'
+              : 'Approving requires the canEditPolicy capability (PD / Client / Admin).',
+          );
         }}
         onClose={() => setModalOpen(false)}
       />
@@ -667,11 +722,13 @@ function OptionsBlock({
   picked,
   setPicked,
   disabled,
+  lang,
 }: {
   options: ProposedClashOption[];
   picked: number | null;
   setPicked: (idx: number) => void;
   disabled: boolean;
+  lang: Lang;
 }) {
   return (
     <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
@@ -695,17 +752,17 @@ function OptionsBlock({
                 disabled={disabled}
                 onChange={() => setPicked(idx)}
                 className="mt-1 h-3.5 w-3.5 accent-sky-500"
-                aria-label={`Pick option ${idx + 1}`}
+                aria-label={lang === 'ar' ? `اختيار الخيار ${idx + 1}` : `Pick option ${idx + 1}`}
               />
             </div>
             <div className="grid grid-cols-3 gap-2 text-[11px]">
-              <Delta label="Time" value={`${opt.timeImpactDays} d`} tone={opt.timeImpactDays > 0 ? 'amber' : 'slate'} />
+              <Delta label={lang === 'ar' ? 'الزمن' : 'Time'} value={lang === 'ar' ? `${opt.timeImpactDays} يوم` : `${opt.timeImpactDays} d`} tone={opt.timeImpactDays > 0 ? 'amber' : 'slate'} />
               <Delta
-                label="Cost"
-                value={opt.costImpactAED === null ? '— (not in BoQ)' : `${opt.costImpactAED.toLocaleString()} AED`}
+                label={lang === 'ar' ? 'التكلفة' : 'Cost'}
+                value={opt.costImpactAED === null ? (lang === 'ar' ? '— (خارج جدول الكميات)' : '— (not in BoQ)') : `${opt.costImpactAED.toLocaleString()} AED`}
                 tone={opt.costImpactAED && opt.costImpactAED > 0 ? 'amber' : 'slate'}
               />
-              <Delta label="Scope" value={opt.scopeImpact || 'none'} tone="violet" />
+              <Delta label={lang === 'ar' ? 'النطاق' : 'Scope'} value={opt.scopeImpact || (lang === 'ar' ? 'لا يوجد' : 'none')} tone="violet" />
             </div>
           </label>
         );
@@ -730,36 +787,36 @@ function Delta({ label, value, tone }: { label: string; value: string; tone: 'sl
 
 // ─────────────────────────── decision audit row ───────────────────────────
 
-function DecisionAuditRow({ clash }: { clash: ClashItem }) {
+function DecisionAuditRow({ clash, lang }: { clash: ClashItem; lang: Lang }) {
   const idx = clash.chosenOptionIndex ?? -1;
   const chosen = idx >= 0 ? clash.proposedOptions?.[idx] : undefined;
   return (
     <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Pill tone="emerald">Decided</Pill>
+        <Pill tone="emerald">{lang === 'ar' ? 'تمّ البتّ فيه' : 'Decided'}</Pill>
         <span className="text-sm font-medium text-slate-100">
-          Option {labelForIndex(clash.proposedOptions, idx)}
+          {lang === 'ar' ? 'الخيار' : 'Option'} {labelForIndex(clash.proposedOptions, idx)}
           {chosen ? ` — ${chosen.label}` : ''}
         </span>
       </div>
       <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-slate-300 md:grid-cols-2">
         <div className="flex gap-2">
-          <dt className="text-slate-500">Decided by:</dt>
+          <dt className="text-slate-500">{lang === 'ar' ? 'بقرار:' : 'Decided by:'}</dt>
           <dd>{clash.decidedBy ?? '—'}</dd>
         </div>
         <div className="flex gap-2">
-          <dt className="text-slate-500">When:</dt>
+          <dt className="text-slate-500">{lang === 'ar' ? 'التاريخ:' : 'When:'}</dt>
           <dd dir="ltr">{clash.decidedAt ? new Date(clash.decidedAt).toLocaleString() : '—'}</dd>
         </div>
         {chosen && (
           <>
             <div className="flex gap-2">
-              <dt className="text-slate-500">Time impact:</dt>
-              <dd>{chosen.timeImpactDays} day(s)</dd>
+              <dt className="text-slate-500">{lang === 'ar' ? 'الأثر الزمني:' : 'Time impact:'}</dt>
+              <dd>{lang === 'ar' ? `${chosen.timeImpactDays} يوم` : `${chosen.timeImpactDays} day(s)`}</dd>
             </div>
             <div className="flex gap-2">
-              <dt className="text-slate-500">Cost impact:</dt>
-              <dd>{chosen.costImpactAED === null ? '— (not in BoQ)' : `${chosen.costImpactAED.toLocaleString()} AED`}</dd>
+              <dt className="text-slate-500">{lang === 'ar' ? 'الأثر الكلفوي:' : 'Cost impact:'}</dt>
+              <dd>{chosen.costImpactAED === null ? (lang === 'ar' ? '— (خارج جدول الكميات)' : '— (not in BoQ)') : `${chosen.costImpactAED.toLocaleString()} AED`}</dd>
             </div>
           </>
         )}
@@ -776,10 +833,10 @@ function deriveStatus(c: ClashItem): Status {
   return 'pending';
 }
 
-function StatusPill({ status }: { status: Status }) {
-  if (status === 'decided')  return <Pill tone="emerald">Decided</Pill>;
-  if (status === 'proposed') return <Pill tone="sky">Proposed</Pill>;
-  return <Pill tone="amber">Pending</Pill>;
+function StatusPill({ status, lang }: { status: Status; lang: Lang }) {
+  if (status === 'decided')  return <Pill tone="emerald">{lang === 'ar' ? 'تمّ البتّ فيه' : 'Decided'}</Pill>;
+  if (status === 'proposed') return <Pill tone="sky">{lang === 'ar' ? 'مُقترَح' : 'Proposed'}</Pill>;
+  return <Pill tone="amber">{lang === 'ar' ? 'قيد الانتظار' : 'Pending'}</Pill>;
 }
 
 /**
@@ -789,12 +846,12 @@ function StatusPill({ status }: { status: Status }) {
  * remap to the closest alert-tone for visual continuity while keeping the
  * Arabic / English source word.
  */
-function ClashSeverityPill({ severity }: { severity: string }) {
+function ClashSeverityPill({ severity, lang }: { severity: string; lang: Lang }) {
   const lower = severity?.toLowerCase?.() ?? '';
   if (lower === 'critical') return <SeverityBadge severity="critical" />;
   if (lower === 'major')    return <SeverityBadge severity="warning" />;
   if (lower === 'minor')    return <SeverityBadge severity="info" />;
-  return <Pill tone="slate">{severity || 'unknown'}</Pill>;
+  return <Pill tone="slate">{severity || (lang === 'ar' ? 'غير معروف' : 'unknown')}</Pill>;
 }
 
 function labelForIndex(options: ProposedClashOption[] | null, idx: number | null): string {

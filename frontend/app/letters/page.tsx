@@ -1069,13 +1069,19 @@ function groupByCategory(letters: LetterRecord[]): { category: LetterCategory; i
 // ──────────────────────────── status / deadline helpers ────────────────────────────
 
 /** Status pill — single source of truth for the colour mapping. */
-function StatusPill({ status }: { status: StatusKey | string }) {
+function StatusPill({ status, ar }: { status: StatusKey | string; ar: boolean }) {
   const tone: 'amber' | 'emerald' | 'sky' | 'slate' =
     status === 'draft' ? 'amber'
     : status === 'approved' ? 'emerald'
     : status === 'sent' ? 'sky'
     : 'slate';
-  return <Pill tone={tone}>{status}</Pill>;
+  const label = ar
+    ? (status === 'draft' ? 'مسودة'
+      : status === 'approved' ? 'معتمَد'
+      : status === 'sent' ? 'مُرسَل'
+      : status)
+    : status;
+  return <Pill tone={tone}>{label}</Pill>;
 }
 
 function StatusChip({
@@ -1146,15 +1152,17 @@ function deadlineCountdownOf(letter: LetterRecord): DeadlineCountdown {
 function DeadlineBadge({
   countdown,
   status,
+  ar,
 }: {
   countdown: DeadlineCountdown;
   status: StatusKey;
+  ar: boolean;
 }) {
   if (countdown.kind === 'none') {
     return (
       <span className="inline-flex items-center gap-1 text-slate-500">
         <IconClock className="h-3 w-3" />
-        deadline TBD
+        {ar ? 'المهلة قيد التحديد' : 'deadline TBD'}
       </span>
     );
   }
@@ -1166,8 +1174,8 @@ function DeadlineBadge({
       <span className="inline-flex items-center gap-1 text-slate-500">
         <IconClock className="h-3 w-3" />
         {countdown.kind === 'overdue'
-          ? `was ${countdown.days}d overdue`
-          : `${countdown.days}d window`}
+          ? (ar ? `تأخّر بـ ${countdown.days} يوم` : `was ${countdown.days}d overdue`)
+          : (ar ? `مهلة ${countdown.days} يوم` : `${countdown.days}d window`)}
       </span>
     );
   }
@@ -1175,7 +1183,7 @@ function DeadlineBadge({
     return (
       <span className="inline-flex items-center gap-1 text-rose-300">
         <IconClock className="h-3 w-3" />
-        {countdown.days}d overdue
+        {ar ? `متأخّر ${countdown.days} يوم` : `${countdown.days}d overdue`}
       </span>
     );
   }
@@ -1186,7 +1194,7 @@ function DeadlineBadge({
   return (
     <span className={`inline-flex items-center gap-1 ${tone}`}>
       <IconClock className="h-3 w-3" />
-      {countdown.days}d remaining
+      {ar ? `متبقٍ ${countdown.days} يوم` : `${countdown.days}d remaining`}
     </span>
   );
 }

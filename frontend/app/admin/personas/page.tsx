@@ -61,7 +61,7 @@ function PersonasAdmin() {
   const reload = () => {
     api<PersonaRecord[]>('/personas')
       .then(setPersonas)
-      .catch((e) => toast.error('Failed to load personas', (e as Error).message));
+      .catch((e) => toast.error(t('admin.personas.loadFailed'), (e as Error).message));
   };
 
   useEffect(reload, [toast]);

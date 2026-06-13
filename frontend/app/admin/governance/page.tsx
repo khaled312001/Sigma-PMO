@@ -26,6 +26,7 @@ import { useToast } from '../../../components/ToastProvider';
 import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { CAPABILITIES } from '../../../lib/capabilities';
+import { useI18n } from '../../../lib/i18n';
 import { useMe } from '../../../lib/me-context';
 
 // ── Types mirrored from the backend (defined locally per agent boundaries) ──
@@ -68,13 +69,25 @@ interface AgentConfigListResponse {
   allowedModelTiers: string[];
 }
 
+// Model-tier labels. Tier names that are Claude product names stay in English
+// across both languages; only the "Platform default" wording is localized.
 const TIER_LABEL: Record<string, string> = {
   default: 'Platform default',
   'claude-haiku': 'Claude Haiku',
   'claude-sonnet': 'Claude Sonnet',
   'claude-opus': 'Claude Opus',
 };
+const TIER_LABEL_AR: Record<string, string> = {
+  default: 'الافتراضي للمنصّة',
+  'claude-haiku': 'Claude Haiku',
+  'claude-sonnet': 'Claude Sonnet',
+  'claude-opus': 'Claude Opus',
+};
+const tierLabel = (tier: string, lang: 'en' | 'ar'): string =>
+  (lang === 'ar' ? TIER_LABEL_AR[tier] : TIER_LABEL[tier]) ?? TIER_LABEL[tier] ?? tier;
 
+// Layer labels. The L0–L8 layer codes stay in English (they are identifiers);
+// the descriptive suffix is localized to the governance domain.
 const LAYER_LABEL: Record<string, string> = {
   l0_knowledge: 'L0 · Knowledge',
   l1_data_collection: 'L1 · Data',
@@ -86,6 +99,19 @@ const LAYER_LABEL: Record<string, string> = {
   l7_executive: 'L7 · Executive',
   l8_sigma_governance: 'L8 · Sigma Governance',
 };
+const LAYER_LABEL_AR: Record<string, string> = {
+  l0_knowledge: 'L0 · المعرفة',
+  l1_data_collection: 'L1 · البيانات',
+  l2_validation: 'L2 · التحقق',
+  l3_compliance: 'L3 · الامتثال',
+  l4_analytics: 'L4 · التحليلات',
+  l5_risk: 'L5 · المخاطر',
+  l6_claims: 'L6 · المطالبات',
+  l7_executive: 'L7 · التنفيذي',
+  l8_sigma_governance: 'L8 · حوكمة سيجما',
+};
+const layerLabel = (layer: string, lang: 'en' | 'ar'): string =>
+  (lang === 'ar' ? LAYER_LABEL_AR[layer] : LAYER_LABEL[layer]) ?? LAYER_LABEL[layer] ?? layer;
 
 export default function GovernanceConfigRoute() {
   return (
@@ -97,15 +123,20 @@ export default function GovernanceConfigRoute() {
 
 function GovernanceConfigPage() {
   const { me } = useMe();
+  const { lang } = useI18n();
   const canManageRoles = !!me?.user && CAPABILITIES[me.user.role].canManageRoles;
   const updatedBy = me?.user?.displayName ?? null;
 
   return (
     <div className="space-y-7 animate-[fade-in-up_240ms_ease-out]">
       <PageHeader
-        eyebrow="Admin · Governance"
-        title="Governance Configuration Center"
-        description="Tune the governance engine (escalation window, auto-evaluation, dual approval, status-roll-up weights) and the AI agent fleet (enable/disable + model tier). Changes apply at the next run — no restart required."
+        eyebrow={lang === 'ar' ? 'الإدارة · الحوكمة' : 'Admin · Governance'}
+        title={lang === 'ar' ? 'مركز إعداد الحوكمة' : 'Governance Configuration Center'}
+        description={
+          lang === 'ar'
+            ? 'اضبط محرّك الحوكمة (نافذة التصعيد، التقييم التلقائي، الاعتماد المزدوج، أوزان تجميع الحالة) وأسطول وكلاء الذكاء الاصطناعي (تفعيل/تعطيل + فئة النموذج). تسري التغييرات في التشغيل التالي — دون الحاجة لإعادة تشغيل.'
+            : 'Tune the governance engine (escalation window, auto-evaluation, dual approval, status-roll-up weights) and the AI agent fleet (enable/disable + model tier). Changes apply at the next run — no restart required.'
+        }
       />
 
       <GovernanceConfigForm updatedBy={updatedBy} />
@@ -119,6 +150,7 @@ function GovernanceConfigPage() {
 
 function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
   const toast = useToast();
+  const { lang } = useI18n();
   const [state, setState] = useState<GovernanceConfigResponse | null>(null);
   const [draft, setDraft] = useState<GovernanceConfig | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -147,7 +179,10 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
   const save = async () => {
     if (!draft) return;
     if (!weightsValid) {
-      toast.error('Weights must sum to 1', `Current sum is ${weightSum.toFixed(3)}.`);
+      toast.error(
+        lang === 'ar' ? 'يجب أن يكون مجموع الأوزان 1' : 'Weights must sum to 1',
+        lang === 'ar' ? `المجموع الحالي ${weightSum.toFixed(3)}.` : `Current sum is ${weightSum.toFixed(3)}.`,
+      );
       return;
     }
     setSaving(true);
@@ -158,9 +193,12 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
       });
       setState(r);
       setDraft(r.config);
-      toast.success('Governance config saved', 'Escalation window mirrored to the sweep.');
+      toast.success(
+        lang === 'ar' ? 'تم حفظ إعداد الحوكمة' : 'Governance config saved',
+        lang === 'ar' ? 'تمّت مزامنة نافذة التصعيد مع دورة الفحص.' : 'Escalation window mirrored to the sweep.',
+      );
     } catch (e) {
-      toast.error('Save failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل الحفظ' : 'Save failed', (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -177,17 +215,21 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
 
   return (
     <Card
-      title="Governance engine"
-      hint="The deterministic settings that drive escalation, rule evaluation and the 4-tier status roll-up."
+      title={lang === 'ar' ? 'محرّك الحوكمة' : 'Governance engine'}
+      hint={
+        lang === 'ar'
+          ? 'الإعدادات الحتمية التي تحكم التصعيد وتقييم القواعد وتجميع الحالة بمستوياته الأربعة.'
+          : 'The deterministic settings that drive escalation, rule evaluation and the 4-tier status roll-up.'
+      }
       actions={
         <span className="flex items-center gap-2">
           {state.configured ? (
             <Pill tone="emerald">
-              <IconCheck className="me-1 h-3 w-3" /> Configured
+              <IconCheck className="me-1 h-3 w-3" /> {lang === 'ar' ? 'مُهيّأ' : 'Configured'}
             </Pill>
           ) : (
             <Pill tone="amber">
-              <IconX className="me-1 h-3 w-3" /> Defaults in effect
+              <IconX className="me-1 h-3 w-3" /> {lang === 'ar' ? 'الإعدادات الافتراضية سارية' : 'Defaults in effect'}
             </Pill>
           )}
         </span>
@@ -195,8 +237,12 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <NumberField
-          label="Escalate after (days)"
-          hint="Days an unacknowledged critical item waits before auto-escalation. Mirrored to governance.escalateAfterDays on save."
+          label={lang === 'ar' ? 'التصعيد بعد (أيام)' : 'Escalate after (days)'}
+          hint={
+            lang === 'ar'
+              ? 'عدد الأيام التي ينتظرها البند الحرج غير المُستلَم قبل التصعيد التلقائي. تُزامَن مع governance.escalateAfterDays عند الحفظ.'
+              : 'Days an unacknowledged critical item waits before auto-escalation. Mirrored to governance.escalateAfterDays on save.'
+          }
           value={draft.escalateAfterDays}
           min={1}
           max={365}
@@ -204,14 +250,22 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
         />
         <div className="flex flex-col justify-end gap-3">
           <ToggleField
-            label="Auto-evaluate rules on ingest"
-            hint="Run rule evaluation automatically after every successful ingest."
+            label={lang === 'ar' ? 'تقييم القواعد تلقائياً عند الإدخال' : 'Auto-evaluate rules on ingest'}
+            hint={
+              lang === 'ar'
+                ? 'تشغيل تقييم القواعد تلقائياً بعد كل عملية إدخال ناجحة.'
+                : 'Run rule evaluation automatically after every successful ingest.'
+            }
             checked={draft.autoEvaluateOnIngest}
             onChange={(v) => setDraft({ ...draft, autoEvaluateOnIngest: v })}
           />
           <ToggleField
-            label="Dual approval for critical decisions"
-            hint="Critical governance decisions require two distinct approvers."
+            label={lang === 'ar' ? 'اعتماد مزدوج للقرارات الحرجة' : 'Dual approval for critical decisions'}
+            hint={
+              lang === 'ar'
+                ? 'قرارات الحوكمة الحرجة تتطلّب اعتماد جهتين مختلفتين.'
+                : 'Critical governance decisions require two distinct approvers.'
+            }
             checked={draft.dualApprovalForCritical}
             onChange={(v) => setDraft({ ...draft, dualApprovalForCritical: v })}
           />
@@ -221,32 +275,44 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
       <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Status roll-up weights
+            {lang === 'ar' ? 'أوزان تجميع الحالة' : 'Status roll-up weights'}
           </p>
-          <Pill tone={weightsValid ? 'emerald' : 'rose'}>sum {weightSum.toFixed(2)}</Pill>
+          <Pill tone={weightsValid ? 'emerald' : 'rose'}>
+            {lang === 'ar' ? 'المجموع' : 'sum'} {weightSum.toFixed(2)}
+          </Pill>
         </div>
         <p className="mt-1 text-xs text-slate-400">
-          Relative weights of the governance-status components. They must describe a full
-          distribution (sum = 1 ± 0.01).
+          {lang === 'ar'
+            ? 'الأوزان النسبية لمكوّنات حالة الحوكمة. يجب أن تشكّل توزيعاً كاملاً (المجموع = 1 ± 0.01).'
+            : 'Relative weights of the governance-status components. They must describe a full distribution (sum = 1 ± 0.01).'}
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {(['alerts', 'escalations', 'confidence'] as const).map((k) => (
-            <NumberField
-              key={k}
-              label={k[0].toUpperCase() + k.slice(1)}
-              value={draft.statusWeights[k]}
-              min={0}
-              max={1}
-              step={0.05}
-              onChange={(v) =>
-                setDraft({ ...draft, statusWeights: { ...draft.statusWeights, [k]: v } })
-              }
-            />
-          ))}
+          {(['alerts', 'escalations', 'confidence'] as const).map((k) => {
+            const WEIGHT_LABEL_AR: Record<string, string> = {
+              alerts: 'التنبيهات',
+              escalations: 'التصعيدات',
+              confidence: 'الثقة',
+            };
+            return (
+              <NumberField
+                key={k}
+                label={lang === 'ar' ? WEIGHT_LABEL_AR[k] : k[0].toUpperCase() + k.slice(1)}
+                value={draft.statusWeights[k]}
+                min={0}
+                max={1}
+                step={0.05}
+                onChange={(v) =>
+                  setDraft({ ...draft, statusWeights: { ...draft.statusWeights, [k]: v } })
+                }
+              />
+            );
+          })}
         </div>
         {!weightsValid && (
           <p className="mt-2 text-xs text-rose-300">
-            Adjust the three weights so they sum to 1 before saving.
+            {lang === 'ar'
+              ? 'عدّل الأوزان الثلاثة بحيث يصبح مجموعها 1 قبل الحفظ.'
+              : 'Adjust the three weights so they sum to 1 before saving.'}
           </p>
         )}
       </div>
@@ -254,15 +320,19 @@ function GovernanceConfigForm({ updatedBy }: { updatedBy: string | null }) {
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Button variant="primary" size="sm" onClick={save} disabled={saving || !weightsValid}>
           <IconShield className="h-3.5 w-3.5" />
-          {saving ? 'Saving…' : 'Save governance config'}
+          {saving
+            ? lang === 'ar' ? 'جاري الحفظ…' : 'Saving…'
+            : lang === 'ar' ? 'حفظ إعداد الحوكمة' : 'Save governance config'}
         </Button>
         <Button variant="ghost" size="sm" onClick={() => void load()}>
-          <IconRefresh className="h-3.5 w-3.5" /> Reset
+          <IconRefresh className="h-3.5 w-3.5" /> {lang === 'ar' ? 'إعادة تعيين' : 'Reset'}
         </Button>
         {state.updatedAt && (
           <span className="text-xs text-slate-400">
-            Last saved by{' '}
-            <span className="font-medium text-slate-200">{state.updatedBy ?? 'unknown'}</span>
+            {lang === 'ar' ? 'آخر حفظ بواسطة' : 'Last saved by'}{' '}
+            <span className="font-medium text-slate-200">
+              {state.updatedBy ?? (lang === 'ar' ? 'غير معروف' : 'unknown')}
+            </span>
             <span className="mx-1.5 text-slate-500">·</span>
             <span dir="ltr">{new Date(state.updatedAt).toLocaleString()}</span>
           </span>
@@ -282,6 +352,7 @@ function AgentsConfigTable({
   updatedBy: string | null;
 }) {
   const toast = useToast();
+  const { lang } = useI18n();
   const [agents, setAgents] = useState<EnrichedAgentDescriptor[] | null>(null);
   const [tiers, setTiers] = useState<string[]>(['default', 'claude-haiku', 'claude-sonnet', 'claude-opus']);
   const [err, setErr] = useState<string | null>(null);
@@ -324,10 +395,15 @@ function AgentsConfigTable({
         method: 'POST',
         body: JSON.stringify({ enabled: d.enabled, modelTier: d.modelTier, updatedBy }),
       });
-      toast.success('Agent updated', `${a.agentKey} → ${d.enabled ? 'enabled' : 'disabled'}, ${TIER_LABEL[d.modelTier] ?? d.modelTier}.`);
+      toast.success(
+        lang === 'ar' ? 'تم تحديث الوكيل' : 'Agent updated',
+        lang === 'ar'
+          ? `${a.agentKey} ← ${d.enabled ? 'مُفعَّل' : 'مُعطَّل'}، ${tierLabel(d.modelTier, lang)}.`
+          : `${a.agentKey} → ${d.enabled ? 'enabled' : 'disabled'}, ${tierLabel(d.modelTier, lang)}.`,
+      );
       await load();
     } catch (e) {
-      toast.error('Save failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل الحفظ' : 'Save failed', (e as Error).message);
     } finally {
       setSavingKey(null);
     }
@@ -335,11 +411,15 @@ function AgentsConfigTable({
 
   return (
     <Card
-      title="AI Agents"
-      hint="Every registered L0–L8 agent. Disable an agent to make the orchestrator and single-run route refuse it (409); pin a model tier to override the platform default."
+      title={lang === 'ar' ? 'وكلاء الذكاء الاصطناعي' : 'AI Agents'}
+      hint={
+        lang === 'ar'
+          ? 'كل وكيل مُسجَّل من L0 إلى L8. تعطيل الوكيل يجعل المنسّق ومسار التشغيل الفردي يرفضانه (409)؛ تثبيت فئة نموذج يتجاوز الإعداد الافتراضي للمنصّة.'
+          : 'Every registered L0–L8 agent. Disable an agent to make the orchestrator and single-run route refuse it (409); pin a model tier to override the platform default.'
+      }
       actions={
         <Button variant="ghost" size="sm" onClick={() => void load()}>
-          <IconRefresh className="h-3.5 w-3.5" /> Refresh
+          <IconRefresh className="h-3.5 w-3.5" /> {lang === 'ar' ? 'تحديث' : 'Refresh'}
         </Button>
       }
     >
@@ -347,8 +427,17 @@ function AgentsConfigTable({
 
       {!canManageRoles && (
         <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
-          Your role does not include <code className="font-mono">canManageRoles</code> — the agent
-          toggles below are read-only. Contact a governance admin to change agent enablement or tier.
+          {lang === 'ar' ? (
+            <>
+              لا يتضمّن دورك صلاحية <code className="font-mono">canManageRoles</code> — أزرار تبديل
+              الوكلاء أدناه للعرض فقط. تواصل مع مسؤول الحوكمة لتغيير تفعيل الوكيل أو فئته.
+            </>
+          ) : (
+            <>
+              Your role does not include <code className="font-mono">canManageRoles</code> — the agent
+              toggles below are read-only. Contact a governance admin to change agent enablement or tier.
+            </>
+          )}
         </p>
       )}
 
@@ -356,19 +445,21 @@ function AgentsConfigTable({
         <div className="h-32 animate-pulse rounded bg-slate-800/40" />
       ) : agents.length === 0 ? (
         <p className="text-sm text-slate-400">
-          No agents are registered yet. They appear here automatically as each layer registers.
+          {lang === 'ar'
+            ? 'لا توجد وكلاء مُسجَّلون بعد. يظهرون هنا تلقائياً عند تسجيل كل طبقة.'
+            : 'No agents are registered yet. They appear here automatically as each layer registers.'}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-800">
           <table className="w-full text-sm">
             <thead className="bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-400">
               <tr>
-                <th className="px-3 py-2 text-start">Agent</th>
-                <th className="px-3 py-2 text-start">Layer</th>
-                <th className="px-3 py-2 text-start">Objective</th>
-                <th className="px-3 py-2 text-center">Enabled</th>
-                <th className="px-3 py-2 text-start">Model tier</th>
-                <th className="px-3 py-2 text-end">Action</th>
+                <th className="px-3 py-2 text-start">{lang === 'ar' ? 'الوكيل' : 'Agent'}</th>
+                <th className="px-3 py-2 text-start">{lang === 'ar' ? 'الطبقة' : 'Layer'}</th>
+                <th className="px-3 py-2 text-start">{lang === 'ar' ? 'الهدف' : 'Objective'}</th>
+                <th className="px-3 py-2 text-center">{lang === 'ar' ? 'مُفعَّل' : 'Enabled'}</th>
+                <th className="px-3 py-2 text-start">{lang === 'ar' ? 'فئة النموذج' : 'Model tier'}</th>
+                <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الإجراء' : 'Action'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
@@ -385,7 +476,7 @@ function AgentsConfigTable({
                       )}
                     </td>
                     <td className="px-3 py-2.5">
-                      <Pill tone="violet">{LAYER_LABEL[a.layer] ?? a.layer}</Pill>
+                      <Pill tone="violet">{layerLabel(a.layer, lang)}</Pill>
                     </td>
                     <td className="px-3 py-2.5 max-w-xs">
                       <span className="line-clamp-2 text-xs text-slate-300" dir="auto">
@@ -409,7 +500,7 @@ function AgentsConfigTable({
                       >
                         {tiers.map((t) => (
                           <option key={t} value={t}>
-                            {TIER_LABEL[t] ?? t}
+                            {tierLabel(t, lang)}
                           </option>
                         ))}
                       </select>
@@ -421,7 +512,9 @@ function AgentsConfigTable({
                         disabled={!canManageRoles || !dirty(a) || savingKey === a.agentKey}
                         onClick={() => void save(a)}
                       >
-                        {savingKey === a.agentKey ? 'Saving…' : 'Save'}
+                        {savingKey === a.agentKey
+                          ? lang === 'ar' ? 'جاري الحفظ…' : 'Saving…'
+                          : lang === 'ar' ? 'حفظ' : 'Save'}
                       </Button>
                     </td>
                   </tr>

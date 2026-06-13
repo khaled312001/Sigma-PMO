@@ -37,6 +37,32 @@ Decision · Summary) without rework.
 
 Phase 1 scope is unchanged; the destination is just explicit on paper.
 
+## Full governance lifecycle (2026-06-13)
+
+Per Mr. Ayham's architecture brief, Sigma is now a complete **Investment, Delivery &
+Governance Operating System** spanning the 17-stage lifecycle:
+
+> Idea → Opportunity → Feasibility → **Bankability** → Quantity Survey → Procurement →
+> Project Controls → Risk → **Safety** → **Fire & Life Safety** → **Authority** →
+> **Utility** → **Operational Readiness** → Claims → Revenue → Funding → Executive →
+> Sigma Governance
+
+The six **bold** stages were added in this cycle as extension governance agents
+(`ext.bankability`, `ext.safety`, `ext.fire_life_safety`, `ext.authority`,
+`ext.utility`, `ext.operational_readiness`), each following the Agent Contract
+(entity + CRUD service + deterministic governance engine + agent + controller +
+bilingual page). Findings are wired to schedule / cost / claims (e.g. a Safety
+stop-work → delay → critical-path → EOT → claim-readiness chain; Authority/Utility
+delay-exposure), and traced **Decision → Finding → Agent → Evidence → Source**.
+
+- **Acceptance program:** Mr. Ayham's formal 23-test validation (`modules/acceptance/`
+  + the `/acceptance` screen + `scripts/run-acceptance.ts`) — **23 / 23 PASS**.
+  Results: [`docs/acceptance/acceptance-results-2026-06-13.json`](docs/acceptance/acceptance-results-2026-06-13.json).
+- **Report (≈130 pp, AR/EN):** [`docs/user-guide/Sigma-PMO-Acceptance-Guide-AR.pdf`](docs/user-guide/Sigma-PMO-Acceptance-Guide-AR.pdf)
+  — each layer step-by-step with real screenshots + usage per module.
+- Deterministic-first throughout; the AI narrates only, cites `[SOURCE: id]`, and runs
+  behind a configured Claude key. Dev runs with `DB_SYNCHRONIZE=false`.
+
 ## Project layout
 
 ```
@@ -56,7 +82,11 @@ sigma-pmo/
 │   │       ├── notifications/   Slack/Teams/Email outbound (Layer 3 stub)
 │   │       ├── rules/           Rule engine v1 + 6 built-in rules
 │   │       ├── summary/         deterministic + LLM-optional executive summary
-│   │       └── validation/      pre-normalize validation report
+│   │       ├── validation/      pre-normalize validation report
+│   │       ├── safety/ · fire-life-safety/ · authority/ · utility/ ·
+│   │       │                operational-readiness/  governance lifecycle layers
+│   │       ├── bankability/     feasibility → lender package (DSCR, debt schedule)
+│   │       └── acceptance/      the formal 23-test Sigma validation program
 │   ├── scripts/                 sample data generator, ingest CLI, user CLI
 │   └── data-source.ts           TypeORM data source for migrations
 ├── frontend/                    Next.js 16 internal console (Layer 1 UI)

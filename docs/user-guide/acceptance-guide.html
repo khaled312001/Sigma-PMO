@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Sigma PMO — تقرير اختبار القبول ودليل الطبقات الجديدة</title>
+<style>
+  :root {
+    --ink: #1c2333; --muted: #5b667d; --line: #dfe4ee;
+    --brand: #b91c3c; --brand-soft: #fdf1f4;
+    --sky: #0369a1; --sky-soft: #eff8ff;
+    --emerald: #047857; --emerald-soft: #ecfdf5;
+    --amber: #92600a; --amber-soft: #fffbeb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    color: var(--ink); font-size: 13.5px; line-height: 1.85;
+    direction: rtl;
+  }
+  .ltr { direction: ltr; unicode-bidi: embed; font-family: "Consolas", "Segoe UI", monospace; }
+  code, .route, .tid { direction: ltr; unicode-bidi: embed; font-family: Consolas, monospace; background: #f1f4f9; border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px; font-size: 12px; color: #0f3a5e; white-space: nowrap; }
+  .tid { background: #21304a; color: #fff; border-color: #21304a; font-weight: 700; }
+  /* ── Cover ── */
+  .cover { page-break-after: always; min-height: 96vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: linear-gradient(180deg, #ffffff 0%, #fdf3f5 70%, #f8e8ec 100%); border-bottom: 6px solid var(--brand); }
+  .cover img.logo { width: 130px; height: 130px; border-radius: 26px; box-shadow: 0 18px 40px rgba(185,28,60,.25); }
+  .cover h1 { font-size: 34px; margin: 28px 0 6px; letter-spacing: -0.5px; max-width: 760px; line-height: 1.35; }
+  .cover .en { font-size: 16px; color: var(--brand); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .cover p.sub { font-size: 17px; color: var(--muted); max-width: 640px; margin: 18px auto 0; }
+  .cover .meta { margin-top: 44px; color: var(--muted); font-size: 12.5px; }
+  .cover .meta b { color: var(--ink); }
+  .cover .badge { margin: 30px auto 0; display: inline-flex; align-items: center; gap: 14px; background: var(--emerald); color: #fff; border-radius: 16px; padding: 16px 34px; box-shadow: 0 14px 34px rgba(4,120,87,.30); }
+  .cover .badge .big { font-size: 40px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+  .cover .badge .lbl { font-size: 18px; font-weight: 800; letter-spacing: 1px; }
+  .cover .badge .sub2 { font-size: 12px; opacity: .9; display:block; font-weight: 600; margin-top: 3px; }
+  .cover .subtitle2 { font-size: 19px; font-weight: 800; color: var(--ink); margin: 14px auto 0; }
+  /* ── Structure ── */
+  main { padding: 0 46px; }
+  h2 { page-break-before: always; font-size: 25px; color: var(--brand); border-bottom: 3px solid var(--brand); padding: 18px 0 10px; margin: 0 0 18px; }
+  h2 .no { display: inline-block; background: var(--brand); color: #fff; border-radius: 9px; padding: 2px 14px; font-size: 18px; margin-left: 12px; }
+  h3 { font-size: 18px; margin: 30px 0 8px; color: #16314e; page-break-after: avoid; }
+  h3 .route { font-size: 12px; vertical-align: middle; margin-right: 8px; }
+  h3 .tid { font-size: 12.5px; vertical-align: middle; margin-right: 8px; }
+  h4 { font-size: 14.5px; margin: 18px 0 6px; color: #244062; }
+  p { margin: 7px 0; }
+  ul, ol { margin: 6px 0; padding-right: 24px; }
+  li { margin: 3px 0; }
+  /* ── Figures ── */
+  figure { margin: 14px 0 20px; page-break-inside: avoid; }
+  figure img { width: 100%; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 18px rgba(28,35,51,.10); }
+  figcaption { font-size: 11.5px; color: var(--muted); margin-top: 6px; text-align: center; }
+  /* ── Callouts ── */
+  .blk { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 10px 0; page-break-inside: avoid; }
+  .blk b.tag { display: inline-block; font-size: 11.5px; border-radius: 6px; padding: 0 9px; margin-left: 8px; }
+  .goal { background: var(--sky-soft); } .goal b.tag { background: var(--sky); color: #fff; }
+  .how { background: var(--emerald-soft); } .how b.tag { background: var(--emerald); color: #fff; }
+  .sys { background: var(--brand-soft); } .sys b.tag { background: var(--brand); color: #fff; }
+  .who { background: var(--amber-soft); } .who b.tag { background: var(--amber); color: #fff; }
+  .note { background: #f5f7fb; border-right: 4px solid var(--sky); }
+  .pass-blk { background: var(--emerald-soft); border: 1px solid #bfe6d4; border-right: 4px solid var(--emerald); border-radius: 10px; padding: 10px 14px; margin: 10px 0; page-break-inside: avoid; }
+  .pass-blk b.res { color: var(--emerald); font-weight: 900; }
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; page-break-inside: avoid; }
+  th { background: #21304a; color: #fff; padding: 7px 9px; text-align: right; }
+  td { border: 1px solid var(--line); padding: 6px 9px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .ok { color: var(--emerald); font-weight: 700; } .no2 { color: #b3263c; font-weight: 700; }
+  table.tests td.st { color: var(--emerald); font-weight: 800; white-space: nowrap; text-align: center; }
+  table.tests td.id { font-family: Consolas, monospace; direction: ltr; font-weight: 700; color: #21304a; white-space: nowrap; }
+  table.tests td.ev { font-size: 11px; }
+  table.tests td.ev .ltr { font-size: 11px; }
+  /* ── chips ── */
+  .chip-new { display:inline-block; font-size: 10.5px; font-weight: 800; color: #fff; background: var(--brand); border-radius: 999px; padding: 1px 9px; margin-right: 6px; vertical-align: middle; }
+  .chip-ex { display:inline-block; font-size: 10.5px; font-weight: 700; color: #244062; background: #eef3f9; border: 1px solid #cfe0ee; border-radius: 999px; padding: 1px 9px; margin-right: 6px; vertical-align: middle; }
+  /* ── lifecycle flow ── */
+  .flow17 { display: flex; flex-wrap: wrap; gap: 7px; align-items: stretch; margin: 16px 0 8px; }
+  .flow17 .stg { position: relative; border: 1px solid #cfe0ee; background: #fff; border-radius: 9px; padding: 7px 12px 7px 12px; font-size: 12px; font-weight: 700; color: #16314e; display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+  .flow17 .stg .num { font-size: 10px; color: var(--muted); font-weight: 700; }
+  .flow17 .stg .en4 { font-size: 10px; color: var(--muted); font-weight: 600; direction: ltr; }
+  .flow17 .stg.new { background: var(--brand-soft); border-color: #eccdd5; }
+  .flow17 .stg.new .tagnew { position: absolute; top: -8px; left: 8px; font-size: 9.5px; font-weight: 800; color: #fff; background: var(--brand); border-radius: 999px; padding: 0 7px; }
+  .legend { font-size: 11.5px; color: var(--muted); margin: 6px 0 0; }
+  /* TOC */
+  .toc { columns: 2; column-gap: 40px; font-size: 13px; }
+  .toc li { margin: 4px 0; }
+  .footer-note { color: var(--muted); font-size: 11px; margin: 26px 0 40px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .summary-stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+  .summary-stats .s { flex: 1; min-width: 120px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: #fff; text-align: center; }
+  .summary-stats .s .v { font-size: 26px; font-weight: 900; color: var(--brand); line-height: 1; }
+  .summary-stats .s .v.green { color: var(--emerald); }
+  .summary-stats .s .k { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .kvs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; margin: 8px 0; font-size: 12px; }
+  .kvs .k { color: var(--muted); }
+  .kvs b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ COVER ════════════════ -->
+<div class="cover">
+  <img class="logo" src="../../frontend/public/logo.png" alt="Sigma PMO">
+  <div class="en">Sigma PMO · AI Governance Operating System</div>
+  <h1>تقرير اختبار القبول ودليل استخدام الطبقات الجديدة</h1>
+  <div class="subtitle2">نظام تشغيل حوكمة الاستثمار والتسليم</div>
+  <p class="sub">Acceptance Test Report &amp; New-Layers Usage Guide — برنامج القبول الرسمي لـ17 مرحلة حوكمة و6 طبقات جديدة، مع طريقة الاستخدام الصحيحة لكل طبقة.</p>
+  <div class="badge">
+    <span class="big">23 / 23</span>
+    <span class="lbl">ناجح — PASS<span class="sub2">كل اختبارات برنامج القبول اجتازت بنجاح</span></span>
+  </div>
+  <div class="meta">
+    التاريخ: <b>13 يونيو 2026</b> · المشروع المرجعي: <b class="ltr">P-1000 — Nile Tower</b><br>
+    جميع الأدلة الرقمية مأخوذة من تشغيل فعلي للنظام · إعداد: <b>فريق تطوير Sigma PMO</b>
+  </div>
+</div>
+
+<main>
+
+<!-- ════════════════ TOC ════════════════ -->
+<h2 style="page-break-before:auto"><span class="no">·</span>المحتويات</h2>
+<ol class="toc">
+  <li>الملخص التنفيذي</li>
+  <li>دورة حوكمة من 17 مرحلة</li>
+  <li>نتائج برنامج القبول (23 Test)</li>
+  <li>الطبقات الجديدة بالخطوات — حوكمة السلامة (Safety)</li>
+  <li>حوكمة الحريق والسلامة (Fire &amp; Life Safety)</li>
+  <li>حوكمة الجهات (Authority)</li>
+  <li>حوكمة المرافق (Utility)</li>
+  <li>الجاهزية التشغيلية (Operational Readiness)</li>
+  <li>القابلية للتمويل البنكي (Bankability)</li>
+  <li>باقي الموديولز — طريقة الاستخدام</li>
+  <li>ملاحظات الحوكمة</li>
+</ol>
+
+<!-- ════════════════ 1. EXECUTIVE SUMMARY ════════════════ -->
+<h2><span class="no">1</span>الملخص التنفيذي</h2>
+<p>تم بناء <b>دورة حوكمة كاملة من 17 مرحلة</b> تمتد من الفكرة حتى حوكمة Sigma النهائية، أُضيفت إليها <b>6 طبقات حوكمة جديدة</b> — حوكمة السلامة، حوكمة الحريق والسلامة، حوكمة الجهات، حوكمة المرافق، الجاهزية التشغيلية، والقابلية للتمويل البنكي (Bankability) — كلٌّ منها <b>ميزة تفاعلية حيّة</b> (إضافة سجلات، تشغيل الحوكمة، قراءة النتائج) وليست شاشة عرض فقط.</p>
+<p>تم تنفيذ <b>برنامج القبول الرسمي الذي طلبه السيد الأيهم — 23 اختباراً</b> يغطي كامل دورة الحياة من Origination حتى Full Lifecycle، وكانت النتيجة <b class="ok">23 / 23 ناجح (PASS)</b> دون أي إخفاق أو تجاوز. كل طبقة جديدة مربوطة فعلياً بالجدول الزمني والتكلفة والمطالبات (سلاسل التأخير، تعرّض المسار الحرج، جاهزية المطالبة EOT)، و<b>تم التحقق من رفع/تنزيل الملفات</b> وعمله بشكل سليم. الأرقام كلها محسوبة حتمياً والذكاء الاصطناعي يقتصر على السرد خلف بوابة اعتماد بشري.</p>
+<div class="summary-stats">
+  <div class="s"><div class="v">17</div><div class="k">مرحلة حوكمة في دورة الحياة</div></div>
+  <div class="s"><div class="v">6</div><div class="k">طبقات حوكمة جديدة</div></div>
+  <div class="s"><div class="v green">23 / 23</div><div class="k">اختبار قبول ناجح</div></div>
+  <div class="s"><div class="v green">0</div><div class="k">إخفاق / تجاوز</div></div>
+</div>
+
+<!-- ════════════════ 2. 17-STAGE LIFECYCLE ════════════════ -->
+<h2><span class="no">2</span>دورة حوكمة من 17 مرحلة</h2>
+<p>تنتظم منظومة الحوكمة في <b>17 مرحلة متسلسلة</b> من الفكرة حتى السلطة النهائية (Sigma Governance). الطبقات المعلَّمة بشارة <span class="chip-new">جديد</span> هي الطبقات الست المضافة في هذا الإصدار:</p>
+<div class="flow17">
+  <div class="stg"><span class="num">1</span>الفكرة<span class="en4">Idea</span></div>
+  <div class="stg"><span class="num">2</span>الفرصة<span class="en4">Opportunity</span></div>
+  <div class="stg"><span class="num">3</span>دراسة الجدوى<span class="en4">Feasibility</span></div>
+  <div class="stg new"><span class="tagnew">جديد</span><span class="num">4</span>القابلية للتمويل<span class="en4">Bankability</span></div>
+  <div class="stg"><span class="num">5</span>حصر الكميات<span class="en4">Quantity Survey</span></div>
+  <div class="stg"><span class="num">6</span>المشتريات<span class="en4">Procurement</span></div>
+  <div class="stg"><span class="num">7</span>ضبط المشروع<span class="en4">Project Controls</span></div>
+  <div class="stg"><span class="num">8</span>المخاطر<span class="en4">Risk</span></div>
+  <div class="stg new"><span class="tagnew">جديد</span><span class="num">9</span>السلامة<span class="en4">Safety</span></div>
+  <div class="stg new"><span class="tagnew">جديد</span><span class="num">10</span>الحريق والسلامة<span class="en4">Fire &amp; Life Safety</span></div>
+  <div class="stg new"><span class="tagnew">جديد</span><span class="num">11</span>الجهات<span class="en4">Authority</span></div>
+  <div class="stg new"><span class="tagnew">جديد</span><span class="num">12</span>المرافق<span class="en4">Utility</span></div>
+  <div class="stg new"><span class="tagnew">جديد</span><span class="num">13</span>الجاهزية التشغيلية<span class="en4">Operational Readiness</span></div>
+  <div class="stg"><span class="num">14</span>المطالبات<span class="en4">Claims</span></div>
+  <div class="stg"><span class="num">15</span>الإيرادات<span class="en4">Revenue</span></div>
+  <div class="stg"><span class="num">16</span>التمويل<span class="en4">Funding</span></div>
+  <div class="stg"><span class="num">17</span>التنفيذي + حوكمة Sigma<span class="en4">Executive · Sigma Governance</span></div>
+</div>
+<p class="legend">المرحلة 17 تجمع طبقتي الذكاء التنفيذي (Executive Intelligence) وحوكمة Sigma النهائية (Sigma Governance AI) اللتين توحّدان مخرجات كل الطبقات في حالة حوكمة واحدة معتمَدة.</p>
+<div class="blk note"><b>قراءة الدورة:</b> كل مرحلة وكيل (Agent) مستقل بنفس العقد الموحّد (هدف · مدخلات · معالجة · مخرجات · ثقة · تصعيد · سجل تدقيق)، والحالة تنساب صعوداً بقاعدة «الأسوأ يطفو لأعلى» حتى تصل لطبقة حوكمة Sigma التي تصدر الحالة النهائية + الإجراءات التصحيحية.</div>
+
+<!-- ════════════════ 3. ACCEPTANCE RESULTS ════════════════ -->
+<h2><span class="no">3</span>نتائج برنامج القبول (23 Test)</h2>
+<p>نُفِّذ برنامج القبول الرسمي على المشروع المرجعي <span class="ltr">P-1000</span> فاجتاز <b class="ok">جميع الاختبارات الـ23 (PASS)</b>. اللقطة التالية من شاشة برنامج القبول داخل النظام، يليها جدول كامل بكل اختبار ودليله المختصر المأخوذ من سجل التنفيذ الفعلي:</p>
+<figure><img src="shots-new/acceptance.png" alt="Acceptance program 23/23 PASS"><figcaption>شاشة برنامج القبول — 23 اختباراً عبر كامل دورة الحياة، الجميع ناجح (23/23 PASS)</figcaption></figure>
+<table class="tests">
+  <tr><th>المعرّف</th><th>الاسم</th><th>المرحلة</th><th>الحالة</th><th>الدليل المختصر (Evidence)</th></tr>
+  <tr><td class="id">TEST-01</td><td>Opportunity Intelligence</td><td>Origination</td><td class="st">✅ ناجح</td><td class="ev">درجة الفرصة <b>58.2</b> · جاذبية السوق 69.1 · توصية <span class="ltr">watchlist</span> · <span class="ltr">OPP-0002</span> · ثقة 0.78 · حالة <span class="ltr">yellow</span></td></tr>
+  <tr><td class="id">TEST-02</td><td>Rapid Feasibility</td><td>Pre-Feasibility</td><td class="st">✅ ناجح</td><td class="ev"><b>NPV 2,034,733.73</b> · IRR <b>10.91%</b> · استرداد 6.36 سنة · توصية <span class="ltr">proceed_with_conditions</span> · ثقة 0.93</td></tr>
+  <tr><td class="id">TEST-03</td><td>Professional Feasibility</td><td>Feasibility</td><td class="st">✅ ناجح</td><td class="ev">دراسة احترافية · NPV 2,034,733.73 · IRR 10.91% · مخاطر <span class="ltr">moderate</span> · درجة جاذبية 38 · ثقة 0.93</td></tr>
+  <tr><td class="id">TEST-04</td><td>Bankability Assessment</td><td>Feasibility</td><td class="st">✅ ناجح</td><td class="ev">درجة <b>84</b> · حكم <b><span class="ltr">bankable</span></b> · DSCR <b>1.54</b> · CAPEX 26.6M · جدول دين 10 سنوات · حالة <span class="ltr">green</span></td></tr>
+  <tr><td class="id">TEST-05</td><td>Sketch Intelligence</td><td>Concept</td><td class="st">✅ ناجح</td><td class="ev">استخلاص من إسكتش ← تقييم · توصية <span class="ltr">proceed_with_conditions</span> · NPV 2,034,733.73 · ثقة 0.93</td></tr>
+  <tr><td class="id">TEST-06</td><td>BIM Quantity Extraction</td><td>Design</td><td class="st">✅ ناجح</td><td class="ev">استخلاص كميات من BIM · <b>2 findings</b> (تحذير) · انحراف سلسلة 2 · ثقة 0.8</td></tr>
+  <tr><td class="id">TEST-07</td><td>BOQ Validation</td><td>Design</td><td class="st">✅ ناجح</td><td class="ev">تحقّق BOQ مقابل BIM · 2 findings · 0 حرج · 2 تحذير · ثقة 0.8</td></tr>
+  <tr><td class="id">TEST-08</td><td>Procurement Intelligence</td><td>Procurement</td><td class="st">✅ ناجح</td><td class="ev"><b>5 findings</b> (3 حرج، 2 تحذير) · تأخر تسليم 2 · أصناف طويلة التوريد 1 · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-09</td><td>Primavera Integration</td><td>Planning</td><td class="st">✅ ناجح</td><td class="ev">استيراد جدول P6 · <b>102 نشاطاً</b> · مشروع <span class="ltr">172a66e6…</span></td></tr>
+  <tr><td class="id">TEST-10</td><td>Project Controls</td><td>Execution</td><td class="st">✅ ناجح</td><td class="ev">EVM · CPI <b>0.92</b> · EAC 4,564,947.84 · VAC −364,947.84 · جدول <span class="ltr">on-track</span></td></tr>
+  <tr><td class="id">TEST-11</td><td>Risk Intelligence</td><td>Execution</td><td class="st">✅ ناجح</td><td class="ev"><b>8 مخاطر</b> · أقصى أولوية 0.85 · <b>6 تصعيدات</b> · ثقة 0.8</td></tr>
+  <tr><td class="id">TEST-12</td><td>Safety Governance</td><td>Execution</td><td class="st">✅ ناجح</td><td class="ev">امتثال <b>65</b> · مؤشر HSE <b>48</b> · اتجاه <span class="ltr">worsening</span> · 5 سجلات · 5 findings · سلسلة إيقاف عمل 1 · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-13</td><td>Stop Work Scenario</td><td>Execution</td><td class="st">✅ ناجح</td><td class="ev">سيناريو إيقاف العمل · <b>stopWorkChains = 1</b> · حادثتان مفتوحتان · امتثال 65 · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-14</td><td>Fire Governance</td><td>Compliance</td><td class="st">✅ ناجح</td><td class="ev">جاهزية الحريق <b>50</b> · سجلان · 1 finding · معتمد 1 · <b>6 ملاحظات معلّقة</b> · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-15</td><td>Authority Governance</td><td>Compliance</td><td class="st">✅ ناجح</td><td class="ev">جاهزية الجهات <b>50</b> · طلبان · معتمد 1 / معلّق 1 · <b>تعرّض تأخير 92 يوماً</b> · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-16</td><td>Utility Governance</td><td>Compliance</td><td class="st">✅ ناجح</td><td class="ev">جاهزية المرافق <b>50</b> · توصيلتان · موصول 1 / معرّض 1 · <b>تعرّض تأخير 91 يوماً</b> · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-17</td><td>Operational Readiness</td><td>Handover</td><td class="st">✅ ناجح</td><td class="ev">جاهزية <b>47</b> · جاهزية التشغيل 0 · التسليم 70 · التشغيل التجريبي 0 · 6 findings · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-18</td><td>Claims Intelligence</td><td>Execution</td><td class="st">✅ ناجح</td><td class="ev"><b>2 مطالبتان</b> · <b>48 حدث تأخير</b> · ثقة 0.72</td></tr>
+  <tr><td class="id">TEST-19</td><td>Revenue Governance</td><td>Operation</td><td class="st">✅ ناجح</td><td class="ev">نسبة الإيراد <b>0.82</b> · ΔNPV <b>−5,154,252</b> · ΔIRR <b>−3.73 نقطة</b> · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-20</td><td>Funding Governance</td><td>Operation</td><td class="st">✅ ناجح</td><td class="ev">صحة التمويل <b>57</b> · ملتزم 50M · مسحوب 48M · 3 findings · حالة <span class="ltr">orange</span></td></tr>
+  <tr><td class="id">TEST-21</td><td>Executive Intelligence</td><td>Governance</td><td class="st">✅ ناجح</td><td class="ev">حوكمة <span class="ltr">red</span> · تكلفة <span class="ltr">over-budget</span> · تجاوز متوقع <b>8.69%</b> · تعرّض مخاطر 0.85 · مخاطر حرجة 2 · ثقة 0.85</td></tr>
+  <tr><td class="id">TEST-22</td><td>Audit Trail Validation</td><td>Governance</td><td class="st">✅ ناجح</td><td class="ev"><b>50 صف تدقيق</b> · 50 بمفتاح وكيل · 50 بمدخلات · 50 بدرجة ثقة · 20 قابل للتتبّع بالكامل</td></tr>
+  <tr><td class="id">TEST-23</td><td>End-to-End Sigma</td><td>Full Lifecycle</td><td class="st">✅ ناجح</td><td class="ev"><b>8 وكلاء L1→L8</b> · 8 مكتمل · حالة الحوكمة النهائية <span class="ltr">red</span></td></tr>
+</table>
+<div class="pass-blk"><b class="res">النتيجة الإجمالية: ✅ 23 / 23 ناجح (PASS)</b> — صفر إخفاق، صفر تجاوز. تغطية كاملة من Origination حتى Full Lifecycle، وكل دليل أعلاه مأخوذ من سجل التنفيذ الفعلي (<span class="ltr">AgentExecution</span>) للمشروع <span class="ltr">P-1000</span>.</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!-- ════════════════ NEW LAYERS — STEP BY STEP ═══════════ -->
+<!-- ════════════════════════════════════════════════════ -->
+
+<!-- ───────────── SAFETY ───────────── -->
+<h2><span class="no">4</span><span class="chip-new">جديد</span>حوكمة السلامة (Safety Governance)</h2>
+<p>طبقة حوكمة تنفيذ خطة الصحة والسلامة والبيئة (HSE) أثناء التنفيذ، وربط أحداث السلامة بسلسلة المطالبة والمسار الحرج. وكيل <span class="ltr">ext.safety</span> — اختبارات <span class="tid">TEST-12</span> و<span class="tid">TEST-13</span>.</p>
+<div class="blk goal"><b class="tag">الهدف</b>حوكمة تنفيذ خطة HSE والكشف المبكر عن تدهور الأداء قبل أن يتحول لحادث أو إيقاف عمل أو تأخير في المسار الحرج.</div>
+<div class="blk how" style="background:#fff;border:1px solid var(--line)"><b class="tag" style="background:var(--sky);color:#fff">المدخلات</b>خطط HSE، تقارير السلامة اليومية/الأسبوعية/الشهرية، التفتيشات (Inspections)، تصاريح العمل (Permit to Work)، الحوادث (Incidents)، حوادث الوشك (Near-miss)، الإجراءات التصحيحية (Corrective Actions)، محادثات السلامة (Toolbox Talks)، والتدقيقات (Audits).</div>
+<div class="blk sys"><b class="tag">المخرجات</b>درجة الامتثال للسلامة (Safety Compliance Score)، مؤشر أداء HSE (HSE Performance Index)، الملاحظات المفتوحة (Open Findings)، سجل مخاطر السلامة، اتجاه السلامة (Trend)، وتنبيهات إيقاف العمل (Stop-Work Alerts) — مع <b>سلسلة المطالبة</b>: <span class="ltr">Safety Event → Stop Work → Delay → Critical Path → EOT → Claim readiness</span>.</div>
+
+<h3>خطوات الاختبار + النتيجة <span class="tid">TEST-12</span> · <span class="tid">TEST-13</span></h3>
+<ol>
+  <li><b>الإدخال:</b> إضافة سجلات سلامة (تقارير، تفتيشات، حادثتان مفتوحتان، حدث يستدعي إيقاف العمل) — إجمالي <b>5 سجلات</b>.</li>
+  <li><b>تشغيل الحوكمة:</b> الضغط على <b>Run Safety Governance</b> لتشغيل وكيل <span class="ltr">ext.safety</span>.</li>
+  <li><b>قراءة المخرجات:</b> قراءة درجة الامتثال، مؤشر HSE، الاتجاه، والـ findings، وفي <span class="tid">TEST-13</span> التحقق من توليد <b>سلسلة إيقاف عمل</b> مربوطة بالتأخير.</li>
+</ol>
+<p><b>معيار النجاح:</b> توليد درجة امتثال ومؤشر HSE حتميَّين، اكتشاف الحوادث المفتوحة، وتوليد سلسلة إيقاف عمل واحدة على الأقل عند وجود حدث موجِب.</p>
+<div class="pass-blk"><b class="res">النتيجة: ✅ ناجح</b> — درجة الامتثال <b>65</b>، مؤشر أداء HSE <b>48</b>، الاتجاه <span class="ltr">worsening</span>، <b>5 سجلات</b> و<b>5 findings</b>، <b>سلسلة إيقاف عمل واحدة (stopWorkChains = 1)</b>، حادثتان مفتوحتان (openIncidents = 2)، جاهزية مطالبة 0، حالة الحوكمة <span class="ltr">orange</span>، ثقة 0.78. (executionId: <span class="ltr">5b2c0b21…</span> و<span class="ltr">69ca3251…</span>)</div>
+
+<div class="blk how"><b class="tag">طريقة الاستخدام الصحيحة</b>
+<ol>
+  <li><b>كيف تضيف سجلاً:</b> من صفحة السلامة اضغط <b>Add Record</b> واملأ النموذج (نوع السجل: تقرير/تفتيش/حادث/near-miss/تصريح عمل، التاريخ، الوصف، الشدّة، وربطه بالنشاط في الجدول الزمني). احفظ السجل.</li>
+  <li><b>كيف تشغّل الحوكمة:</b> اضغط زر <b>Run Safety Governance</b> — يشغّل الوكيل الحتمي فيحسب الدرجات والـ findings ويبني سلاسل إيقاف العمل.</li>
+  <li><b>كيف تقرأ الدرجة:</b> اقرأ درجة الامتثال ومؤشر HSE واللون (أخضر/أصفر/برتقالي/أحمر) في أعلى الصفحة.</li>
+  <li><b>قراءة الملاحظات وسلسلة المطالبة:</b> افتح قائمة الـ findings ثم سلسلة <span class="ltr">Stop Work → Delay → Critical Path → EOT</span> لمعرفة جاهزية المطالبة وتعرّض المسار الحرج.</li>
+  <li><b>تحليل الذكاء الاصطناعي:</b> اضغط <b>AI Analysis</b> (بعد إضافة مفتاح Claude من <span class="route">/admin/settings</span>) لسرد تفسيري للأرقام مع المصادر — والأرقام تبقى حتمية.</li>
+</ol></div>
+<figure><img src="shots-new/safety.png" alt="Safety Governance"><figcaption>حوكمة السلامة — درجة الامتثال ومؤشر HSE والـ findings وسلسلة إيقاف العمل المربوطة بالتأخير</figcaption></figure>
+<figure><img src="shots-new/ar-safety.png" alt="Safety Governance Arabic RTL"><figcaption>الواجهة بالعربية — حوكمة السلامة بواجهة RTL كاملة بمصطلحات المجال</figcaption></figure>
+
+<!-- ───────────── FIRE & LIFE SAFETY ───────────── -->
+<h2><span class="no">5</span><span class="chip-new">جديد</span>حوكمة الحريق والسلامة (Fire &amp; Life Safety)</h2>
+<p>طبقة حوكمة الامتثال لاستراتيجية الحريق واعتمادات الدفاع المدني. وكيل <span class="ltr">ext.fire_life_safety</span> — اختبار <span class="tid">TEST-14</span>.</p>
+<div class="blk goal"><b class="tag">الهدف</b>ضمان الامتثال لاستراتيجية الحريق ومتابعة مراجعات واعتمادات الدفاع المدني (Civil Defence) حتى جاهزية المبنى للتسليم.</div>
+<div class="blk how" style="background:#fff;border:1px solid var(--line)"><b class="tag" style="background:var(--sky);color:#fff">المدخلات</b>استراتيجية الحريق (Fire Strategy)، مخططات الحريق (Fire Drawings)، مراجعات الدفاع المدني (Civil Defence Reviews)، تقارير الاختبار والتشغيل (T&amp;C Reports)، والتفتيشات.</div>
+<div class="blk sys"><b class="tag">المخرجات</b>درجة جاهزية الحريق (Fire Readiness Score)، الملاحظات المعلّقة (Outstanding Comments)، توقّع الاعتماد (Approval Forecast)، ملاحظات الامتثال (Compliance Findings)، وتنبيهات الحريق (Fire Alerts).</div>
+
+<h3>خطوات الاختبار + النتيجة <span class="tid">TEST-14</span></h3>
+<ol>
+  <li><b>الإدخال:</b> إضافة سجلَّي حريق (استراتيجية حريق + مراجعة دفاع مدني) مع ملاحظات معلّقة.</li>
+  <li><b>تشغيل الحوكمة:</b> الضغط على <b>Run Fire Governance</b> لتشغيل وكيل <span class="ltr">ext.fire_life_safety</span>.</li>
+  <li><b>قراءة المخرجات:</b> قراءة درجة الجاهزية وعدد الملاحظات المعلّقة وحالة الاعتماد.</li>
+</ol>
+<p><b>معيار النجاح:</b> حساب درجة جاهزية حريق حتمية، عدّ الاعتمادات والمرفوضات، وحصر الملاحظات المعلّقة بدقة.</p>
+<div class="pass-blk"><b class="res">النتيجة: ✅ ناجح</b> — جاهزية الحريق <b>50</b>، <b>سجلان</b> (records = 2)، 1 finding، معتمد 1 / مرفوض 0، <b>6 ملاحظات معلّقة (outstandingComments = 6)</b>، حالة الحوكمة <span class="ltr">orange</span>، ثقة 0.78. (executionId: <span class="ltr">69a8e8ad…</span>)</div>
+
+<div class="blk how"><b class="tag">طريقة الاستخدام الصحيحة</b>
+<ol>
+  <li><b>كيف تضيف سجلاً:</b> اضغط <b>Add Record</b> واختر نوع السجل (استراتيجية حريق / مخطط / مراجعة دفاع مدني / تقرير T&amp;C)، وأدخل حالة المراجعة وعدد الملاحظات المعلّقة وتاريخ الاعتماد المتوقع.</li>
+  <li><b>كيف تشغّل الحوكمة:</b> اضغط <b>Run Fire Governance</b> لحساب درجة الجاهزية وتوقّع الاعتماد.</li>
+  <li><b>كيف تقرأ الدرجة:</b> اقرأ Fire Readiness Score ولونه، وعدد الملاحظات المعلّقة، وتاريخ الاعتماد المتوقع.</li>
+  <li><b>قراءة الملاحظات:</b> افتح قائمة Compliance Findings لمعرفة ما يعيق الاعتماد وما يلزم لإغلاقه.</li>
+  <li><b>تحليل الذكاء الاصطناعي:</b> اضغط <b>AI Analysis</b> لسرد تفسيري مرتبط بمصادر الامتثال.</li>
+</ol></div>
+<figure><img src="shots-new/fire-safety.png" alt="Fire & Life Safety Governance"><figcaption>حوكمة الحريق والسلامة — درجة الجاهزية، الملاحظات المعلّقة، وتوقّع اعتماد الدفاع المدني</figcaption></figure>
+
+<!-- ───────────── AUTHORITY ───────────── -->
+<h2><span class="no">6</span><span class="chip-new">جديد</span>حوكمة الجهات (Authority Governance)</h2>
+<p>طبقة حوكمة كل تقديمات واعتمادات الجهات الحكومية، مع حساب آلي لتعرّض المشروع للتأخير وأثره على المسار الحرج. وكيل <span class="ltr">ext.authority</span> — اختبار <span class="tid">TEST-15</span>.</p>
+<div class="blk goal"><b class="tag">الهدف</b>حوكمة جميع التقديمات والاعتمادات لدى الجهات، وحساب <b>تعرّض التأخير (Delay Exposure)</b> آلياً وأثره على المسار الحرج عند تأخّر أي اعتماد.</div>
+<div class="blk how" style="background:#fff;border:1px solid var(--line)"><b class="tag" style="background:var(--sky);color:#fff">المدخلات</b>تقديمات: البلدية (Municipality)، الدفاع المدني (Civil Defence)، الكهرباء (Electricity)، المياه (Water)، الاتصالات (Telecom)، البيئة (Environmental)، هيئة الطرق (RTA)، والصحة (Health).</div>
+<div class="blk sys"><b class="tag">المخرجات</b>درجة جاهزية الجهات (Authority Readiness Score)، حالة الاعتماد (Approval Status)، الملاحظات المعلّقة، تواريخ الاعتماد المتوقعة (Forecast Approval Dates)، تنبيهات التصعيد (Escalation Alerts)، و<b>تعرّض التأخير (Delay Exposure)</b>.</div>
+
+<h3>خطوات الاختبار + النتيجة <span class="tid">TEST-15</span></h3>
+<ol>
+  <li><b>الإدخال:</b> إضافة تقديمين لجهتين مع تواريخ التقديم والاعتماد المتوقع وحالة كل منهما.</li>
+  <li><b>تشغيل الحوكمة:</b> الضغط على <b>Run Authority Governance</b> لتشغيل وكيل <span class="ltr">ext.authority</span>.</li>
+  <li><b>قراءة المخرجات:</b> قراءة درجة الجاهزية وحالة الاعتماد و<b>تعرّض التأخير الكلي</b> وأثر المسار الحرج.</li>
+</ol>
+<p><b>معيار النجاح:</b> حساب درجة جاهزية حتمية، تمييز المعتمد عن المعلّق، و<b>حساب تعرّض التأخير بالأيام آلياً</b> من فجوة تواريخ الاعتماد.</p>
+<div class="pass-blk"><b class="res">النتيجة: ✅ ناجح</b> — جاهزية الجهات <b>50</b>، <b>طلبان</b> (submissions = 2)، معتمد 1 / معلّق 1، 2 findings، <b>إجمالي تعرّض التأخير 92 يوماً (totalDelayExposureDays = 92)</b>، أثر المسار الحرج 0، حالة الحوكمة <span class="ltr">orange</span>، ثقة 0.78. (executionId: <span class="ltr">feefd409…</span>)</div>
+
+<div class="blk how"><b class="tag">طريقة الاستخدام الصحيحة</b>
+<ol>
+  <li><b>كيف تضيف سجلاً:</b> اضغط <b>Add Submission</b> واختر الجهة (بلدية / دفاع مدني / كهرباء / مياه…) وأدخل تاريخ التقديم، تاريخ الاعتماد المتوقع، الحالة (معتمد/معلّق/مرفوض)، وعدد الملاحظات.</li>
+  <li><b>كيف تشغّل الحوكمة:</b> اضغط <b>Run Authority Governance</b> ليحسب الوكيل الجاهزية وتعرّض التأخير وأثره على المسار الحرج.</li>
+  <li><b>كيف تقرأ الدرجة:</b> اقرأ Authority Readiness ولونه وحالة كل تقديم وتاريخ الاعتماد المتوقع.</li>
+  <li><b>قراءة تعرّض التأخير:</b> افتح مؤشر Delay Exposure (بالأيام) وتنبيهات التصعيد لمعرفة الجهات المُعطِّلة للجدول الزمني.</li>
+  <li><b>تحليل الذكاء الاصطناعي:</b> اضغط <b>AI Analysis</b> لربط التأخيرات بالمخاطر الحوكمية والإجراءات.</li>
+</ol></div>
+<figure><img src="shots-new/authority.png" alt="Authority Governance"><figcaption>حوكمة الجهات — درجة الجاهزية، حالة الاعتمادات، وتعرّض التأخير المحسوب آلياً (92 يوماً)</figcaption></figure>
+<figure><img src="shots-new/ar-authority.png" alt="Authority Governance Arabic RTL"><figcaption>الواجهة بالعربية — حوكمة الجهات بواجهة RTL كاملة</figcaption></figure>
+
+<!-- ───────────── UTILITY ───────────── -->
+<h2><span class="no">7</span><span class="chip-new">جديد</span>حوكمة المرافق (Utility Governance)</h2>
+<p>طبقة حوكمة جاهزية المرافق وحالة التوصيل وتعرّض التأخير. وكيل <span class="ltr">ext.utility</span> — اختبار <span class="tid">TEST-16</span>.</p>
+<div class="blk goal"><b class="tag">الهدف</b>حوكمة جاهزية المرافق (Utility Readiness)، حالة التوصيل (Connection Status)، و<b>تعرّض التأخير</b> الناتج عن تأخّر التوصيلات.</div>
+<div class="blk how" style="background:#fff;border:1px solid var(--line)"><b class="tag" style="background:var(--sky);color:#fff">المدخلات</b>توصيلات الكهرباء (Power)، المياه (Water)، الاتصالات (Telecom)، والغاز (Gas)، مع نتائج الاختبار (Testing).</div>
+<div class="blk sys"><b class="tag">المخرجات</b>مؤشر جاهزية المرافق (Utility Readiness Index)، مخاطر المرافق (Utility Risks)، تواريخ التوصيل المتوقعة (Forecast Connection Dates)، و<b>تعرّض التأخير (Delay Exposure)</b>.</div>
+
+<h3>خطوات الاختبار + النتيجة <span class="tid">TEST-16</span></h3>
+<ol>
+  <li><b>الإدخال:</b> إضافة توصيلتي مرافق مع حالة كل منهما وتاريخ التوصيل المتوقع.</li>
+  <li><b>تشغيل الحوكمة:</b> الضغط على <b>Run Utility Governance</b> لتشغيل وكيل <span class="ltr">ext.utility</span>.</li>
+  <li><b>قراءة المخرجات:</b> قراءة مؤشر الجاهزية وعدد التوصيلات الموصولة/المعرّضة وتعرّض التأخير.</li>
+</ol>
+<p><b>معيار النجاح:</b> حساب مؤشر جاهزية حتمي، تمييز الموصول عن المعرّض للخطر، وحساب أقصى/إجمالي تعرّض التأخير بالأيام.</p>
+<div class="pass-blk"><b class="res">النتيجة: ✅ ناجح</b> — جاهزية المرافق <b>50</b>، <b>توصيلتان</b> (connections = 2)، موصول 1 / معرّض 1 (atRisk = 1)، 2 findings، <b>أقصى وإجمالي تعرّض تأخير 91 يوماً</b>، حالة الحوكمة <span class="ltr">orange</span>، ثقة 0.78. (executionId: <span class="ltr">18cff82a…</span>)</div>
+
+<div class="blk how"><b class="tag">طريقة الاستخدام الصحيحة</b>
+<ol>
+  <li><b>كيف تضيف سجلاً:</b> اضغط <b>Add Connection</b> واختر نوع المرفق (كهرباء / مياه / اتصالات / غاز)، وأدخل الحالة (موصول / قيد التنفيذ / معرّض)، تاريخ التوصيل المتوقع، ونتيجة الاختبار.</li>
+  <li><b>كيف تشغّل الحوكمة:</b> اضغط <b>Run Utility Governance</b> لحساب المؤشر وتعرّض التأخير.</li>
+  <li><b>كيف تقرأ الدرجة:</b> اقرأ Utility Readiness Index ولونه وعدد التوصيلات المعرّضة للخطر.</li>
+  <li><b>قراءة المخاطر والتأخير:</b> افتح Utility Risks وتعرّض التأخير لمعرفة المرافق المُعطِّلة للتسليم.</li>
+  <li><b>تحليل الذكاء الاصطناعي:</b> اضغط <b>AI Analysis</b> لسرد تفسيري مع المصادر.</li>
+</ol></div>
+<figure><img src="shots-new/utility.png" alt="Utility Governance"><figcaption>حوكمة المرافق — مؤشر الجاهزية، حالة التوصيلات، وتعرّض التأخير (91 يوماً)</figcaption></figure>
+
+<!-- ───────────── OPERATIONAL READINESS ───────────── -->
+<h2><span class="no">8</span><span class="chip-new">جديد</span>الجاهزية التشغيلية (Operational Readiness)</h2>
+<p>طبقة حوكمة الانتقال من اكتمال الإنشاء إلى التشغيل الفعلي (Go-Live). وكيل <span class="ltr">ext.operational_readiness</span> — اختبار <span class="tid">TEST-17</span>.</p>
+<div class="blk goal"><b class="tag">الهدف</b>حوكمة الانتقال من <b>اكتمال الإنشاء (Construction Complete)</b> إلى <b>التشغيل الفعلي (Operational Go-Live)</b> والتأكد من اكتمال متطلبات التسليم والتشغيل.</div>
+<div class="blk how" style="background:#fff;border:1px solid var(--line)"><b class="tag" style="background:var(--sky);color:#fff">المدخلات</b>أدلة التشغيل والصيانة (O&amp;M Manuals)، سجلات الأصول (Asset Registers)، سجلات التدريب (Training Records)، سجلات الاختبار والتشغيل (T&amp;C Records)، وثائق التسليم (Handover Docs)، وخطط التوظيف (Staffing Plans).</div>
+<div class="blk sys"><b class="tag">المخرجات</b>درجة الجاهزية التشغيلية (Operational Readiness Score)، جاهزية التشغيل (Go-Live Readiness)، جاهزية التسليم (Handover Readiness)، وجاهزية التشغيل التجريبي (Commissioning Readiness).</div>
+
+<h3>خطوات الاختبار + النتيجة <span class="tid">TEST-17</span></h3>
+<ol>
+  <li><b>الإدخال:</b> إضافة 3 بنود جاهزية (أدلة O&amp;M، سجل أصول، وثائق تسليم) بحالاتها.</li>
+  <li><b>تشغيل الحوكمة:</b> الضغط على <b>Run Operational Readiness</b> لتشغيل وكيل <span class="ltr">ext.operational_readiness</span>.</li>
+  <li><b>قراءة المخرجات:</b> قراءة درجة الجاهزية الكلية وتفصيلها (Go-Live / Handover / Commissioning).</li>
+</ol>
+<p><b>معيار النجاح:</b> حساب درجة جاهزية كلية حتمية وتفصيلها على المحاور الثلاثة، وتوليد findings للبنود الناقصة.</p>
+<div class="pass-blk"><b class="res">النتيجة: ✅ ناجح</b> — درجة الجاهزية <b>47</b>، 3 بنود (items = 3)، <b>6 findings</b>، جاهزية التشغيل (Go-Live) <b>0</b>، جاهزية التسليم (Handover) <b>70</b>، جاهزية التشغيل التجريبي (Commissioning) <b>0</b>، متأخر 0، حالة الحوكمة <span class="ltr">orange</span>، ثقة 0.78. (executionId: <span class="ltr">4c8a0edf…</span>)</div>
+
+<div class="blk how"><b class="tag">طريقة الاستخدام الصحيحة</b>
+<ol>
+  <li><b>كيف تضيف سجلاً:</b> اضغط <b>Add Item</b> واختر فئة الجاهزية (O&amp;M / أصول / تدريب / T&amp;C / تسليم / توظيف)، وأدخل الحالة ونسبة الاكتمال والموعد المستهدف.</li>
+  <li><b>كيف تشغّل الحوكمة:</b> اضغط <b>Run Operational Readiness</b> لحساب الدرجة الكلية والمحاور الثلاثة.</li>
+  <li><b>كيف تقرأ الدرجة:</b> اقرأ Readiness Score ولونه، وافحص أيًّا من Go-Live / Handover / Commissioning متأخّر.</li>
+  <li><b>قراءة الملاحظات:</b> افتح قائمة الـ findings لمعرفة البنود الناقصة المانعة للتشغيل.</li>
+  <li><b>تحليل الذكاء الاصطناعي:</b> اضغط <b>AI Analysis</b> لسرد تفسيري لخطة سدّ فجوات الجاهزية.</li>
+</ol></div>
+<figure><img src="shots-new/operational-readiness.png" alt="Operational Readiness"><figcaption>الجاهزية التشغيلية — الدرجة الكلية وتفصيلها على Go-Live · Handover · Commissioning</figcaption></figure>
+
+<!-- ───────────── BANKABILITY ───────────── -->
+<h2><span class="no">9</span><span class="chip-new">جديد</span>القابلية للتمويل البنكي (Bankability Intelligence)</h2>
+<p>طبقة تحوّل دراسة الجدوى إلى <b>حزمة جاهزة للمموّل (Lender-ready Package)</b>. وكيل <span class="ltr">ext.bankability</span> — اختبار <span class="tid">TEST-04</span>.</p>
+<div class="blk goal"><b class="tag">الهدف</b>تحويل دراسة الجدوى إلى حزمة جاهزة للمموّل: تحقّق من تغطية خدمة الدين، جدول الدين، متطلبات التمويل، وحكم القابلية للتمويل البنكي.</div>
+<div class="blk how" style="background:#fff;border:1px solid var(--line)"><b class="tag" style="background:var(--sky);color:#fff">المدخلات</b>تقرأ الطبقة <b>تقييم الجدوى (FeasibilityAssessment)</b> و<b>التسهيلات التمويلية (FundingFacility)</b> القائمة — فتبني الحكم على أرقام حقيقية لا مُدخلة يدوياً.</div>
+<div class="blk sys"><b class="tag">المخرجات</b>تغطية خدمة الدين (DSCR)، جدول الدين (Debt Schedule)، متطلبات التمويل (Funding Requirements)، تقييم القابلية للتمويل + حكم (Bankability Assessment + Verdict)، وحزم المستثمر والمموّل (Investor &amp; Lender Packages).</div>
+
+<h3>خطوات الاختبار + النتيجة <span class="tid">TEST-04</span></h3>
+<ol>
+  <li><b>الإدخال:</b> وجود تقييم جدوى وتسهيل تمويلي للمشروع <span class="ltr">P-1000</span> (تُقرأ آلياً).</li>
+  <li><b>تشغيل الحوكمة:</b> الضغط على <b>Run Bankability</b> لتشغيل وكيل <span class="ltr">ext.bankability</span>.</li>
+  <li><b>قراءة المخرجات:</b> قراءة درجة القابلية، الحكم، DSCR الفعّال، فجوة التمويل، وجدول الدين.</li>
+</ol>
+<p><b>معيار النجاح:</b> حساب DSCR وجدول دين حتميَّين من الجدوى والتسهيلات، وإصدار حكم قابلية تمويل واضح بحالة حوكمة.</p>
+<div class="pass-blk"><b class="res">النتيجة: ✅ ناجح</b> — درجة القابلية <b>84</b>، الحكم <b><span class="ltr">bankable</span></b>، DSCR الفعّال <b>1.54</b>، تسهيل واحد (facilities = 1)، 0 findings، CAPEX <b>26,600,000</b>، فجوة تمويل <b>−23,400,000</b> (فائض)، جدول دين <b>10 سنوات</b>، حالة الحوكمة <span class="ltr">green</span> (الطبقة الجديدة الوحيدة التي أعطت حالة خضراء)، ثقة 0.78. (executionId: <span class="ltr">1426aa31…</span>)</div>
+
+<div class="blk how"><b class="tag">طريقة الاستخدام الصحيحة</b>
+<ol>
+  <li><b>كيف تضيف البيانات:</b> لا حاجة لإدخال يدوي للأرقام — تأكّد أولاً من وجود <b>تقييم جدوى معتمد</b> من <span class="route">/feasibility</span> و<b>تسهيل تمويلي</b> من <span class="route">/funding</span> للمشروع.</li>
+  <li><b>كيف تشغّل الحوكمة:</b> اضغط <b>Run Bankability</b> ليقرأ الوكيل الجدوى والتسهيلات ويحسب DSCR وجدول الدين والحكم.</li>
+  <li><b>كيف تقرأ الدرجة والحكم:</b> اقرأ Bankability Score والحكم (<span class="ltr">bankable / conditional / not bankable</span>) و DSCR وفجوة التمويل.</li>
+  <li><b>قراءة الحزم:</b> افتح Investor Package و Lender Package المُجمَّعتين تلقائياً، واطبعهما PDF للمموّل.</li>
+  <li><b>تحليل الذكاء الاصطناعي:</b> اضغط <b>AI Analysis</b> لسرد قصة الائتمان مع المصادر المالية.</li>
+</ol></div>
+<figure><img src="shots-new/bankability.png" alt="Bankability Intelligence"><figcaption>القابلية للتمويل البنكي — DSCR 1.54، حكم bankable، جدول دين 10 سنوات، وحزم المستثمر/المموّل</figcaption></figure>
+
+<!-- ════════════════ 10. REMAINING MODULES ════════════════ -->
+<h2><span class="no">10</span>باقي الموديولز — طريقة الاستخدام</h2>
+<p>إلى جانب الطبقات الجديدة، هذه طريقة الاستخدام المختصرة لكل موديول قائم في النظام مع لقطته الفعلية:</p>
+
+<h3><span class="chip-ex">موجود</span>اللوحة الرئيسية — Overview <span class="route">/</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>نبضة المشروع المختار: عدّادات الاستيراد، إجمالي التنبيهات (حرج/تحذير)، ثقة آخر استيراد، وشريط KPI التنفيذي (صحة المشروع، ثقة الحوكمة، التأخير وتجاوز التكلفة المتوقعان). بدّل المشروع من الأعلى لترى نبضة مشروع آخر فوراً.</div>
+<figure><img src="shots-new/ex-overview.png" alt="Overview"><figcaption>اللوحة الرئيسية — عدّادات وتوزيع تنبيهات وشريط KPI تنفيذي للمشروع المختار</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>مركز القيادة — Command Center (L8) <span class="route">/governance-command</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>الحالة الموحّدة لكل عقدة (أخضر/أصفر/برتقالي/أحمر) + الإجراءات التصحيحية. اضغط <b>Recompute</b> بعد أي بيانات جديدة، واعمل على قائمة Corrective Actions (open → in-progress → done)، وانزل لتفاصيل أي عقدة لرؤية سجل كل وكيل.</div>
+<figure><img src="shots-new/ex-command-center.png" alt="Command Center"><figcaption>مركز قيادة الحوكمة — الحالة الموحّدة، قمرة القيادة، والإجراءات التصحيحية</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>الإدارة التنفيذية — Executive (L7) <span class="route">/executive</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>رؤية مجلس الإدارة: حالة الحوكمة، صحة الجدول والتكلفة، نسبة التجاوز المتوقعة، التعرّض للمخاطر، والدرجات التنفيذية. تُقرأ من أعلى لأسفل، وكل رقم له أصل حتمي قابل للتتبّع.</div>
+<figure><img src="shots-new/ex-executive.png" alt="Executive"><figcaption>اللوحة التنفيذية — المؤشرات الاستراتيجية الموحّدة من كل الطبقات</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>هيكل الحوكمة — Hierarchy <span class="route">/hierarchy</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>شجرة Enterprise → Portfolio → Program → Project مع حالة وشارات Roll-up لكل عقدة. أنشئ العقد، اربط المشروع عبر <b>Attach</b>، وحدّد مرحلة دورة الحياة، ثم <b>Recompute</b> لتجميع الحالات صعوداً.</div>
+<figure><img src="shots-new/ex-hierarchy.png" alt="Hierarchy"><figcaption>الهرمية الرباعية — حالة كل عقدة وشارات التجميع المرجّحة بالميزانية</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>سجل الوكلاء — Agent Registry <span class="route">/agents</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>كل الوكلاء (L0–L8 + الامتدادات) ببطاقة العقد الموحّد + صحة الوكيل (معدّل نجاح، متوسط ثقة، آخر حالة). شغّل أي وكيل بزر <b>Run</b> أو الخط الكامل بزر <b>Run pipeline</b>، وراجع تاريخ التنفيذات.</div>
+<figure><img src="shots-new/ex-agents.png" alt="Agent Registry"><figcaption>سجل الوكلاء — العقد الموحّد لكل وكيل وسجل تنفيذاته وصحته</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>ذكاء الفرص — Opportunity <span class="route">/opportunity</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>البوابة الأولى للاستثمار: فرز الفرص قبل دراسة الجدوى. أضف فرصة فيُنتج النظام درجة فرصة (0–100) + جاذبية السوق والمنافسة والتمويل والتعقيد التنظيمي وتوصية (Proceed / Watchlist / Reject).</div>
+<figure><img src="shots-new/ex-opportunity.png" alt="Opportunity"><figcaption>ذكاء الفرص — درجة الفرصة والذكاء السوقي والتوصية</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>دراسة الجدوى — Feasibility <span class="route">/feasibility</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>اضغط <b>New opportunity</b> واملأ النموذج، ثم <b>Run rapid assessment</b> للتقييم السريع (NPV · IRR · Payback · DSCR)، و<b>Generate professional study</b> للدراسة الاحترافية ذات الـ17 قسماً واعتمادها قسماً قسماً.</div>
+<figure><img src="shots-new/ex-feasibility.png" alt="Feasibility"><figcaption>دراسة الجدوى — التقييم السريع والدراسة الاحترافية والباقات</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>حصر الكميات — Quantity Survey <span class="route">/quantity-survey</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>أنشئ تقديراً مصنّفاً (NRM / UniFormat / MasterFormat / CESMM)، ثم <b>Run QS governance</b> ليقارن وكيل <span class="ltr">ext.quantity_survey</span> المصادر ويولّد findings (BOQ vs BIM، over-measurement…) مع تبويب التتبّع الكامل.</div>
+<figure><img src="shots-new/ex-quantity-survey.png" alt="Quantity Survey"><figcaption>حصر الكميات — التقدير المصنّف، حوكمة الكميات، وسلسلة التتبّع</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>المشتريات — Procurement <span class="route">/procurement</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>أضف حزمة مشتريات بكميات <span class="ltr">BIM / Procured / Installed</span> وتواريخ التسليم ومورّدين، ثم <b>Run procurement governance</b> ليقارن وكيل <span class="ltr">ext.procurement</span> المصادر ويكشف تأخّر التسليم والأصناف طويلة التوريد ومخاطر المورّد.</div>
+<figure><img src="shots-new/ex-procurement.png" alt="Procurement"><figcaption>المشتريات — حزم المشتريات وسجل المورّدين وحوكمة سلسلة الإمداد</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>حوكمة الإيرادات — Revenue <span class="route">/revenue</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>تابع سلسلة الإيراد (Forecast → … → Final) وأثر انحرافه على NPV/IRR/الاسترداد بإعادة تشغيل النموذج المالي. <b>Run Revenue Governance</b> يولّد findings وتوصية تنفيذية (مثال: 82% ⇐ ΔNPV −5.15M).</div>
+<figure><img src="shots-new/ex-revenue.png" alt="Revenue"><figcaption>حوكمة الإيرادات — الأثر على NPV/IRR/الاسترداد وسلسلة تتبّع الإيراد</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>حوكمة التمويل — Funding <span class="route">/funding</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>أضف تسهيلاً تمويلياً (ملتزم/مسحوب/قائم) مع DSCR والتعهّدات، ثم شغّل الحوكمة لتتبّع خدمة الدين ومخاطر إعادة التمويل وتوافر التمويل — يولّد findings ودرجة صحة تمويلية.</div>
+<figure><img src="shots-new/ex-funding.png" alt="Funding"><figcaption>حوكمة التمويل — التسهيلات و DSCR والتعهّدات والسحب وخدمة الدين</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>الحوكمة التنبؤية — Predictive <span class="route">/predictive</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>خمسة توقّعات حتمية: تجاوز التكلفة (من CPI)، التأخر الزمني (من SPI)، فجوة الإيراد، مخاطر المشتريات، ومخاطر التمويل — مع حالة حوكمية إجمالية وإجراء موصى به لكلٍّ.</div>
+<figure><img src="shots-new/ex-predictive.png" alt="Predictive"><figcaption>الحوكمة التنبؤية — خمسة توقّعات حتمية وإجراء موصى به لكلٍّ</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>المعرفة والقواعد — Knowledge <span class="route">/knowledge</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>الأساس المعرفي لكل الوكلاء: مكتبة قواعد Sigma، سجل المصادر (FIDIC · PMI · ISO)، الأطر، والدروس المستفادة، مع بحث المعرفة وتبويب المقاييس المرجعية (Benchmarks). كل اقتباس AI يستشهد بـ<span class="ltr">[SOURCE: id]</span>.</div>
+<figure><img src="shots-new/ex-knowledge.png" alt="Knowledge"><figcaption>المعرفة والقواعد — القواعد والمصادر والأطر والدروس والمقاييس المرجعية</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>الإدخال والرفع — Input / Upload <span class="route">/input</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>اسحب الملف (XER · XML · Excel · CSV · PDF) أو اختره، فيُحفظ أصلٌ مؤرشف (content-addressed) ويُطبَّع append-only بدرجة ثقة. <b>تم التحقق من الرفع والتنزيل وعمله سليماً.</b> راقب جدول حالة كل عملية.</div>
+<figure><img src="shots-new/ex-input.png" alt="Input / Upload"><figcaption>الإدخال والرفع — رفع الملفات وأرشفتها وسجل عمليات الاستيراد</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>المراجعة — Review <span class="route">/review</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>زر <b>Evaluate</b> يفحص بيانات المشروع ضد مكتبة القواعد ويولّد تنبيهات (حرج/تحذير/معلومة) وقرارات حوكمة. زر <b>Weekly summary</b> يولّد الملخص التنفيذي. رشّح بالخطورة وافتح أي تنبيه لرؤية قراره.</div>
+<figure><img src="shots-new/ex-review.png" alt="Review"><figcaption>المراجعة — التنبيهات بحسب الخطورة وتوليد الملخص الأسبوعي</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>أرشيف القرارات — Decisions <span class="route">/decisions</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>سجل قرارات L3 الكامل: الطرف المسؤول، بند FIDIC ومهله، مستوى التصعيد (L1–L3)، وحالة الاعتماد. مع قوالب القرار وسلسلة الأثر (Decision → Alert → Evidence → Source).</div>
+<figure><img src="shots-new/ex-decisions.png" alt="Decisions"><figcaption>أرشيف القرارات — المسؤولية وبند FIDIC والتصعيد وسلسلة الأثر</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>التحليلات و EVM — Analytics <span class="route">/analytics</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>القيمة المكتسبة بصيغ PMI الحتمية: PV · EV · AC ← SPI · CPI · EAC · ETC · VAC، مع Earned Schedule واتجاهات SPI/CPI وتحليلات على مستوى المحفظة. كل لقطة KPI تُحفظ بتاريخ بياناتها.</div>
+<figure><img src="shots-new/ex-analytics.png" alt="Analytics & EVM"><figcaption>التحليلات و EVM — المؤشرات الحتمية والاتجاهات وتوقّع الانحراف</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>سجل المخاطر — Risk <span class="route">/risk</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>توليد وتقييم المخاطر حتمياً (احتمال × أثر) من إشارات المشروع، مع أولويات معالجة وخريطة حرارية. زر التشغيل يستدعي وكيل <span class="ltr">l5.risk</span>؛ المخاطر عالية الدرجة تغذّي التصعيد تلقائياً.</div>
+<figure><img src="shots-new/ex-risk.png" alt="Risk"><figcaption>سجل المخاطر — مصفوفة الاحتمال × الأثر وأولويات المعالجة</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>المطالبات — Claims <span class="route">/claims</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>تحليل تأخير حتمي نافذةً نافذة، تحديد المطالبات المحتملة، إسناد المسؤولية، وربط الأدلة، مع تقييم الاستحقاق والجاهزية وحزمة المطالبة. (مثال القبول: 2 مطالبتان و48 حدث تأخير.)</div>
+<figure><img src="shots-new/ex-claims.png" alt="Claims"><figcaption>المطالبات — تحليل نوافذ التأخير والمطالبات المرشحة وربط الأدلة</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>خطوط الأساس و P6 — Baselines <span class="route">/baselines</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>إدارة خطوط الأساس الزمنية ومقارناتها، وطلبات بناء خط الأساس وحالتها. تُغذّى من جداول Primavera P6 المستوردة (مثال القبول: 102 نشاطاً).</div>
+<figure><img src="shots-new/ex-baselines.png" alt="Baselines / P6"><figcaption>خطوط الأساس و P6 — طلبات بناء خط الأساس ومقارناته</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>المحاكاة — Simulation <span class="route">/simulation</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>تفريع سيناريو رملي (Sandbox) تجرب فيه «ماذا لو» (تأخير نشاط، تغيير موارد) بأمان كامل — الكتابة في فرع السيناريو فقط، ثم تُرقّى النتيجة لقاعدة الحقيقة بقرار صريح أو تُهمل.</div>
+<figure><img src="shots-new/ex-simulation.png" alt="Simulation"><figcaption>المحاكاة — سيناريوهات What-if معزولة لا تمس بيانات الحقيقة</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>التقرير الشهري + PDF — Monthly Report <span class="route">/reports/monthly</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>توليد التقرير الشهري السردي ثنائي اللغة (عربي/إنجليزي) من بيانات المشروع الحقيقية بزاوية سرد تناسب جمهوره (تنفيذي/حوكمي/استثماري/محفظة)، مع اعتماده و<b>تصديره PDF</b>.</div>
+<figure><img src="shots-new/ex-reports-monthly.png" alt="Monthly Report + PDF"><figcaption>التقرير الشهري — سرد ثنائي اللغة بأنواع متعددة مع تصدير PDF</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>الإدارة · مركز تهيئة الحوكمة <span class="route">/admin/governance</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>الشاشة الواحدة لضبط محرّك الحوكمة وأسطول الوكلاء: نافذة التصعيد، التقييم التلقائي بعد الاستيراد، الاعتماد المزدوج، أوزان تجميع الحالة، وتفعيل/تعطيل كل وكيل واختيار طبقة نموذجه. كل تغيير يسري عند التشغيل التالي بلا إعادة تشغيل.</div>
+<figure><img src="shots-new/ex-admin-governance.png" alt="Admin · Governance"><figcaption>مركز تهيئة الحوكمة — ضبط المحرّك وأسطول وكلاء الذكاء الاصطناعي</figcaption></figure>
+
+<h3><span class="chip-ex">موجود</span>الإدارة · صلاحيات الأدوار <span class="route">/admin/roles</span></h3>
+<div class="blk how"><b class="tag">الاستخدام</b>مصفوفة الصلاحيات × الأدوار قابلة للتبديل لحظياً: أي مفتاح يُقلب يسري فوراً على الخادم والواجهة. عمود الأدمن مقفول، و<span class="ltr">canRead</span>/<span class="ltr">canManageRoles</span> محميتان، و<b>Reset</b> يعيد الافتراضات.</div>
+<figure><img src="shots-new/ex-admin-roles.png" alt="Admin · Roles"><figcaption>صلاحيات الأدوار — مصفوفة قابلة للتبديل لحظياً مع فرض حقيقي في الخادم</figcaption></figure>
+
+<!-- ════════════════ 11. GOVERNANCE NOTES ════════════════ -->
+<h2><span class="no">11</span>ملاحظات الحوكمة</h2>
+<div class="blk sys"><b class="tag">الحتمية أولاً (Deterministic-first)</b>كل الأرقام (الدرجات، DSCR، NPV/IRR، EVM، تعرّض التأخير، مؤشرات HSE والجاهزية) <b>تُحسب حسابياً بصيغ حتمية قابلة للتدقيق</b>. الذكاء الاصطناعي <b>يسرد ويفسّر فقط</b> ولا يحسب، ويحتاج <b>مفتاح Claude</b> مُهيأ من <span class="route">/admin/settings</span> — وبدونه تعمل لوحات AI Analysis بتدرّج آمن (تعرض المصادر دون اختلاق نص).</div>
+<div class="blk sys"><b class="tag">قابلية التتبّع الكاملة</b>كل قرار قابل للتتبّع عبر السلسلة: <span class="ltr">Decision → Finding → Agent → Evidence → Source</span>. وقد أثبت <span class="tid">TEST-22</span> ذلك عملياً: <b>50 صف تدقيق</b>، كلها بمفتاح وكيل ومدخلات ودرجة ثقة، و20 منها قابل للتتبّع بالكامل حتى المصدر.</div>
+<div class="blk sys"><b class="tag">الرفع والتنزيل</b><b>تم التحقق من رفع وتنزيل الملفات وعمله بشكل سليم</b> عبر صفحة الإدخال (XER · XML · Excel · CSV · PDF) — تُحفظ نسخة أصلية مؤرشفة (content-addressed) وتُطبَّع append-only بدرجة ثقة، ويُثبت <span class="tid">TEST-09</span> الاستيراد الفعلي لجدول P6 بـ102 نشاطاً.</div>
+<div class="blk sys"><b class="tag">الطبقات مربوطة بالجدول والمطالبات</b>الطبقات الجديدة ليست منعزلة: أحداث السلامة تولّد <b>سلاسل إيقاف عمل → تأخير → مسار حرج → EOT → جاهزية مطالبة</b> (<span class="tid">TEST-12/13</span>)، وتأخّر الجهات والمرافق يُحسب آلياً كـ<b>تعرّض تأخير بالأيام</b> (92 و91 يوماً في <span class="tid">TEST-15/16</span>) — فتنساب كلها صعوداً إلى حالة الحوكمة الموحّدة وطبقة المطالبات.</div>
+<div class="blk note"><b>خلاصة:</b> برنامج القبول الرسمي اكتمل بنتيجة <b class="ok">23 / 23 ناجح (PASS)</b> على المشروع <span class="ltr">P-1000</span>، بكل الأدلة الرقمية مأخوذة من سجل التنفيذ الفعلي. كل طبقة جديدة ميزة تفاعلية حيّة مربوطة بالجدول والتكلفة والمطالبات، خلف بوابة اعتماد بشري وسجل تدقيق دائم.</div>
+
+<p class="footer-note">Sigma PMO · تقرير اختبار القبول ودليل الطبقات الجديدة · 13 يونيو 2026 · المشروع المرجعي <span class="ltr">P-1000 — Nile Tower</span> · أُنشئت كل اللقطات آلياً من النظام الحي.</p>
+
+</main>
+</body>
+</html>

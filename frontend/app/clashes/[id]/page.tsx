@@ -19,6 +19,7 @@ import { PolicyAddonInline } from '../../../components/PolicyAddonInline';
 import { SimulationModal, SimulationProjectionView } from '../../../components/SimulationModal';
 import { useToast } from '../../../components/ToastProvider';
 import { CAPABILITIES } from '../../../lib/capabilities';
+import { useI18n } from '../../../lib/i18n';
 import { useMe } from '../../../lib/me-context';
 import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../../components/ui';
 import { IconSparkles } from '../../../components/Icons';
@@ -62,6 +63,7 @@ export default function ClashDetailRoute({ params }: { params: Promise<{ id: str
 
 function ClashDetailPage({ id }: { id: string }) {
   const toast = useToast();
+  const { lang } = useI18n();
   const { me } = useMe();
   const canAct = !!me?.user && CAPABILITIES[me.user.role].canEvaluateRules;
   const canSimulate = !!me?.user && CAPABILITIES[me.user.role].canSimulate;
@@ -95,13 +97,18 @@ function ClashDetailPage({ id }: { id: string }) {
     try {
       await api(`/clashes/${id}/propose`, { method: 'POST' });
       await refresh();
-      toast.success('Options proposed', 'Three options drafted by the clash analyst persona.');
+      toast.success(
+        lang === 'ar' ? 'تم اقتراح الخيارات' : 'Options proposed',
+        lang === 'ar'
+          ? 'صاغت الشخصية الخبيرة لمحلّل التضاربات ثلاثة خيارات.'
+          : 'Three options drafted by the clash analyst persona.',
+      );
     } catch (e) {
-      toast.error('Propose failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر اقتراح الخيارات' : 'Propose failed', (e as Error).message);
     } finally {
       setBusy(null);
     }
-  }, [id, refresh, toast]);
+  }, [id, refresh, toast, lang]);
 
   const onSimulate = useCallback(async () => {
     if (picked === null) return;
@@ -114,11 +121,11 @@ function ClashDetailPage({ id }: { id: string }) {
       setProjection(p);
       setModalOpen(true);
     } catch (e) {
-      toast.error('Simulation failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّرت المحاكاة' : 'Simulation failed', (e as Error).message);
     } finally {
       setBusy(null);
     }
-  }, [id, picked, approverName, toast]);
+  }, [id, picked, approverName, toast, lang]);
 
   const onApprove = useCallback(async () => {
     if (picked === null || !projection) return;
@@ -131,17 +138,20 @@ function ClashDetailPage({ id }: { id: string }) {
       setModalOpen(false);
       await refresh();
       toast.success(
-        'Resolution applied',
-        `${r.revisedActivityKeys.length} activity revision(s) at rev ${r.revisionNumber}` +
-          (r.claimLetterId ? ` · claim letter ${r.claimLetterId.slice(0, 8)}` : ''),
+        lang === 'ar' ? 'تم تطبيق الحل' : 'Resolution applied',
+        lang === 'ar'
+          ? `${r.revisedActivityKeys.length} مراجعة أنشطة عند الإصدار ${r.revisionNumber}` +
+              (r.claimLetterId ? ` · خطاب المطالبة ${r.claimLetterId.slice(0, 8)}` : '')
+          : `${r.revisedActivityKeys.length} activity revision(s) at rev ${r.revisionNumber}` +
+              (r.claimLetterId ? ` · claim letter ${r.claimLetterId.slice(0, 8)}` : ''),
       );
-      for (const w of r.warnings) toast.error('Note', w);
+      for (const w of r.warnings) toast.error(lang === 'ar' ? 'ملاحظة' : 'Note', w);
     } catch (e) {
-      toast.error('Apply failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر التطبيق' : 'Apply failed', (e as Error).message);
     } finally {
       setBusy(null);
     }
-  }, [id, picked, projection, approverName, refresh, toast]);
+  }, [id, picked, projection, approverName, refresh, toast, lang]);
 
   const decided = clash?.chosenOptionIndex !== null && clash?.chosenOptionIndex !== undefined;
   const options = clash?.proposedOptions ?? [];
@@ -149,16 +159,20 @@ function ClashDetailPage({ id }: { id: string }) {
   return (
     <div className="space-y-6 animate-[fade-in-up_240ms_ease-out]">
       <Link href="/clashes" className="text-xs text-sky-300 underline-offset-2 hover:underline">
-        ← Back to clashes
+        {lang === 'ar' ? '→ العودة إلى التضاربات' : '← Back to clashes'}
       </Link>
       <PageHeader
-        eyebrow={`Engineering · Clash ${clash?.clashRef ?? id.slice(0, 8)}`}
-        title={clash ? `Clash ${clash.clashRef}` : 'Clash detail'}
+        eyebrow={lang === 'ar' ? `الهندسة · التضارب ${clash?.clashRef ?? id.slice(0, 8)}` : `Engineering · Clash ${clash?.clashRef ?? id.slice(0, 8)}`}
+        title={clash ? (lang === 'ar' ? `التضارب ${clash.clashRef}` : `Clash ${clash.clashRef}`) : (lang === 'ar' ? 'تفاصيل التضارب' : 'Clash detail')}
         description={clash?.description ?? ''}
         actions={
           <PersonaActiveBadge
             personaSlug="revit-clash-analyst"
-            expertise="BIM clash analyst — 10-20 years Revit / Navisworks coordination."
+            expertise={
+              lang === 'ar'
+                ? 'محلّل تضاربات BIM — خبرة 10-20 عاماً في التنسيق عبر Revit / Navisworks.'
+                : 'BIM clash analyst — 10-20 years Revit / Navisworks coordination.'
+            }
             surface="engineering"
           />
         }
@@ -172,31 +186,48 @@ function ClashDetailPage({ id }: { id: string }) {
 
           <div className="flex flex-wrap items-center gap-2">
             <Pill tone={clash.severity === 'critical' ? 'rose' : clash.severity === 'major' ? 'amber' : 'sky'}>
-              {clash.severity}
+              {lang === 'ar'
+                ? clash.severity === 'critical'
+                  ? 'حرج'
+                  : clash.severity === 'major'
+                    ? 'رئيسي'
+                    : clash.severity === 'minor'
+                      ? 'ثانوي'
+                      : clash.severity
+                : clash.severity}
             </Pill>
             {clash.disciplinesInvolved.map((d) => <Pill key={d} tone="violet">{d}</Pill>)}
             <Pill tone={decided ? 'emerald' : options.length > 0 ? 'sky' : 'slate'}>
-              {decided ? 'Decided' : options.length > 0 ? 'Proposed' : 'Pending'}
+              {decided
+                ? (lang === 'ar' ? 'تمّ البتّ فيه' : 'Decided')
+                : options.length > 0
+                  ? (lang === 'ar' ? 'مُقترَح' : 'Proposed')
+                  : (lang === 'ar' ? 'قيد الانتظار' : 'Pending')}
             </Pill>
           </div>
 
           {options.length === 0 ? (
-            <Card title="No options yet">
+            <Card title={lang === 'ar' ? 'لا توجد خيارات بعد' : 'No options yet'}>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm text-slate-300">
-                  Trigger the clash analyst persona to draft the three options
-                  (time-trade / cost-trade / coordination).
+                  {lang === 'ar'
+                    ? 'شغّل الشخصية الخبيرة لمحلّل التضاربات لصياغة الخيارات الثلاثة (مفاضلة زمنية / مفاضلة كلفوية / تنسيق).'
+                    : 'Trigger the clash analyst persona to draft the three options (time-trade / cost-trade / coordination).'}
                 </p>
                 <Button variant="primary" size="sm" disabled={!canAct || busy === 'propose'} onClick={() => void onPropose()}>
                   <IconSparkles className="h-3.5 w-3.5" />
-                  {busy === 'propose' ? 'Proposing…' : 'Propose options'}
+                  {busy === 'propose' ? (lang === 'ar' ? 'جارٍ الاقتراح…' : 'Proposing…') : lang === 'ar' ? 'اقتراح الخيارات' : 'Propose options'}
                 </Button>
               </div>
             </Card>
           ) : (
             <Card
-              title="Resolution options"
-              hint="Pick one, simulate the time/cost impact, then approve — approval issues an append-only schedule revision + the FIDIC claim letter."
+              title={lang === 'ar' ? 'خيارات الحل' : 'Resolution options'}
+              hint={
+                lang === 'ar'
+                  ? 'اختر خياراً، حاكِ الأثر الزمني / الكلفوي، ثم اعتمد — يُصدر الاعتماد مراجعة جدول زمني بنظام الإضافة فقط مع خطاب المطالبة وفق FIDIC.'
+                  : 'Pick one, simulate the time/cost impact, then approve — approval issues an append-only schedule revision + the FIDIC claim letter.'
+              }
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {options.map((opt, idx) => {
@@ -219,16 +250,16 @@ function ClashDetailPage({ id }: { id: string }) {
                       <span className="text-sm font-semibold text-slate-50" dir="auto">{opt.label}</span>
                       <div className="grid grid-cols-1 gap-1.5 text-[11px]">
                         <span className={`rounded-md px-2 py-1 ring-1 ${opt.timeImpactDays > 0 ? 'bg-amber-500/15 text-amber-100 ring-amber-500/40' : 'bg-emerald-500/15 text-emerald-100 ring-emerald-500/40'}`}>
-                          Time: {opt.timeImpactDays >= 0 ? '+' : ''}{opt.timeImpactDays} day(s)
+                          {lang === 'ar' ? 'الزمن:' : 'Time:'} {opt.timeImpactDays >= 0 ? '+' : ''}{opt.timeImpactDays} {lang === 'ar' ? 'يوم' : 'day(s)'}
                         </span>
                         <span className={`rounded-md px-2 py-1 ring-1 ${opt.costImpactAED && opt.costImpactAED > 0 ? 'bg-amber-500/15 text-amber-100 ring-amber-500/40' : 'bg-slate-800 text-slate-200 ring-slate-700'}`} dir="ltr">
-                          Cost: {opt.costImpactAED === null ? '— (not in BoQ)' : `AED ${opt.costImpactAED.toLocaleString()}`}
+                          {lang === 'ar' ? 'التكلفة:' : 'Cost:'} {opt.costImpactAED === null ? (lang === 'ar' ? '— (خارج جدول الكميات)' : '— (not in BoQ)') : `AED ${opt.costImpactAED.toLocaleString()}`}
                         </span>
                         <span className="rounded-md bg-violet-500/15 px-2 py-1 text-violet-100 ring-1 ring-violet-500/40" dir="auto">
-                          Scope: {opt.scopeImpact || 'none'}
+                          {lang === 'ar' ? 'النطاق:' : 'Scope:'} {opt.scopeImpact || (lang === 'ar' ? 'لا يوجد' : 'none')}
                         </span>
                       </div>
-                      {isChosen && <Pill tone="emerald">Chosen</Pill>}
+                      {isChosen && <Pill tone="emerald">{lang === 'ar' ? 'المختار' : 'Chosen'}</Pill>}
                     </button>
                   );
                 })}
@@ -237,16 +268,18 @@ function ClashDetailPage({ id }: { id: string }) {
               {!decided && (
                 <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-700/70 pt-3">
                   <Button variant="primary" size="sm" disabled={!canSimulate || picked === null || busy === 'simulate'} onClick={() => void onSimulate()}>
-                    {busy === 'simulate' ? 'Simulating…' : 'Simulate impact'}
+                    {busy === 'simulate' ? (lang === 'ar' ? 'جارٍ المحاكاة…' : 'Simulating…') : lang === 'ar' ? 'محاكاة الأثر' : 'Simulate impact'}
                   </Button>
                 </div>
               )}
 
               {decided && (
                 <p className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-100">
-                  Decided by <span className="font-semibold">{clash.decidedBy}</span>
-                  {clash.decidedAt ? ` on ${new Date(clash.decidedAt).toLocaleString()}` : ''} — the schedule
-                  revision and claim letter were issued at approval time.
+                  {lang === 'ar' ? 'تمّ البتّ فيه بقرار ' : 'Decided by '}<span className="font-semibold">{clash.decidedBy}</span>
+                  {clash.decidedAt ? (lang === 'ar' ? ` بتاريخ ${new Date(clash.decidedAt).toLocaleString()}` : ` on ${new Date(clash.decidedAt).toLocaleString()}`) : ''}
+                  {lang === 'ar'
+                    ? ' — صدرت مراجعة الجدول الزمني وخطاب المطالبة عند الاعتماد.'
+                    : ' — the schedule revision and claim letter were issued at approval time.'}
                 </p>
               )}
             </Card>
@@ -257,7 +290,7 @@ function ClashDetailPage({ id }: { id: string }) {
             optionLabel={picked !== null ? options[picked]?.label ?? '' : ''}
             projection={projection}
             applying={busy === 'apply'}
-            onApprove={canApprove ? () => void onApprove() : () => toast.error('Not permitted', 'Approving requires canEditPolicy.')}
+            onApprove={canApprove ? () => void onApprove() : () => toast.error(lang === 'ar' ? 'غير مصرّح' : 'Not permitted', lang === 'ar' ? 'يتطلّب الاعتماد صلاحية canEditPolicy.' : 'Approving requires canEditPolicy.')}
             onClose={() => setModalOpen(false)}
           />
         </>

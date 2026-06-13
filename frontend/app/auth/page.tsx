@@ -22,15 +22,15 @@ import {
 /** The L0–L8 agent taxonomy, shown as an animated governance stack. Generic —
  *  the platform's architecture, not tied to any project. */
 const LAYERS = [
-  { tag: 'L0', label: 'Knowledge & Rules', accent: 'from-slate-400/60 to-slate-500/40' },
-  { tag: 'L1', label: 'Data Collection', accent: 'from-sky-400/60 to-sky-500/40' },
-  { tag: 'L2', label: 'Validation', accent: 'from-cyan-400/60 to-cyan-500/40' },
-  { tag: 'L3', label: 'Compliance', accent: 'from-teal-400/60 to-teal-500/40' },
-  { tag: 'L4', label: 'Analytics', accent: 'from-emerald-400/60 to-emerald-500/40' },
-  { tag: 'L5', label: 'Risk', accent: 'from-amber-400/60 to-amber-500/40' },
-  { tag: 'L6', label: 'Claims & Disputes', accent: 'from-orange-400/60 to-orange-500/40' },
-  { tag: 'L7', label: 'Executive Intelligence', accent: 'from-violet-400/60 to-violet-500/40' },
-  { tag: 'L8', label: 'Sigma Governance AI', accent: 'from-fuchsia-400/70 to-rose-500/50' },
+  { tag: 'L0', label: 'Knowledge & Rules', labelAr: 'المعرفة والقواعد', accent: 'from-slate-400/60 to-slate-500/40' },
+  { tag: 'L1', label: 'Data Collection', labelAr: 'جمع البيانات', accent: 'from-sky-400/60 to-sky-500/40' },
+  { tag: 'L2', label: 'Validation', labelAr: 'التحقّق', accent: 'from-cyan-400/60 to-cyan-500/40' },
+  { tag: 'L3', label: 'Compliance', labelAr: 'الامتثال', accent: 'from-teal-400/60 to-teal-500/40' },
+  { tag: 'L4', label: 'Analytics', labelAr: 'التحليلات', accent: 'from-emerald-400/60 to-emerald-500/40' },
+  { tag: 'L5', label: 'Risk', labelAr: 'المخاطر', accent: 'from-amber-400/60 to-amber-500/40' },
+  { tag: 'L6', label: 'Claims & Disputes', labelAr: 'المطالبات والنزاعات', accent: 'from-orange-400/60 to-orange-500/40' },
+  { tag: 'L7', label: 'Executive Intelligence', labelAr: 'الذكاء التنفيذي', accent: 'from-violet-400/60 to-violet-500/40' },
+  { tag: 'L8', label: 'Sigma Governance AI', labelAr: 'ذكاء سيجما للحوكمة', accent: 'from-fuchsia-400/70 to-rose-500/50' },
 ];
 
 /** The seeded role accounts — selecting one fills its email + the matching
@@ -184,7 +184,7 @@ export default function AuthPage() {
                     <span className={`grid h-5 w-7 shrink-0 place-items-center rounded bg-gradient-to-br ${l.accent} font-mono text-[10px] font-bold text-white ring-1 ring-white/10`} dir="ltr">
                       {l.tag}
                     </span>
-                    <span className="truncate text-[11px] text-slate-300">{l.label}</span>
+                    <span className="truncate text-[11px] text-slate-300">{lang === 'ar' ? l.labelAr : l.label}</span>
                   </div>
                 </div>
               ))}

@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { api } from '../../../lib/api';
 import { AuthGate } from '../../../components/AuthGate';
+import { useI18n } from '../../../lib/i18n';
 import { useMe } from '../../../lib/me-context';
 import { useToast } from '../../../components/ToastProvider';
 import { CAPABILITIES } from '../../../lib/capabilities';
@@ -43,7 +44,9 @@ interface ClaudeStatus {
 interface Definition {
   key: string;
   title: string;
+  titleAr: string;
   description: string;
+  descriptionAr: string;
   placeholder: string;
   badge?: 'critical';
   testHint?: string;
@@ -53,8 +56,11 @@ const DEFS: Definition[] = [
   {
     key: 'anthropic.api_key',
     title: 'Anthropic API key',
+    titleAr: 'مفتاح واجهة Anthropic API',
     description:
       'The Claude API key that powers every persona — Letter drafter, Monthly narrator, Clash solver, etc. Without it the platform falls back to deterministic-only output (no LLM rewriting). Get a key from console.anthropic.com.',
+    descriptionAr:
+      'مفتاح Claude API الذي يُشغّل كل شخصية خبيرة — محرّر الخطابات، راوي التقرير الشهري، حلّال التعارضات، وغيرها. بدونه تعود المنصّة إلى المخرجات الحتمية فقط (دون إعادة صياغة بالنموذج اللغوي). احصل على مفتاح من console.anthropic.com.',
     placeholder: 'sk-ant-…',
     badge: 'critical',
     testHint: 'sk-ant-api03-… (96 chars typical)',
@@ -62,21 +68,29 @@ const DEFS: Definition[] = [
   {
     key: 'integrations.slack_webhook',
     title: 'Slack webhook URL',
+    titleAr: 'رابط Slack webhook',
     description:
       'Incoming-webhook URL the platform posts alert notifications to. Optional — when blank, alerts stay in-app only.',
+    descriptionAr:
+      'رابط الـ webhook الوارد الذي تنشر إليه المنصّة إشعارات التنبيهات. اختياري — عند تركه فارغاً تبقى التنبيهات داخل التطبيق فقط.',
     placeholder: 'https://hooks.slack.com/services/T…/B…/…',
   },
   {
     key: 'integrations.teams_webhook',
     title: 'Microsoft Teams webhook URL',
+    titleAr: 'رابط Microsoft Teams webhook',
     description: 'Incoming-webhook URL the platform posts alert notifications to. Optional.',
+    descriptionAr: 'رابط الـ webhook الوارد الذي تنشر إليه المنصّة إشعارات التنبيهات. اختياري.',
     placeholder: 'https://outlook.office.com/webhook/…',
   },
   {
     key: 'integrations.email_smtp',
     title: 'Outbound email SMTP',
+    titleAr: 'بريد SMTP الصادر',
     description:
       'SMTP connection URL for notifications (governance decisions, letter drafts). Format: smtps://user:pass@host:465.',
+    descriptionAr:
+      'رابط اتصال SMTP للإشعارات (قرارات الحوكمة، مسوّدات الخطابات). الصيغة: smtps://user:pass@host:465.',
     placeholder: 'smtps://user:pass@host:465',
   },
 ];
@@ -92,6 +106,7 @@ export default function AdminSettingsRoute() {
 function AdminSettingsPage() {
   const { me } = useMe();
   const toast = useToast();
+  const { lang } = useI18n();
   const canEdit = !!me?.user && CAPABILITIES[me.user.role].canEditPolicy;
 
   const [catalogue, setCatalogue] = useState<SettingDescriptor[] | null>(null);
@@ -124,13 +139,16 @@ function AdminSettingsPage() {
           method: 'PUT',
           body: JSON.stringify({ value, updatedBy: me?.user?.displayName ?? null }),
         });
-        toast.success('Saved', `${key} updated.`);
+        toast.success(
+          lang === 'ar' ? 'تم الحفظ' : 'Saved',
+          lang === 'ar' ? `تم تحديث ${key}.` : `${key} updated.`,
+        );
         await refresh();
       } catch (e) {
-        toast.error('Save failed', (e as Error).message);
+        toast.error(lang === 'ar' ? 'فشل الحفظ' : 'Save failed', (e as Error).message);
       }
     },
-    [me?.user?.displayName, refresh, toast],
+    [me?.user?.displayName, refresh, toast, lang],
   );
 
   const onClear = useCallback(
@@ -139,21 +157,28 @@ function AdminSettingsPage() {
         await api<SettingDescriptor>(`/admin/settings/${encodeURIComponent(key)}`, {
           method: 'DELETE',
         });
-        toast.success('Cleared', `${key} reset.`);
+        toast.success(
+          lang === 'ar' ? 'تم المسح' : 'Cleared',
+          lang === 'ar' ? `تمت إعادة تعيين ${key}.` : `${key} reset.`,
+        );
         await refresh();
       } catch (e) {
-        toast.error('Clear failed', (e as Error).message);
+        toast.error(lang === 'ar' ? 'فشل المسح' : 'Clear failed', (e as Error).message);
       }
     },
-    [refresh, toast],
+    [refresh, toast, lang],
   );
 
   return (
     <div className="space-y-6 animate-[fade-in-up_240ms_ease-out]">
       <PageHeader
-        eyebrow="Admin · Advanced settings"
-        title="Platform Settings"
-        description="Runtime-configurable secrets and integration URLs. Values are AES-256-GCM-encrypted server-side. The UI never displays the plaintext — only a fingerprint and audit metadata."
+        eyebrow={lang === 'ar' ? 'الإدارة · الإعدادات المتقدّمة' : 'Admin · Advanced settings'}
+        title={lang === 'ar' ? 'إعدادات المنصّة' : 'Platform Settings'}
+        description={
+          lang === 'ar'
+            ? 'الأسرار وروابط التكامل القابلة للإعداد أثناء التشغيل. تُشفَّر القيم بخوارزمية AES-256-GCM على الخادم. لا تعرض الواجهة النص الصريح أبداً — فقط بصمة وبيانات تدقيق.'
+            : 'Runtime-configurable secrets and integration URLs. Values are AES-256-GCM-encrypted server-side. The UI never displays the plaintext — only a fingerprint and audit metadata.'
+        }
       />
 
       <ErrorBanner message={err} />
@@ -161,7 +186,15 @@ function AdminSettingsPage() {
       {!canEdit && (
         <Card>
           <p className="text-xs text-slate-300">
-            Your role does not include <code className="font-mono">canEditPolicy</code>; contact a Sigma admin to manage platform settings.
+            {lang === 'ar' ? (
+              <>
+                لا يتضمّن دورك صلاحية <code className="font-mono">canEditPolicy</code>؛ تواصل مع مسؤول سيجما لإدارة إعدادات المنصّة.
+              </>
+            ) : (
+              <>
+                Your role does not include <code className="font-mono">canEditPolicy</code>; contact a Sigma admin to manage platform settings.
+              </>
+            )}
           </p>
         </Card>
       )}
@@ -197,6 +230,7 @@ function ClaudeStatusBanner({
   onRefresh: () => Promise<void>;
 }) {
   const toast = useToast();
+  const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
 
   const doRefresh = useCallback(async () => {
@@ -206,16 +240,18 @@ function ClaudeStatusBanner({
         method: 'POST',
       });
       toast.success(
-        'Claude refreshed',
-        r.enabled ? 'API key recognized — Claude is enabled.' : 'No API key found — Claude stays disabled.',
+        lang === 'ar' ? 'تم تحديث Claude' : 'Claude refreshed',
+        r.enabled
+          ? lang === 'ar' ? 'تم التعرّف على مفتاح API — تم تفعيل Claude.' : 'API key recognized — Claude is enabled.'
+          : lang === 'ar' ? 'لم يُعثر على مفتاح API — يبقى Claude معطّلاً.' : 'No API key found — Claude stays disabled.',
       );
       await onRefresh();
     } catch (e) {
-      toast.error('Refresh failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل التحديث' : 'Refresh failed', (e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [toast, onRefresh]);
+  }, [toast, onRefresh, lang]);
 
   if (!status) return null;
 
@@ -233,23 +269,35 @@ function ClaudeStatusBanner({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className={`text-sm font-semibold ${textClass}`}>
-              {status.enabled ? 'Claude is enabled' : 'Claude is disabled'}
+              {status.enabled
+                ? lang === 'ar' ? 'Claude مُفعَّل' : 'Claude is enabled'
+                : lang === 'ar' ? 'Claude مُعطَّل' : 'Claude is disabled'}
             </p>
             <Pill tone={status.enabled ? 'emerald' : 'amber'}>
-              {status.keySource === 'db' ? 'Key from /admin/settings' : status.keySource === 'env' ? 'Key from ENV' : 'No key'}
+              {status.keySource === 'db'
+                ? lang === 'ar' ? 'المفتاح من /admin/settings' : 'Key from /admin/settings'
+                : status.keySource === 'env'
+                  ? lang === 'ar' ? 'المفتاح من ENV' : 'Key from ENV'
+                  : lang === 'ar' ? 'لا يوجد مفتاح' : 'No key'}
             </Pill>
             <Pill tone="slate">{status.defaultModel}</Pill>
             <Pill tone="slate">{status.defaultTier}</Pill>
           </div>
           <p className={`mt-1 text-xs leading-relaxed ${textClass}`}>
             {status.enabled
-              ? 'The Anthropic SDK is wired and every persona call (Letter drafter, Monthly narrator, Clash solver, etc.) will use the resolved key. Changes to the API key below are picked up automatically — no restart required.'
-              : 'No API key configured. Personas fall back to deterministic-only output. Set the Anthropic API key in the form below; the change is detected within seconds via the SettingsService change listener.'}
+              ? lang === 'ar'
+                ? 'تم ربط Anthropic SDK، وكل استدعاء شخصية (محرّر الخطابات، راوي التقرير الشهري، حلّال التعارضات، وغيرها) سيستخدم المفتاح المُحدَّد. تُلتقَط التغييرات على مفتاح API أدناه تلقائياً — دون الحاجة لإعادة تشغيل.'
+                : 'The Anthropic SDK is wired and every persona call (Letter drafter, Monthly narrator, Clash solver, etc.) will use the resolved key. Changes to the API key below are picked up automatically — no restart required.'
+              : lang === 'ar'
+                ? 'لم يتم إعداد مفتاح API. تعود الشخصيات إلى المخرجات الحتمية فقط. عيّن مفتاح Anthropic API في النموذج أدناه؛ يُكتشَف التغيير خلال ثوانٍ عبر مُستمِع التغيير في SettingsService.'
+                : 'No API key configured. Personas fall back to deterministic-only output. Set the Anthropic API key in the form below; the change is detected within seconds via the SettingsService change listener.'}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => void doRefresh()} disabled={busy}>
           <IconRefresh className="h-3.5 w-3.5" />
-          {busy ? 'Refreshing…' : 'Refresh status'}
+          {busy
+            ? lang === 'ar' ? 'جاري التحديث…' : 'Refreshing…'
+            : lang === 'ar' ? 'تحديث الحالة' : 'Refresh status'}
         </Button>
       </div>
     </div>
@@ -257,6 +305,7 @@ function ClaudeStatusBanner({
 }
 
 function SecurityNotice() {
+  const { lang } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 shadow-sm">
       <div
@@ -268,12 +317,25 @@ function SecurityNotice() {
           <IconShield className="h-4 w-4 text-emerald-100" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-emerald-50">Encryption at rest</p>
+          <p className="text-sm font-semibold text-emerald-50">
+            {lang === 'ar' ? 'التشفير عند التخزين' : 'Encryption at rest'}
+          </p>
           <p className="mt-1 text-xs leading-relaxed text-emerald-100">
-            Every value entered below is encrypted with AES-256-GCM using a per-tenant master key derived
-            from <code className="font-mono">SETTINGS_ENCRYPTION_KEY</code>. The raw plaintext never leaves
-            the server — it&apos;s decrypted only when an internal service (e.g. ClaudeService) needs to
-            authenticate against an external API. Read endpoints return a fingerprint + audit trail, never the value.
+            {lang === 'ar' ? (
+              <>
+                تُشفَّر كل قيمة تُدخَل أدناه بخوارزمية AES-256-GCM باستخدام مفتاح رئيسي خاص بكل جهة، مُشتقّ
+                من <code className="font-mono">SETTINGS_ENCRYPTION_KEY</code>. لا يغادر النص الصريح الخادم
+                أبداً — يُفكّ تشفيره فقط عندما تحتاج خدمة داخلية (مثل ClaudeService) إلى المصادقة مقابل واجهة
+                خارجية. تُرجِع نقاط القراءة بصمة + سجلّ تدقيق، ولا تُرجِع القيمة أبداً.
+              </>
+            ) : (
+              <>
+                Every value entered below is encrypted with AES-256-GCM using a per-tenant master key derived
+                from <code className="font-mono">SETTINGS_ENCRYPTION_KEY</code>. The raw plaintext never leaves
+                the server — it&apos;s decrypted only when an internal service (e.g. ClaudeService) needs to
+                authenticate against an external API. Read endpoints return a fingerprint + audit trail, never the value.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -294,6 +356,7 @@ function SettingCard({
   onSave: (key: string, value: string) => Promise<void>;
   onClear: (key: string) => Promise<void>;
 }) {
+  const { lang } = useI18n();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('');
   const [show, setShow] = useState(false);
@@ -330,18 +393,18 @@ function SettingCard({
 
   return (
     <Card
-      title={def.title}
-      hint={def.description}
+      title={lang === 'ar' ? def.titleAr : def.title}
+      hint={lang === 'ar' ? def.descriptionAr : def.description}
       actions={
         <span className="flex items-center gap-2">
-          {def.badge === 'critical' && <Pill tone="rose">Critical</Pill>}
+          {def.badge === 'critical' && <Pill tone="rose">{lang === 'ar' ? 'حرج' : 'Critical'}</Pill>}
           {isConfigured ? (
             <Pill tone="emerald">
-              <IconCheck className="me-1 h-3 w-3" /> Configured
+              <IconCheck className="me-1 h-3 w-3" /> {lang === 'ar' ? 'مُهيّأ' : 'Configured'}
             </Pill>
           ) : (
             <Pill tone="amber">
-              <IconX className="me-1 h-3 w-3" /> Not set
+              <IconX className="me-1 h-3 w-3" /> {lang === 'ar' ? 'غير مُعيَّن' : 'Not set'}
             </Pill>
           )}
         </span>
@@ -355,26 +418,40 @@ function SettingCard({
                 {state?.fingerprint ?? '••••'}
               </div>
               <div className="min-w-0 flex-1 text-slate-300">
-                Last updated by{' '}
-                <span className="font-medium text-slate-100">{state?.updatedBy ?? 'unknown'}</span>
+                {lang === 'ar' ? 'آخر تحديث بواسطة' : 'Last updated by'}{' '}
+                <span className="font-medium text-slate-100">
+                  {state?.updatedBy ?? (lang === 'ar' ? 'غير معروف' : 'unknown')}
+                </span>
                 <span className="mx-1.5 text-slate-500">·</span>
                 <span dir="ltr">{wasUpdated}</span>
               </div>
             </>
           ) : (
             <p className="flex-1 text-slate-300">
-              No value configured. Click <span className="font-semibold text-slate-100">Set value</span> below to add one.
+              {lang === 'ar' ? (
+                <>
+                  لا توجد قيمة مُعدّة. انقر <span className="font-semibold text-slate-100">تعيين قيمة</span> أدناه لإضافتها.
+                </>
+              ) : (
+                <>
+                  No value configured. Click <span className="font-semibold text-slate-100">Set value</span> below to add one.
+                </>
+              )}
             </p>
           )}
           {canEdit && (
             <div className="flex items-center gap-2">
               <Button variant="primary" size="sm" onClick={() => setEditing(true)}>
                 <IconSparkles className="h-3.5 w-3.5" />
-                {isConfigured ? 'Replace value' : 'Set value'}
+                {isConfigured
+                  ? lang === 'ar' ? 'استبدال القيمة' : 'Replace value'
+                  : lang === 'ar' ? 'تعيين قيمة' : 'Set value'}
               </Button>
               {isConfigured && (
                 <Button variant="ghost" size="sm" onClick={() => void clear()} disabled={busy === 'clear'}>
-                  {busy === 'clear' ? 'Clearing…' : 'Clear'}
+                  {busy === 'clear'
+                    ? lang === 'ar' ? 'جاري المسح…' : 'Clearing…'
+                    : lang === 'ar' ? 'مسح' : 'Clear'}
                 </Button>
               )}
             </div>
@@ -390,7 +467,7 @@ function SettingCard({
         >
           <label className="flex flex-col gap-1 text-xs">
             <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-              New value
+              {lang === 'ar' ? 'قيمة جديدة' : 'New value'}
             </span>
             <div className="flex items-stretch gap-2">
               <input
@@ -410,18 +487,23 @@ function SettingCard({
                 onClick={() => setShow((v) => !v)}
                 className="rounded-lg border border-slate-600 bg-slate-900/70 px-3 text-xs text-slate-200 transition hover:border-slate-400 hover:text-slate-50"
               >
-                {show ? 'Hide' : 'Show'}
+                {show
+                  ? lang === 'ar' ? 'إخفاء' : 'Hide'
+                  : lang === 'ar' ? 'إظهار' : 'Show'}
               </button>
             </div>
             {def.testHint && (
-              <p className="text-[10px] text-slate-400" dir="ltr">
-                Expected format: {def.testHint}
+              <p className="text-[10px] text-slate-400">
+                {lang === 'ar' ? 'الصيغة المتوقّعة: ' : 'Expected format: '}
+                <span dir="ltr">{def.testHint}</span>
               </p>
             )}
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" variant="primary" size="sm" disabled={busy === 'save' || !value.trim()}>
-              {busy === 'save' ? 'Encrypting…' : 'Save (encrypt + store)'}
+              {busy === 'save'
+                ? lang === 'ar' ? 'جاري التشفير…' : 'Encrypting…'
+                : lang === 'ar' ? 'حفظ (تشفير + تخزين)' : 'Save (encrypt + store)'}
             </Button>
             <Button
               variant="ghost"
@@ -432,7 +514,7 @@ function SettingCard({
                 setShow(false);
               }}
             >
-              Cancel
+              {lang === 'ar' ? 'إلغاء' : 'Cancel'}
             </Button>
           </div>
         </form>

@@ -31,6 +31,34 @@ const NEW_ROUTES = [
   ['operational-readiness', '/operational-readiness'],
 ];
 
+// Existing lifecycle / governance modules — so the guide covers every module.
+const EXISTING_ROUTES = [
+  ['overview', '/'],
+  ['command-center', '/governance-command'],
+  ['executive', '/executive'],
+  ['hierarchy', '/hierarchy'],
+  ['agents', '/agents'],
+  ['opportunity', '/opportunity'],
+  ['feasibility', '/feasibility'],
+  ['quantity-survey', '/quantity-survey'],
+  ['procurement', '/procurement'],
+  ['revenue', '/revenue'],
+  ['funding', '/funding'],
+  ['predictive', '/predictive'],
+  ['knowledge', '/knowledge'],
+  ['input', '/input'],
+  ['review', '/review'],
+  ['decisions', '/decisions'],
+  ['analytics', '/analytics'],
+  ['risk', '/risk'],
+  ['claims', '/claims'],
+  ['baselines', '/baselines'],
+  ['simulation', '/simulation'],
+  ['reports-monthly', '/reports/monthly'],
+  ['admin-governance', '/admin/governance'],
+  ['admin-roles', '/admin/roles'],
+];
+
 async function main() {
   rmSync('shots-new', { recursive: true, force: true });
   mkdirSync('shots-new', { recursive: true });
@@ -91,6 +119,10 @@ async function main() {
   // The six new pages (light / EN).
   for (const [name, route] of NEW_ROUTES) {
     await shot(name, route, { fullPage: true });
+  }
+  // Existing modules (light / EN) — full coverage for the usage guide.
+  for (const [name, route] of EXISTING_ROUTES) {
+    await shot('ex-' + name, route, { fullPage: true });
   }
 
   // The Acceptance page — run the 23 tests live, then capture the matrix.

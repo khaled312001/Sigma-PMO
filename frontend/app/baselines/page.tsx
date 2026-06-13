@@ -314,7 +314,7 @@ function BaselinesPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-2.5 py-1.5 text-xs text-slate-100 transition-all duration-200 hover:scale-105 hover:border-sky-400/60 hover:bg-sky-500/10 hover:text-sky-100"
             >
               <IconRefresh className="h-3.5 w-3.5" />
-              <span>Refresh</span>
+              <span>{lang === 'ar' ? 'تحديث' : 'Refresh'}</span>
             </button>
           </span>
         }
@@ -343,7 +343,15 @@ function BaselinesPage() {
       ) : (
         <Card>
           <p className="text-xs text-slate-300">
-            Your role does not include <span className="font-mono">canSimulate</span>; contact a Sigma admin to author baselines.
+            {lang === 'ar' ? (
+              <>
+                صلاحية دورك لا تشمل <span className="font-mono">canSimulate</span>؛ راجِع مسؤول نظام Sigma لتأليف خطوط الأساس.
+              </>
+            ) : (
+              <>
+                Your role does not include <span className="font-mono">canSimulate</span>; contact a Sigma admin to author baselines.
+              </>
+            )}
           </p>
         </Card>
       )}
@@ -370,6 +378,7 @@ function ProjectHeroCard({
   project: ProjectInfo | null;
   counts: { total: number; committed: number; awaiting: number; running: number };
 }) {
+  const { lang } = useI18n();
   const duration = useMemo(() => {
     if (!project?.plannedStart || !project?.plannedFinish) return null;
     const s = new Date(project.plannedStart);
@@ -386,7 +395,7 @@ function ProjectHeroCard({
       />
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300">Project under management</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300">{lang === 'ar' ? 'المشروع قيد الإدارة' : 'Project under management'}</p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-50">
             {project?.name ?? '—'}
           </h2>
@@ -403,24 +412,24 @@ function ProjectHeroCard({
         <div className="flex flex-wrap items-center gap-2">
           {counts.total > 0 && (
             <Pill tone="slate">
-              {counts.total} job{counts.total === 1 ? '' : 's'}
+              {lang === 'ar' ? `${counts.total} مهمّة` : `${counts.total} job${counts.total === 1 ? '' : 's'}`}
             </Pill>
           )}
-          {counts.running > 0 && <Pill tone="sky">{counts.running} running</Pill>}
-          {counts.awaiting > 0 && <Pill tone="amber">{counts.awaiting} pending</Pill>}
-          {counts.committed > 0 && <Pill tone="emerald">{counts.committed} committed</Pill>}
+          {counts.running > 0 && <Pill tone="sky">{lang === 'ar' ? `${counts.running} قيد التنفيذ` : `${counts.running} running`}</Pill>}
+          {counts.awaiting > 0 && <Pill tone="amber">{lang === 'ar' ? `${counts.awaiting} بانتظار الاعتماد` : `${counts.awaiting} pending`}</Pill>}
+          {counts.committed > 0 && <Pill tone="emerald">{lang === 'ar' ? `${counts.committed} معتمَدة` : `${counts.committed} committed`}</Pill>}
         </div>
       </div>
 
       <div className="relative mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <HeroMetric label="Commencement" value={project?.plannedStart ?? '—'} mono accent="sky" />
-        <HeroMetric label="Completion" value={project?.plannedFinish ?? '—'} mono accent="emerald" />
+        <HeroMetric label={lang === 'ar' ? 'تاريخ المباشرة' : 'Commencement'} value={project?.plannedStart ?? '—'} mono accent="sky" />
+        <HeroMetric label={lang === 'ar' ? 'تاريخ الإنجاز' : 'Completion'} value={project?.plannedFinish ?? '—'} mono accent="emerald" />
         <HeroMetric
-          label="Contract duration"
-          value={duration !== null ? `${duration} days` : '—'}
+          label={lang === 'ar' ? 'مدّة العقد' : 'Contract duration'}
+          value={duration !== null ? (lang === 'ar' ? `${duration} يوم` : `${duration} days`) : '—'}
           accent="amber"
         />
-        <HeroMetric label="Data date" value={project?.dataDate ?? '—'} mono accent="rose" />
+        <HeroMetric label={lang === 'ar' ? 'تاريخ البيانات' : 'Data date'} value={project?.dataDate ?? '—'} mono accent="rose" />
       </div>
     </section>
   );
@@ -476,6 +485,7 @@ function CompressionCard({
   canSimulate: boolean;
   requestedBy: string;
 }) {
+  const { lang } = useI18n();
   const toast = useToast();
   const [proposal, setProposal] = useState<CompressionProposalView | null>(null);
   const [busy, setBusy] = useState(false);
@@ -492,56 +502,67 @@ function CompressionCard({
       setProposal(p);
       setExpanded(true);
       toast.success(
-        'Analysis ready',
-        `The schedule can compress by ${p.compressionDays} day(s) (${p.compressionPercent}%).`,
+        lang === 'ar' ? 'اكتمل التحليل' : 'Analysis ready',
+        lang === 'ar'
+          ? `يمكن ضغط البرنامج الزمني بمقدار ${p.compressionDays} يوم (${p.compressionPercent}%).`
+          : `The schedule can compress by ${p.compressionDays} day(s) (${p.compressionPercent}%).`,
       );
     } catch (e) {
-      toast.error('Compression analysis failed', (e as Error).message);
+      toast.error(lang === 'ar' ? 'فشل تحليل ضغط الجدول' : 'Compression analysis failed', (e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [projectKey, requestedBy, toast]);
+  }, [projectKey, requestedBy, toast, lang]);
 
   return (
     <Card
-      title="Schedule compression analysis"
-      hint="Day-zero review: can the submitted programme be compressed? Crashing + fast-tracking candidates with savings, assumptions, and risks."
+      title={lang === 'ar' ? 'تحليل ضغط البرنامج الزمني' : 'Schedule compression analysis'}
+      hint={
+        lang === 'ar'
+          ? 'مراجعة يوم الصفر: هل يقبل البرنامج المُقدَّم الضغط؟ مرشّحات التعجيل (Crashing) والمسار المتوازي (Fast-tracking) مع الوفورات والافتراضات والمخاطر.'
+          : 'Day-zero review: can the submitted programme be compressed? Crashing + fast-tracking candidates with savings, assumptions, and risks.'
+      }
       actions={
         <Button variant="primary" size="sm" onClick={() => void onAnalyse()} disabled={!canSimulate || busy || !projectKey}>
           <IconSparkles className="h-3.5 w-3.5" />
-          {busy ? 'Analysing…' : proposal ? 'Re-analyse' : 'Analyse schedule'}
+          {busy
+            ? (lang === 'ar' ? 'جارٍ التحليل…' : 'Analysing…')
+            : proposal
+              ? (lang === 'ar' ? 'إعادة التحليل' : 'Re-analyse')
+              : (lang === 'ar' ? 'تحليل الجدول' : 'Analyse schedule')}
         </Button>
       }
     >
       {!proposal ? (
         <p className="text-xs text-slate-300">
-          No analysis yet for this project. The engine detects compression candidates
-          deterministically (critical-band crashing + same-WBS fast-tracking), then the
-          25-year planner persona vets them when Claude is enabled. The claimed saving
-          is capped at 30% of the original duration — the over-compression guard.
+          {lang === 'ar'
+            ? 'لا يوجد تحليل لهذا المشروع بعد. يكتشف المحرّك مرشّحات الضغط حسابياً (تعجيل الأنشطة في نطاق المسار الحرج + توازي الأنشطة ضمن هيكل تجزئة العمل نفسه)، ثم يدقّقها خبير التخطيط ذو الخبرة 25 عاماً عند تفعيل Claude. والوفر المُعلَن مُقيَّد بسقف 30% من المدّة الأصلية — وهو ضابط منع الإفراط في الضغط.'
+            : 'No analysis yet for this project. The engine detects compression candidates deterministically (critical-band crashing + same-WBS fast-tracking), then the 25-year planner persona vets them when Claude is enabled. The claimed saving is capped at 30% of the original duration — the over-compression guard.'}
         </p>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Original</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{lang === 'ar' ? 'المدّة الأصلية' : 'Original'}</p>
               <p className="text-lg font-semibold tabular-nums text-slate-50" dir="ltr">{proposal.originalDurationDays} d</p>
             </div>
             <span aria-hidden className="text-slate-500">→</span>
             <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/15 px-4 py-2.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">Compressed</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200">{lang === 'ar' ? 'بعد الضغط' : 'Compressed'}</p>
               <p className="text-lg font-semibold tabular-nums text-emerald-100" dir="ltr">{proposal.compressedDurationDays} d</p>
             </div>
             <Pill tone="emerald">−{proposal.compressionDays} d ({proposal.compressionPercent}%)</Pill>
             <Pill tone={proposal.source === 'llm' ? 'violet' : 'slate'}>
-              {proposal.source === 'llm' ? `Vetted by ${proposal.personaSlug}` : 'Deterministic heuristics'}
+              {proposal.source === 'llm'
+                ? (lang === 'ar' ? `مُدقَّق بواسطة ${proposal.personaSlug}` : `Vetted by ${proposal.personaSlug}`)
+                : (lang === 'ar' ? 'قواعد حسابية حتمية' : 'Deterministic heuristics')}
             </Pill>
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
               className="ms-auto text-xs text-sky-300 underline-offset-2 hover:underline"
             >
-              {expanded ? 'Hide details' : 'View details'}
+              {expanded ? (lang === 'ar' ? 'إخفاء التفاصيل' : 'Hide details') : (lang === 'ar' ? 'عرض التفاصيل' : 'View details')}
             </button>
           </div>
 
@@ -551,13 +572,15 @@ function CompressionCard({
                 <div key={i} className="rounded-lg border border-slate-700/70 bg-slate-900/50 px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <Pill tone={t.type === 'crashing' ? 'rose' : t.type === 'fast-tracking' ? 'amber' : 'sky'}>
-                      {t.type}
+                      {lang === 'ar'
+                        ? t.type === 'crashing' ? 'تعجيل (Crashing)' : t.type === 'fast-tracking' ? 'توازٍ (Fast-tracking)' : 'إعادة تسلسل'
+                        : t.type}
                     </Pill>
                     <span className="text-sm font-medium text-slate-100" dir="auto">{t.title}</span>
                     <Pill tone="emerald">−{t.estimatedSavingDays} d</Pill>
                   </div>
                   <p className="mt-1.5 text-[11px] text-slate-300">
-                    <span className="font-semibold text-slate-200">Activities:</span>{' '}
+                    <span className="font-semibold text-slate-200">{lang === 'ar' ? 'الأنشطة:' : 'Activities:'}</span>{' '}
                     <span className="font-mono" dir="ltr">{t.affectedActivities.join(', ')}</span>
                   </p>
                   {t.assumptions.length > 0 && (
@@ -570,15 +593,16 @@ function CompressionCard({
               ))}
               {proposal.risks.length > 0 && (
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100">Risks</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100">{lang === 'ar' ? 'المخاطر' : 'Risks'}</p>
                   <ul className="mt-1 list-inside list-disc space-y-0.5 text-[11px] text-amber-100">
                     {proposal.risks.map((r, i) => <li key={i}>{r}</li>)}
                   </ul>
                 </div>
               )}
               <p className="text-[10px] text-slate-500">
-                Scenario {proposal.scenarioId.slice(0, 8)} persisted for audit. Applying the techniques
-                is a planner-review step — the analysis never mutates the canonical schedule by itself.
+                {lang === 'ar'
+                  ? `حُفِظ السيناريو ${proposal.scenarioId.slice(0, 8)} لأغراض التدقيق. وتطبيق هذه الأساليب خطوةٌ تخضع لمراجعة المُخطِّط — فالتحليل وحده لا يُعدِّل البرنامج المعتمَد إطلاقاً.`
+                  : `Scenario ${proposal.scenarioId.slice(0, 8)} persisted for audit. Applying the techniques is a planner-review step — the analysis never mutates the canonical schedule by itself.`}
               </p>
             </div>
           )}
@@ -591,7 +615,30 @@ function CompressionCard({
 // ────────────────────────── How it works ──────────────────────────
 
 function HowItWorksPanel() {
-  const steps: Array<{ no: string; title: string; body: string }> = [
+  const { lang } = useI18n();
+  const steps: Array<{ no: string; title: string; body: string }> =
+    lang === 'ar'
+      ? [
+          {
+            no: '01',
+            title: 'بناء هيكل تجزئة العمل (WBS)',
+            body:
+              'يبني خبير التخطيط هيكل تجزئة عمل نموذجياً لمبنى في دولة الإمارات: المعالم · التصاريح · مُخرجات العقد · الأعمال الهندسية · الأساسات · الهيكل العلوي · الأعمال الكهروميكانيكية · التشطيبات · الاختبار والتشغيل · التسليم. نحو 90 نشاطاً، بحساب حتمي.',
+          },
+          {
+            no: '02',
+            title: 'الجدولة والمسار الحرج',
+            body:
+              'تُسقَط تواريخ الأنشطة على نافذة مدّة مشروعك. التسلسل داخل كل مرحلة وروابط التسليم بين المراحل يبنيان شبكة العلاقات. ثم يحسب المرور الأمامي والخلفي إجمالي الطفو الزمني (Total Float)؛ والأنشطة التي طفوها = صفر تُوسَم على المسار الحرج.',
+          },
+          {
+            no: '03',
+            title: 'مُخرَجان جاهزان للتسليم',
+            body:
+              'ملف ‎.xer‎ حقيقي قابل للاستيراد في Primavera (TASK + TASKPRED)، وتقرير جدول زمني بأسلوب Primavera بصيغة PDF (معرّف النشاط / الاسم / المدّة / البداية / النهاية / الطفو، مع تسلسل هيكل تجزئة العمل + صفحة المسار الحرج + العلاقات + خانة الاعتماد).',
+          },
+        ]
+      : [
     {
       no: '01',
       title: 'Synthesise the WBS',
@@ -612,7 +659,10 @@ function HowItWorksPanel() {
     },
   ];
   return (
-    <Card title="How the AI planner works" hint="Deterministic-first · no hallucinations · output is always reproducible">
+    <Card
+      title={lang === 'ar' ? 'كيف يعمل خبير التخطيط بالذكاء الاصطناعي' : 'How the AI planner works'}
+      hint={lang === 'ar' ? 'الحساب الحتمي أولاً · بلا هلوسة · المُخرَج قابل للتكرار دائماً' : 'Deterministic-first · no hallucinations · output is always reproducible'}
+    >
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {steps.map((s) => (
           <div
@@ -624,7 +674,7 @@ function HowItWorksPanel() {
               className="pointer-events-none absolute -right-6 -top-6 h-16 w-16 rounded-full bg-sky-500/10 transition-transform duration-500 group-hover:scale-150 group-hover:bg-sky-500/20"
             />
             <p className="relative font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-sky-300">
-              Step {s.no}
+              {lang === 'ar' ? `الخطوة ${s.no}` : `Step ${s.no}`}
             </p>
             <h3 className="relative mt-1 text-sm font-semibold text-slate-50">{s.title}</h3>
             <p className="relative mt-2 text-xs leading-relaxed text-slate-300">{s.body}</p>
@@ -654,10 +704,15 @@ function GenerateCard({
   onBaselineNameChange: (v: string) => void;
   onSubmit: () => void;
 }) {
+  const { lang } = useI18n();
   return (
     <Card
-      title="Generate a new baseline"
-      hint={`Project ${projectKey || '—'} · Persona: planner-p6-25yr · Output lands in awaiting-approval`}
+      title={lang === 'ar' ? 'توليد خط أساس جديد' : 'Generate a new baseline'}
+      hint={
+        lang === 'ar'
+          ? `المشروع ${projectKey || '—'} · الخبير: planner-p6-25yr · المُخرَج يصل إلى حالة "بانتظار الاعتماد"`
+          : `Project ${projectKey || '—'} · Persona: planner-p6-25yr · Output lands in awaiting-approval`
+      }
     >
       <form
         className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]"
@@ -668,26 +723,26 @@ function GenerateCard({
       >
         <label className="flex flex-col gap-1 text-xs">
           <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-            Authored by
+            {lang === 'ar' ? 'بقلم المُخطِّط' : 'Authored by'}
           </span>
           <input
             type="text"
             value={authoredBy}
             onChange={(e) => onAuthorChange(e.target.value)}
             required
-            placeholder="Planner full name"
+            placeholder={lang === 'ar' ? 'الاسم الكامل للمُخطِّط' : 'Planner full name'}
             className="rounded-lg border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-sky-400/80 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)]"
           />
         </label>
         <label className="flex flex-col gap-1 text-xs">
           <span className="font-semibold uppercase tracking-[0.14em] text-slate-300">
-            Baseline name (optional)
+            {lang === 'ar' ? 'اسم خط الأساس (اختياري)' : 'Baseline name (optional)'}
           </span>
           <input
             type="text"
             value={baselineName}
             onChange={(e) => onBaselineNameChange(e.target.value)}
-            placeholder="e.g. Original-2026-Q2"
+            placeholder={lang === 'ar' ? 'مثال: Original-2026-Q2' : 'e.g. Original-2026-Q2'}
             className="rounded-lg border border-slate-600 bg-slate-900/70 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-sky-400/80 focus:shadow-[0_0_0_3px_rgba(56,189,248,0.15)]"
           />
         </label>
@@ -699,14 +754,22 @@ function GenerateCard({
             className="w-full md:w-auto"
           >
             <IconSparkles className="h-3.5 w-3.5" />
-            {busy ? 'Planning…' : 'Generate baseline'}
+            {busy ? (lang === 'ar' ? 'جارٍ التخطيط…' : 'Planning…') : (lang === 'ar' ? 'توليد خط الأساس' : 'Generate baseline')}
           </Button>
         </div>
       </form>
       <p className="mt-3 flex items-start gap-2 text-[11px] text-slate-300">
         <IconShield className="mt-0.5 h-3 w-3 text-emerald-400" />
         <span>
-          The output runs <code className="font-mono">XerWriterService</code> against the current canonical activities (no MPXJ / Java required) and stays gated in <code className="font-mono">awaiting-approval</code> until a human approves.
+          {lang === 'ar' ? (
+            <>
+              يُشغِّل المُخرَج خدمة <code className="font-mono">XerWriterService</code> على الأنشطة المعتمَدة الحالية (دون الحاجة إلى MPXJ أو Java)، ويبقى محجوزاً في حالة <code className="font-mono">awaiting-approval</code> حتى يعتمده مُخوَّل بشري.
+            </>
+          ) : (
+            <>
+              The output runs <code className="font-mono">XerWriterService</code> against the current canonical activities (no MPXJ / Java required) and stays gated in <code className="font-mono">awaiting-approval</code> until a human approves.
+            </>
+          )}
         </span>
       </p>
     </Card>
@@ -732,6 +795,7 @@ function JobsList({
   onReject: (id: string) => void;
   onToggleOpen: (id: string) => void;
 }) {
+  const { lang } = useI18n();
   if (rows === null) {
     return (
       <Card padded={false}>
@@ -746,7 +810,7 @@ function JobsList({
   }
 
   return (
-    <Card padded={false} title={`Baseline jobs (newest first · ${rows.length})`}>
+    <Card padded={false} title={lang === 'ar' ? `مهام خطوط الأساس (الأحدث أولاً · ${rows.length})` : `Baseline jobs (newest first · ${rows.length})`}>
       <ul role="list" className="divide-y divide-slate-700/70">
         {rows.map((row) => (
           <JobRow
@@ -766,17 +830,28 @@ function JobsList({
 }
 
 function BaselinesEmptyState() {
+  const { lang } = useI18n();
   return (
     <div className="relative overflow-hidden rounded-xl border border-dashed border-slate-600 bg-gradient-to-br from-slate-900/80 to-slate-900/40 px-8 py-14 text-center">
       <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-sky-500/30 to-emerald-500/20 ring-1 ring-sky-400/30">
         <IconDatabase className="h-5 w-5 text-sky-100" />
       </div>
-      <h3 className="text-sm font-semibold text-slate-50">No baseline jobs yet</h3>
+      <h3 className="text-sm font-semibold text-slate-50">{lang === 'ar' ? 'لا توجد مهام خطوط أساس بعد' : 'No baseline jobs yet'}</h3>
       <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-300">
-        Generate your first baseline using the form above. The planner persona will build the WBS,
-        schedule ~90 activities, compute the critical path, and produce both a Primavera-importable
-        <span className="font-mono"> .xer</span> file and a senior-planner schedule PDF — usually in
-        6–10 seconds.
+        {lang === 'ar' ? (
+          <>
+            أنشئ خط أساسك الأول من النموذج أعلاه. سيبني خبير التخطيط هيكل تجزئة العمل (WBS)، ويجدول نحو 90 نشاطاً،
+            ويحسب المسار الحرج، ويُنتج ملف
+            <span className="font-mono"> .xer</span> قابلاً للاستيراد في Primavera وتقرير جدول زمني بمستوى كبير المُخطِّطين بصيغة PDF — عادةً خلال 6–10 ثوانٍ.
+          </>
+        ) : (
+          <>
+            Generate your first baseline using the form above. The planner persona will build the WBS,
+            schedule ~90 activities, compute the critical path, and produce both a Primavera-importable
+            <span className="font-mono"> .xer</span> file and a senior-planner schedule PDF — usually in
+            6–10 seconds.
+          </>
+        )}
       </p>
     </div>
   );
@@ -801,6 +876,7 @@ function JobRow({
   onReject: (id: string) => void;
   onToggleOpen: (id: string) => void;
 }) {
+  const { lang } = useI18n();
   const isAwaitingApproval = row.status === 'awaiting-approval' || row.status === 'awaiting-second-approval';
   const isCommitted = row.status === 'committed';
   const hasXer = !!row.outputXerSourceFileId;
@@ -833,23 +909,23 @@ function JobRow({
           )}
           {row.failureReason && (
             <p className="text-xs font-medium text-rose-200" dir="auto">
-              Failure: {row.failureReason}
+              {lang === 'ar' ? 'سبب الإخفاق: ' : 'Failure: '}{row.failureReason}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
             <IconClock className="h-3 w-3" />
-            <span dir="ltr">Created {new Date(row.createdAt).toLocaleString()}</span>
+            <span dir="auto">{lang === 'ar' ? 'أُنشئت في ' : 'Created '}<span dir="ltr">{new Date(row.createdAt).toLocaleString()}</span></span>
             {row.completedAt && (
               <>
                 <span aria-hidden>·</span>
-                <span dir="ltr">Completed {new Date(row.completedAt).toLocaleString()}</span>
+                <span dir="auto">{lang === 'ar' ? 'اكتملت في ' : 'Completed '}<span dir="ltr">{new Date(row.completedAt).toLocaleString()}</span></span>
               </>
             )}
             {isCommitted && (
               <>
                 <span aria-hidden>·</span>
                 <Pill tone="emerald">
-                  <IconShield className="me-1 h-3 w-3" /> Committed
+                  <IconShield className="me-1 h-3 w-3" /> {lang === 'ar' ? 'معتمَد' : 'Committed'}
                 </Pill>
               </>
             )}
@@ -872,10 +948,10 @@ function JobRow({
               >
                 <IconCheck className="h-3.5 w-3.5" />
                 {busy
-                  ? 'Approving…'
+                  ? (lang === 'ar' ? 'جارٍ الاعتماد…' : 'Approving…')
                   : row.status === 'awaiting-second-approval'
-                    ? 'Sign 2/2 & commit'
-                    : 'Sign 1/2'}
+                    ? (lang === 'ar' ? 'توقيع 2/2 واعتماد' : 'Sign 2/2 & commit')
+                    : (lang === 'ar' ? 'توقيع 1/2' : 'Sign 1/2')}
               </Button>
               <Button
                 variant="danger"
@@ -883,7 +959,7 @@ function JobRow({
                 onClick={() => onReject(row.id)}
                 disabled={busy}
               >
-                Reject
+                {lang === 'ar' ? 'رفض' : 'Reject'}
               </Button>
             </>
           )}
@@ -905,6 +981,7 @@ function JobRow({
 }
 
 function SchedulePreview({ jobId }: { jobId: string }) {
+  const { lang } = useI18n();
   const [summary, setSummary] = useState<ScheduleSummary | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -935,52 +1012,52 @@ function SchedulePreview({ jobId }: { jobId: string }) {
   if (!summary) {
     return (
       <div className="border-t border-slate-700/70 px-5 py-4 text-xs text-slate-300">
-        Loading schedule preview…
+        {lang === 'ar' ? 'جارٍ تحميل معاينة الجدول الزمني…' : 'Loading schedule preview…'}
       </div>
     );
   }
   if (summary.activityCount === 0) {
     return (
       <div className="border-t border-slate-700/70 px-5 py-4 text-xs text-slate-300">
-        No synthesised schedule available for this job.
+        {lang === 'ar' ? 'لا يوجد جدول زمني مُولَّد لهذه المهمّة.' : 'No synthesised schedule available for this job.'}
       </div>
     );
   }
 
   const wbsBars = summary.wbsBreakdown.map((w) => ({
-    label: prettyWbs(w.code),
+    label: prettyWbs(w.code, lang),
     value: w.count,
     accent: CHART_PALETTE.crimson,
   }));
   const taskCount = summary.activityCount - summary.milestoneCount;
   const donut = [
-    { label: 'Tasks', value: taskCount, accent: CHART_PALETTE.sky },
-    { label: 'Milestones', value: summary.milestoneCount, accent: CHART_PALETTE.emerald },
-    { label: 'Critical', value: summary.criticalCount, accent: CHART_PALETTE.rose },
+    { label: lang === 'ar' ? 'مهام' : 'Tasks', value: taskCount, accent: CHART_PALETTE.sky },
+    { label: lang === 'ar' ? 'معالم' : 'Milestones', value: summary.milestoneCount, accent: CHART_PALETTE.emerald },
+    { label: lang === 'ar' ? 'حرجة' : 'Critical', value: summary.criticalCount, accent: CHART_PALETTE.rose },
   ].filter((d) => d.value > 0);
 
   return (
     <div className="border-t border-slate-700/70 bg-slate-950/40 px-5 py-4 animate-[fade-in-up_220ms_ease-out]">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <PreviewMetric label="Activities" value={summary.activityCount} accent="sky" />
-        <PreviewMetric label="Tasks" value={taskCount} accent="sky" />
-        <PreviewMetric label="Milestones" value={summary.milestoneCount} accent="emerald" />
-        <PreviewMetric label="Critical path" value={summary.criticalCount} accent="rose" />
-        <PreviewMetric label="Dependencies" value={summary.dependencyCount} accent="amber" />
+        <PreviewMetric label={lang === 'ar' ? 'الأنشطة' : 'Activities'} value={summary.activityCount} accent="sky" />
+        <PreviewMetric label={lang === 'ar' ? 'المهام' : 'Tasks'} value={taskCount} accent="sky" />
+        <PreviewMetric label={lang === 'ar' ? 'المعالم' : 'Milestones'} value={summary.milestoneCount} accent="emerald" />
+        <PreviewMetric label={lang === 'ar' ? 'المسار الحرج' : 'Critical path'} value={summary.criticalCount} accent="rose" />
+        <PreviewMetric label={lang === 'ar' ? 'العلاقات' : 'Dependencies'} value={summary.dependencyCount} accent="amber" />
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
         <DonutChart
-          title="Composition"
+          title={lang === 'ar' ? 'التوزيع' : 'Composition'}
           data={donut}
           size={150}
           thickness={18}
           centerValue={summary.activityCount}
-          centerLabel="TOTAL"
+          centerLabel={lang === 'ar' ? 'الإجمالي' : 'TOTAL'}
         />
         <BarChart
-          title="Activities by WBS branch"
-          caption="11 branches"
+          title={lang === 'ar' ? 'الأنشطة حسب فرع هيكل تجزئة العمل' : 'Activities by WBS branch'}
+          caption={lang === 'ar' ? '11 فرعاً' : '11 branches'}
           data={wbsBars}
           labelWidth={160}
           rowHeight={22}
@@ -989,18 +1066,18 @@ function SchedulePreview({ jobId }: { jobId: string }) {
 
       <div className="mt-4">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">
-          First 8 activities
+          {lang === 'ar' ? 'أول 8 أنشطة' : 'First 8 activities'}
         </p>
         <div className="overflow-x-auto rounded-lg border border-slate-700/70">
           <table className="w-full text-xs">
             <thead className="bg-slate-900/70 text-[10px] uppercase tracking-[0.14em] text-slate-400">
               <tr>
-                <th className="px-3 py-2 text-start">ID</th>
-                <th className="px-3 py-2 text-start">Name</th>
-                <th className="px-3 py-2 text-end">Dur</th>
-                <th className="px-3 py-2 text-end">Start</th>
-                <th className="px-3 py-2 text-end">Finish</th>
-                <th className="px-3 py-2 text-end">Float</th>
+                <th className="px-3 py-2 text-start">{lang === 'ar' ? 'المعرّف' : 'ID'}</th>
+                <th className="px-3 py-2 text-start">{lang === 'ar' ? 'الاسم' : 'Name'}</th>
+                <th className="px-3 py-2 text-end">{lang === 'ar' ? 'المدّة' : 'Dur'}</th>
+                <th className="px-3 py-2 text-end">{lang === 'ar' ? 'البداية' : 'Start'}</th>
+                <th className="px-3 py-2 text-end">{lang === 'ar' ? 'النهاية' : 'Finish'}</th>
+                <th className="px-3 py-2 text-end">{lang === 'ar' ? 'الطفو' : 'Float'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
@@ -1037,7 +1114,9 @@ function SchedulePreview({ jobId }: { jobId: string }) {
           </table>
         </div>
         <p className="mt-1.5 text-[10px] text-slate-400">
-          Showing 8 of {summary.activityCount}. Download the schedule PDF for the full activity table + dependencies + sign-off block.
+          {lang === 'ar'
+            ? `عرض 8 من ${summary.activityCount}. نزّل تقرير الجدول الزمني بصيغة PDF للحصول على جدول الأنشطة الكامل والعلاقات وخانة الاعتماد.`
+            : `Showing 8 of ${summary.activityCount}. Download the schedule PDF for the full activity table + dependencies + sign-off block.`}
         </p>
       </div>
     </div>
@@ -1069,8 +1148,8 @@ function PreviewMetric({
   );
 }
 
-function prettyWbs(code: string): string {
-  const NAME: Record<string, string> = {
+function prettyWbs(code: string, lang: 'en' | 'ar' = 'en'): string {
+  const NAME_EN: Record<string, string> = {
     'WBS.1': 'Milestones',
     'WBS.2': 'Site Mobilisation',
     'WBS.3': 'Building Permit',
@@ -1083,13 +1162,40 @@ function prettyWbs(code: string): string {
     'WBS.10': 'Testing & Commissioning',
     'WBS.11': 'Hand-over',
   };
+  const NAME_AR: Record<string, string> = {
+    'WBS.1': 'المعالم',
+    'WBS.2': 'تجهيز الموقع',
+    'WBS.3': 'رخصة البناء',
+    'WBS.4': 'مُخرجات العقد',
+    'WBS.5': 'الأعمال الهندسية',
+    'WBS.6': 'الأعمال المدنية',
+    'WBS.7': 'الأعمال الكهروميكانيكية (MEP)',
+    'WBS.8': 'أعمال التشطيبات',
+    'WBS.9': 'الأعمال الخارجية',
+    'WBS.10': 'الاختبار والتشغيل',
+    'WBS.11': 'التسليم',
+  };
+  const NAME = lang === 'ar' ? NAME_AR : NAME_EN;
   return NAME[code] ?? code;
 }
 
 // ────────────────────────── Status pill ──────────────────────────
 
 function StatusPill({ status }: { status: string }) {
-  const map: Record<string, { tone: 'slate' | 'sky' | 'emerald' | 'amber' | 'rose'; label: string }> = {
+  const { lang } = useI18n();
+  const map: Record<string, { tone: 'slate' | 'sky' | 'emerald' | 'amber' | 'rose'; label: string }> =
+    lang === 'ar'
+      ? {
+          pending: { tone: 'slate', label: 'قيد الانتظار' },
+          running: { tone: 'sky', label: 'قيد التنفيذ' },
+          'awaiting-approval': { tone: 'amber', label: 'بانتظار الاعتماد (0/2)' },
+          'awaiting-second-approval': { tone: 'amber', label: 'بانتظار التوقيع الثاني (1/2)' },
+          'awaiting-enablement': { tone: 'slate', label: 'محجوز' },
+          rejected: { tone: 'rose', label: 'مرفوض' },
+          committed: { tone: 'emerald', label: 'معتمَد' },
+          failed: { tone: 'rose', label: 'فشل' },
+        }
+      : {
     pending: { tone: 'slate', label: 'Pending' },
     running: { tone: 'sky', label: 'Running' },
     'awaiting-approval': { tone: 'amber', label: 'Awaiting approval (0/2)' },
@@ -1106,6 +1212,7 @@ function StatusPill({ status }: { status: string }) {
 // ────────────────────────── Download buttons ──────────────────────────
 
 function SchedulePdfButton({ jobId }: { jobId: string }) {
+  const { lang } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
@@ -1131,22 +1238,23 @@ function SchedulePdfButton({ jobId }: { jobId: string }) {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      toast.error('Schedule PDF failed', (err as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر إنشاء تقرير الجدول الزمني (PDF)' : 'Schedule PDF failed', (err as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [jobId, toast]);
+  }, [jobId, toast, lang]);
 
   return (
     <Button variant="primary" size="sm" onClick={() => void doDownload()} disabled={busy}>
       <IconActivity className="h-3.5 w-3.5" />
-      {busy ? 'Building…' : 'Schedule PDF'}
+      {busy ? (lang === 'ar' ? 'جارٍ الإنشاء…' : 'Building…') : (lang === 'ar' ? 'تقرير الجدول (PDF)' : 'Schedule PDF')}
     </Button>
   );
 }
 
 function XerDownloadButton({ sourceFileId, jobId }: { sourceFileId: string; jobId: string }) {
   void sourceFileId;
+  const { lang } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
@@ -1172,16 +1280,16 @@ function XerDownloadButton({ sourceFileId, jobId }: { sourceFileId: string; jobI
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      toast.error('XER download failed', (err as Error).message);
+      toast.error(lang === 'ar' ? 'تعذّر تنزيل ملف XER' : 'XER download failed', (err as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [jobId, toast]);
+  }, [jobId, toast, lang]);
 
   return (
     <Button variant="ghost" size="sm" onClick={() => void doDownload()} disabled={busy}>
       <IconActivity className="h-3.5 w-3.5" />
-      {busy ? 'Downloading…' : 'Download .xer'}
+      {busy ? (lang === 'ar' ? 'جارٍ التنزيل…' : 'Downloading…') : (lang === 'ar' ? 'تنزيل ملف ‎.xer‎' : 'Download .xer')}
     </Button>
   );
 }

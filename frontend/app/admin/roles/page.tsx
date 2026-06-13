@@ -114,15 +114,15 @@ function RolesAdminPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-800">
-                  <th className="sticky start-0 z-10 bg-slate-900/95 px-4 py-3 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-400">Capability</th>
+                  <th className="sticky start-0 z-10 bg-slate-900/95 px-4 py-3 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-400">{lang === 'ar' ? 'الصلاحية' : 'Capability'}</th>
                   {roles.map((r) => (
                     <th key={r} className="px-3 py-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-[11px] font-semibold text-slate-200">{ROLE_LABEL[r as Role] ?? r}</span>
                         {r === 'sigma_admin' ? (
-                          <Pill tone="rose"><IconShield className="me-1 inline h-3 w-3" />locked</Pill>
+                          <Pill tone="rose"><IconShield className="me-1 inline h-3 w-3" />{lang === 'ar' ? 'مُقفل' : 'locked'}</Pill>
                         ) : (
-                          <button type="button" onClick={() => reset(r)} disabled={busy === `reset:${r}`} className="text-[9px] text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline">reset</button>
+                          <button type="button" onClick={() => reset(r)} disabled={busy === `reset:${r}`} className="text-[9px] text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline">{lang === 'ar' ? 'استعادة' : 'reset'}</button>
                         )}
                       </div>
                     </th>
@@ -134,7 +134,7 @@ function RolesAdminPage() {
                   <tr key={cap} className="border-b border-slate-800/50 last:border-b-0 hover:bg-slate-900/30">
                     <td className="sticky start-0 z-10 bg-slate-900/95 px-4 py-2 font-mono text-[11px] text-slate-300" dir="ltr">
                       {cap}
-                      {LOCKED_FLAGS.has(cap) && <span className="ms-1.5 text-[9px] text-amber-400/70">locked</span>}
+                      {LOCKED_FLAGS.has(cap) && <span className="ms-1.5 text-[9px] text-amber-400/70">{lang === 'ar' ? 'مُقفل' : 'locked'}</span>}
                     </td>
                     {roles.map((r) => {
                       const on = !!snap.matrix[r]?.[cap];
@@ -148,7 +148,7 @@ function RolesAdminPage() {
                             disabled={locked || busy === key}
                             onClick={() => toggle(r, cap, on)}
                             aria-pressed={on}
-                            title={overridden ? 'overridden from default' : 'default'}
+                            title={overridden ? (lang === 'ar' ? 'مُعدّل عن الإعداد الافتراضي' : 'overridden from default') : (lang === 'ar' ? 'الإعداد الافتراضي' : 'default')}
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
                               on ? 'bg-emerald-500/80' : 'bg-slate-700'
                             } ${locked ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:ring-2 hover:ring-sky-500/40'} ${
@@ -166,9 +166,9 @@ function RolesAdminPage() {
             </table>
           </div>
           <div className="flex items-center gap-3 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-500">
-            <span className="inline-flex items-center gap-1"><span className="h-3 w-5 rounded-full bg-emerald-500/80" /> enabled</span>
-            <span className="inline-flex items-center gap-1"><span className="h-3 w-5 rounded-full bg-slate-700" /> disabled</span>
-            <span className="inline-flex items-center gap-1"><span className="h-3 w-5 rounded-full bg-slate-700 ring-2 ring-amber-400/60" /> overridden from default</span>
+            <span className="inline-flex items-center gap-1"><span className="h-3 w-5 rounded-full bg-emerald-500/80" /> {lang === 'ar' ? 'مُفعّل' : 'enabled'}</span>
+            <span className="inline-flex items-center gap-1"><span className="h-3 w-5 rounded-full bg-slate-700" /> {lang === 'ar' ? 'مُعطّل' : 'disabled'}</span>
+            <span className="inline-flex items-center gap-1"><span className="h-3 w-5 rounded-full bg-slate-700 ring-2 ring-amber-400/60" /> {lang === 'ar' ? 'مُعدّل عن الإعداد الافتراضي' : 'overridden from default'}</span>
           </div>
         </Card>
       )}

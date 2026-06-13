@@ -296,6 +296,7 @@ export const ar: Dictionary = {
         title: 'لا توجد شخصيات بعد',
         description: 'ملفات البذرة تحت backend/src/personas/*.md تملأ هذه القائمة عند أوّل تشغيل.',
       },
+      loadFailed: 'تعذّر تحميل الشخصيات',
       modal: {
         title: 'الشخصية الخبيرة',
         slugLabel: 'المعرّف',

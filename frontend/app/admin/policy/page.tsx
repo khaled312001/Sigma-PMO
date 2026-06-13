@@ -15,7 +15,7 @@ export default function PolicyAdminRoute() {
 
 function PolicyAdmin() {
   const toast = useToast();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [policy, setPolicy] = useState<GovernancePolicyRecord | null>(null);
   const [config, setConfig] = useState('');
   const [saving, setSaving] = useState(false);
@@ -26,8 +26,8 @@ function PolicyAdmin() {
     api<GovernancePolicyRecord>('/governance/policy').then((p) => {
       setPolicy(p);
       setConfig(JSON.stringify(p.config, null, 2));
-    }).catch((e) => toast.error('Failed to load policy', (e as Error).message));
-  }, [toast]);
+    }).catch((e) => toast.error(lang === 'ar' ? 'تعذّر تحميل السياسة' : 'Failed to load policy', (e as Error).message));
+  }, [toast, lang]);
 
   // Live JSON-syntax validation. The button stays enabled but turns into
   // "Fix JSON" while invalid, with the parse error shown inline below.
@@ -37,12 +37,12 @@ function PolicyAdmin() {
   }, [config]);
 
   const prettify = () => {
-    try { setConfig(JSON.stringify(JSON.parse(config), null, 2)); toast.info('Formatted'); }
-    catch (e) { toast.error('Cannot format', (e as Error).message); }
+    try { setConfig(JSON.stringify(JSON.parse(config), null, 2)); toast.info(lang === 'ar' ? 'تم التنسيق' : 'Formatted'); }
+    catch (e) { toast.error(lang === 'ar' ? 'تعذّر التنسيق' : 'Cannot format', (e as Error).message); }
   };
 
   const save = async () => {
-    if (parseError) { toast.error('Invalid JSON', parseError); return; }
+    if (parseError) { toast.error(lang === 'ar' ? 'JSON غير صالح' : 'Invalid JSON', parseError); return; }
     setSaving(true);
     try {
       const parsed = JSON.parse(config);
@@ -53,8 +53,11 @@ function PolicyAdmin() {
       setConfig(JSON.stringify(next.config, null, 2));
       const t = new Date().toLocaleTimeString();
       setSavedAt(t);
-      toast.success('Policy saved', `Version ${next.version}`);
-    } catch (e) { toast.error('Save failed', (e as Error).message); }
+      toast.success(
+        lang === 'ar' ? 'تم حفظ السياسة' : 'Policy saved',
+        lang === 'ar' ? `الإصدار ${next.version}` : `Version ${next.version}`,
+      );
+    } catch (e) { toast.error(lang === 'ar' ? 'فشل الحفظ' : 'Save failed', (e as Error).message); }
     finally { setSaving(false); }
   };
 
@@ -117,7 +120,7 @@ function PolicyAdmin() {
               />
               {parseError && (
                 <p id="policy-error" className="mt-2 text-xs text-red-300" role="alert">
-                  JSON error: {parseError}
+                  {lang === 'ar' ? 'خطأ في JSON: ' : 'JSON error: '}{parseError}
                 </p>
               )}
               <div className="mt-3 flex justify-end gap-2">

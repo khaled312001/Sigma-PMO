@@ -38,7 +38,7 @@ const TYPE_LABEL: Record<string, string> = {
 // Domain-appropriate Arabic labels for the L1 record families. English
 // acronyms (RFI / NCR / BIM / OCR) are kept per standards convention.
 const TYPE_LABEL_AR: Record<string, string> = {
-  rfi: 'RFI', submittal: 'مستند اعتماد', ncr: 'NCR', 'change-request': 'طلب تغيير',
+  rfi: 'RFI', submittal: 'إرسالية اعتماد', ncr: 'NCR', 'change-request': 'طلب تغيير',
   'procurement-log': 'المشتريات', 'resource-log': 'سجل الموارد', 'cost-report': 'تقرير التكلفة',
   'site-photo': 'صورة موقع', 'email-correspondence': 'مراسلة', 'ocr-document': 'مستند OCR',
   'bim-model': 'نموذج BIM', other: 'أخرى',

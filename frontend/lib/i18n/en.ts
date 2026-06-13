@@ -295,6 +295,7 @@ export const en: Dictionary = {
         title: 'No personas yet',
         description: 'Seed files under backend/src/personas/*.md populate this list on first boot.',
       },
+      loadFailed: 'Could not load personas',
       modal: {
         title: 'Persona',
         slugLabel: 'Slug',
@@ -634,6 +635,7 @@ export interface Dictionary {
       layers: { all: string; engineering: string; planning: string; governance: string; reports: string; simulation: string };
       headers: { slug: string; title: string; layer: string; version: string; model: string; authoredBy: string };
       empty: { title: string; description: string };
+      loadFailed: string;
       modal: {
         title: string;
         slugLabel: string; layerLabel: string; versionLabel: string;

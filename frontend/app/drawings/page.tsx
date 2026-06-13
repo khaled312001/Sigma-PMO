@@ -135,12 +135,14 @@ function DrawingsPage() {
   return (
     <div className="space-y-6 animate-[fade-in-up_240ms_ease-out]">
       <PageHeader
-        eyebrow="Engineering · Drawings · ADR-0021"
-        title="Drawing Packages"
-        description="Upload PDF drawing sets. The platform archives every byte immutably (SHA-256), extracts floor + discipline hints, and the AI planner builds the baseline FROM the drawings — a G+5 set produces a genuinely different schedule than a G+1 set."
+        eyebrow={isAr ? 'الهندسة · المخططات · ADR-0021' : 'Engineering · Drawings · ADR-0021'}
+        title={isAr ? 'حِزَم المخططات' : 'Drawing Packages'}
+        description={isAr
+          ? 'ارفع حِزَم المخططات بصيغة PDF. تؤرشف المنصّة كل بايت بصورة غير قابلة للتعديل (SHA-256)، وتستخرج مؤشّرات الطوابق والتخصّصات، ويبني مُخطِّط الذكاء الاصطناعي خط الأساس انطلاقاً من المخططات — فمجموعة G+5 تُنتج جدولاً زمنياً مختلفاً فعلياً عن مجموعة G+1.'
+          : 'Upload PDF drawing sets. The platform archives every byte immutably (SHA-256), extracts floor + discipline hints, and the AI planner builds the baseline FROM the drawings — a G+5 set produces a genuinely different schedule than a G+1 set.'}
         actions={
           <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-            <IconRefresh className="h-3.5 w-3.5" /> Refresh
+            <IconRefresh className="h-3.5 w-3.5" /> {isAr ? 'تحديث' : 'Refresh'}
           </Button>
         }
       />
@@ -150,11 +152,13 @@ function DrawingsPage() {
       <UploadCard projectKey={projectKey} canIngest={canIngest} uploadedBy={me?.user?.displayName ?? null} onUploaded={refresh} />
 
       {packages === null ? (
-        <Card title="Packages"><p className="text-sm text-slate-300">Loading…</p></Card>
+        <Card title={isAr ? 'الحِزَم' : 'Packages'}><p className="text-sm text-slate-300">{isAr ? 'جارٍ التحميل…' : 'Loading…'}</p></Card>
       ) : packages.length === 0 ? (
         <EmptyState
-          title="No drawing packages yet"
-          description="Upload an architectural / structural / MEP PDF set above. Phase 1 reads the text layer; IFC and DWG land in later phases."
+          title={isAr ? 'لا توجد حِزَم مخططات بعد' : 'No drawing packages yet'}
+          description={isAr
+            ? 'ارفع مجموعة مخططات معمارية / إنشائية / كهروميكانيكية (MEP) بصيغة PDF بالأعلى. تقرأ المرحلة الأولى الطبقة النصية؛ وتأتي صيغتا IFC و DWG في مراحل لاحقة.'
+            : 'Upload an architectural / structural / MEP PDF set above. Phase 1 reads the text layer; IFC and DWG land in later phases.'}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">
@@ -194,26 +198,41 @@ function BimSection({
   models: BimModelRow[] | null;
   onUploaded: () => Promise<void> | void;
 }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   return (
     <div className="space-y-3 border-t border-slate-800 pt-6">
       <div>
-        <h2 className="text-base font-semibold text-slate-100">BIM Models (IFC)</h2>
+        <h2 className="text-base font-semibold text-slate-100">{isAr ? 'نماذج BIM (IFC)' : 'BIM Models (IFC)'}</h2>
         <p className="mt-0.5 text-sm text-slate-400">
-          Upload an IFC STEP model (.ifc). A deterministic parser counts storeys / spaces / structural
-          elements and runs model-validation + governance checks at upload — no geometry kernel, just
-          the entity ledger. Clashes from these models are reviewed on the{' '}
-          <a href="/clashes" className="text-sky-300 underline-offset-2 hover:underline">Clashes</a> surface.
+          {isAr ? (
+            <>
+              ارفع نموذج IFC بصيغة STEP (‎.ifc). يقوم مُحلِّل حتمي بإحصاء الطوابق / الفراغات / العناصر الإنشائية،
+              ويُجري فحوصات التحقّق من النموذج وفحوصات الحوكمة عند الرفع — دون نواة هندسية، بل اعتماداً على
+              سجلّ العناصر فقط. تُراجَع التعارضات الناتجة عن هذه النماذج في شاشة{' '}
+              <a href="/clashes" className="text-sky-300 underline-offset-2 hover:underline">التعارضات</a>.
+            </>
+          ) : (
+            <>
+              Upload an IFC STEP model (.ifc). A deterministic parser counts storeys / spaces / structural
+              elements and runs model-validation + governance checks at upload — no geometry kernel, just
+              the entity ledger. Clashes from these models are reviewed on the{' '}
+              <a href="/clashes" className="text-sky-300 underline-offset-2 hover:underline">Clashes</a> surface.
+            </>
+          )}
         </p>
       </div>
 
       <BimUploadCard projectKey={projectKey} canIngest={canIngest} uploadedBy={uploadedBy} onUploaded={onUploaded} />
 
       {models === null ? (
-        <Card title="Models"><p className="text-sm text-slate-300">Loading…</p></Card>
+        <Card title={isAr ? 'النماذج' : 'Models'}><p className="text-sm text-slate-300">{isAr ? 'جارٍ التحميل…' : 'Loading…'}</p></Card>
       ) : models.length === 0 ? (
         <EmptyState
-          title="No BIM models yet"
-          description="Upload an .ifc STEP export above. The parser tallies storeys, walls, slabs, columns, beams, doors, windows and spaces, then validates the model."
+          title={isAr ? 'لا توجد نماذج BIM بعد' : 'No BIM models yet'}
+          description={isAr
+            ? 'ارفع تصدير IFC بصيغة STEP (‎.ifc) بالأعلى. يُحصي المُحلِّل الطوابق والجدران والبلاطات والأعمدة والكمرات والأبواب والنوافذ والفراغات، ثم يتحقّق من صحّة النموذج.'
+            : 'Upload an .ifc STEP export above. The parser tallies storeys, walls, slabs, columns, beams, doors, windows and spaces, then validates the model.'}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">
@@ -235,6 +254,8 @@ function BimUploadCard({
   uploadedBy: string | null;
   onUploaded: () => Promise<void> | void;
 }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -243,11 +264,19 @@ function BimUploadCard({
   const setFileSafe = (f: File | null) => {
     if (!f) { setFile(null); return; }
     if (!/\.ifc$/i.test(f.name)) {
-      toast.error('Unsupported file', 'BIM intake accepts .ifc STEP text files only.');
+      toast.error(
+        isAr ? 'صيغة غير مدعومة' : 'Unsupported file',
+        isAr ? 'يقبل إدخال BIM ملفات IFC النصية بصيغة STEP (‎.ifc) فقط.' : 'BIM intake accepts .ifc STEP text files only.',
+      );
       return;
     }
     if (f.size > MAX_IFC_BYTES) {
-      toast.error('File too large', `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 50 MB IFC limit.`);
+      toast.error(
+        isAr ? 'الملف أكبر من الحدّ المسموح' : 'File too large',
+        isAr
+          ? `${(f.size / 1024 / 1024).toFixed(1)} ميغابايت تتجاوز حدّ الـ 50 ميغابايت لملفات IFC.`
+          : `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 50 MB IFC limit.`,
+      );
       return;
     }
     setFile(f);
@@ -267,17 +296,25 @@ function BimUploadCard({
       });
       setFile(null);
       const counts = r.details.counts ?? {};
-      toast.success('IFC model ingested', `${counts.storeys ?? 0} storey(s) · ${(r.details.storeys ?? []).length} level row(s) parsed`);
+      toast.success(
+        isAr ? 'تم إدخال نموذج IFC' : 'IFC model ingested',
+        isAr
+          ? `${counts.storeys ?? 0} طابق · تمّت قراءة ${(r.details.storeys ?? []).length} صفّ منسوب`
+          : `${counts.storeys ?? 0} storey(s) · ${(r.details.storeys ?? []).length} level row(s) parsed`,
+      );
       await onUploaded();
     } catch (e) {
-      toast.error('Ingestion failed', (e as Error).message);
+      toast.error(isAr ? 'فشل الإدخال' : 'Ingestion failed', (e as Error).message);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <Card title="Upload an IFC model" hint={`Archived immutably for project ${projectKey}.`}>
+    <Card
+      title={isAr ? 'رفع نموذج IFC' : 'Upload an IFC model'}
+      hint={isAr ? `مؤرشَف بصورة غير قابلة للتعديل للمشروع ${projectKey}.` : `Archived immutably for project ${projectKey}.`}
+    >
       <div className={`flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed px-5 py-5 ${!canIngest ? 'border-slate-800 bg-slate-900/20 opacity-60' : 'border-slate-700 bg-slate-900/30'}`}>
         <div className="grid h-11 w-11 place-items-center rounded-full bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/30">
           <IconUpload className="h-5 w-5" />
@@ -286,14 +323,14 @@ function BimUploadCard({
           {file ? (
             <p className="text-sm font-medium text-slate-100" dir="ltr">{file.name} <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span></p>
           ) : (
-            <p className="text-sm text-slate-200">Choose an .ifc STEP export to validate.</p>
+            <p className="text-sm text-slate-200">{isAr ? 'اختر تصدير IFC بصيغة STEP (‎.ifc) للتحقّق منه.' : 'Choose an .ifc STEP export to validate.'}</p>
           )}
         </div>
         <input ref={fileInput} type="file" accept=".ifc" className="hidden" disabled={!canIngest}
-          onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label="IFC model to ingest" />
-        <Button variant="ghost" size="sm" disabled={!canIngest} onClick={() => fileInput.current?.click()}>Browse</Button>
+          onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label={isAr ? 'نموذج IFC المراد إدخاله' : 'IFC model to ingest'} />
+        <Button variant="ghost" size="sm" disabled={!canIngest} onClick={() => fileInput.current?.click()}>{isAr ? 'تصفّح' : 'Browse'}</Button>
         <Button variant="primary" size="sm" disabled={!canIngest || !file || uploading} onClick={upload}>
-          {uploading ? 'Parsing…' : 'Ingest IFC'}
+          {uploading ? (isAr ? 'جارٍ التحليل…' : 'Parsing…') : (isAr ? 'إدخال IFC' : 'Ingest IFC')}
         </Button>
       </div>
     </Card>
@@ -301,22 +338,38 @@ function BimUploadCard({
 }
 
 function BimModelCard({ model }: { model: BimModelRow }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   const counts = model.details.counts ?? {};
   const storeys = model.details.storeys ?? [];
   const validation = model.details.checks?.validation ?? [];
   const governance = model.details.checks?.governance ?? [];
-  const countLabels: [string, string][] = [
-    ['storeys', 'Storeys'], ['spaces', 'Spaces'], ['walls', 'Walls'], ['slabs', 'Slabs'],
-    ['columns', 'Columns'], ['beams', 'Beams'], ['doors', 'Doors'], ['windows', 'Windows'],
-  ];
+  const countLabels: [string, string][] = isAr
+    ? [
+        ['storeys', 'الطوابق'], ['spaces', 'الفراغات'], ['walls', 'الجدران'], ['slabs', 'البلاطات'],
+        ['columns', 'الأعمدة'], ['beams', 'الكمرات'], ['doors', 'الأبواب'], ['windows', 'النوافذ'],
+      ]
+    : [
+        ['storeys', 'Storeys'], ['spaces', 'Spaces'], ['walls', 'Walls'], ['slabs', 'Slabs'],
+        ['columns', 'Columns'], ['beams', 'Beams'], ['doors', 'Doors'], ['windows', 'Windows'],
+      ];
+
+  const statusLabel = (s: string | null) => {
+    if (!isAr) return s ?? 'unknown';
+    if (s === 'valid') return 'صالح';
+    if (s === 'invalid') return 'غير صالح';
+    return s ?? 'غير معروف';
+  };
 
   return (
     <Card padded={false}>
       <div className="space-y-3 px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-sm font-semibold text-slate-50" dir="ltr">{model.refNumber}</span>
-          <Pill tone={model.status === 'valid' ? 'emerald' : 'amber'}>{model.status ?? 'unknown'}</Pill>
-          {model.details.unitsDefined ? <Pill tone="sky">units defined</Pill> : <Pill tone="rose">no units</Pill>}
+          <Pill tone={model.status === 'valid' ? 'emerald' : 'amber'}>{statusLabel(model.status)}</Pill>
+          {model.details.unitsDefined
+            ? <Pill tone="sky">{isAr ? 'الوحدات مُعرّفة' : 'units defined'}</Pill>
+            : <Pill tone="rose">{isAr ? 'بدون وحدات' : 'no units'}</Pill>}
           {model.details.projectName && <span className="text-sm text-slate-300">{model.details.projectName}</span>}
         </div>
 
@@ -332,7 +385,7 @@ function BimModelCard({ model }: { model: BimModelRow }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-500">
-                <tr><th className="px-3 py-1.5 text-start">Storey</th><th className="px-3 py-1.5 text-end">Elevation</th></tr>
+                <tr><th className="px-3 py-1.5 text-start">{isAr ? 'الطابق' : 'Storey'}</th><th className="px-3 py-1.5 text-end">{isAr ? 'المنسوب' : 'Elevation'}</th></tr>
               </thead>
               <tbody>
                 {storeys.map((s, i) => (
@@ -347,12 +400,12 @@ function BimModelCard({ model }: { model: BimModelRow }) {
         )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <CheckList title="Model validation" checks={validation} />
-          <CheckList title="Governance checks" checks={governance} />
+          <CheckList title={isAr ? 'التحقّق من النموذج' : 'Model validation'} checks={validation} />
+          <CheckList title={isAr ? 'فحوصات الحوكمة' : 'Governance checks'} checks={governance} />
         </div>
 
-        <p className="text-[11px] text-slate-500" dir="ltr">
-          Uploaded {new Date(model.createdAt).toLocaleString()} · SHA-archived
+        <p className="text-[11px] text-slate-500" dir={isAr ? 'rtl' : 'ltr'}>
+          {isAr ? 'رُفِع في' : 'Uploaded'} <span dir="ltr">{new Date(model.createdAt).toLocaleString()}</span> · {isAr ? 'مؤرشَف بـ SHA' : 'SHA-archived'}
           {model.details.sha256 ? ` (${model.details.sha256.slice(0, 12)}…)` : ''}
         </p>
       </div>
@@ -361,6 +414,8 @@ function BimModelCard({ model }: { model: BimModelRow }) {
 }
 
 function CheckList({ title, checks }: { title: string; checks: BimCheck[] }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900/30 p-3">
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{title}</p>
@@ -368,7 +423,7 @@ function CheckList({ title, checks }: { title: string; checks: BimCheck[] }) {
         {checks.map((c) => (
           <li key={c.check} className="flex items-center justify-between gap-2 text-[13px]">
             <span className="text-slate-200">{c.check}</span>
-            <Pill tone={c.pass ? 'emerald' : 'rose'}>{c.pass ? 'pass' : 'fail'}</Pill>
+            <Pill tone={c.pass ? 'emerald' : 'rose'}>{c.pass ? (isAr ? 'مطابق' : 'pass') : (isAr ? 'غير مطابق' : 'fail')}</Pill>
           </li>
         ))}
       </ul>
@@ -387,6 +442,8 @@ function UploadCard({
   uploadedBy: string | null;
   onUploaded: () => Promise<void> | void;
 }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   const toast = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -396,11 +453,19 @@ function UploadCard({
   const setFileSafe = (f: File | null) => {
     if (!f) { setFile(null); return; }
     if (!/\.pdf$/i.test(f.name)) {
-      toast.error('Unsupported file', 'Phase 1 accepts PDF drawing sets only (IFC / DWG follow).');
+      toast.error(
+        isAr ? 'صيغة غير مدعومة' : 'Unsupported file',
+        isAr ? 'تقبل المرحلة الأولى حِزَم المخططات بصيغة PDF فقط (وتأتي IFC / DWG لاحقاً).' : 'Phase 1 accepts PDF drawing sets only (IFC / DWG follow).',
+      );
       return;
     }
     if (f.size > MAX_BYTES) {
-      toast.error('File too large', `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 24 MB limit.`);
+      toast.error(
+        isAr ? 'الملف أكبر من الحدّ المسموح' : 'File too large',
+        isAr
+          ? `${(f.size / 1024 / 1024).toFixed(1)} ميغابايت تتجاوز حدّ الـ 24 ميغابايت.`
+          : `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 24 MB limit.`,
+      );
       return;
     }
     setFile(f);
@@ -420,19 +485,24 @@ function UploadCard({
       });
       setFile(null);
       toast.success(
-        'Drawing set ingested',
-        `${r.summary.pageCount ?? 0} page(s) · ${detectedFloors(r)} floor hint(s) · ${(r.summary.disciplineHints ?? []).length} discipline(s)`,
+        isAr ? 'تم إدخال مجموعة المخططات' : 'Drawing set ingested',
+        isAr
+          ? `${r.summary.pageCount ?? 0} صفحة · ${detectedFloors(r)} مؤشّر طابق · ${(r.summary.disciplineHints ?? []).length} تخصّص`
+          : `${r.summary.pageCount ?? 0} page(s) · ${detectedFloors(r)} floor hint(s) · ${(r.summary.disciplineHints ?? []).length} discipline(s)`,
       );
       await onUploaded();
     } catch (e) {
-      toast.error('Ingestion failed', (e as Error).message);
+      toast.error(isAr ? 'فشل الإدخال' : 'Ingestion failed', (e as Error).message);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <Card title="Upload a PDF drawing set" hint={`Archived immutably for project ${projectKey}.`}>
+    <Card
+      title={isAr ? 'رفع مجموعة مخططات بصيغة PDF' : 'Upload a PDF drawing set'}
+      hint={isAr ? `مؤرشَفة بصورة غير قابلة للتعديل للمشروع ${projectKey}.` : `Archived immutably for project ${projectKey}.`}
+    >
       <div
         onDragOver={(e) => { if (canIngest) { e.preventDefault(); setDragOver(true); } }}
         onDragLeave={() => setDragOver(false)}
@@ -453,16 +523,16 @@ function UploadCard({
           <IconUpload className="h-5 w-5" />
         </div>
         {file ? (
-          <p className="text-sm font-medium text-slate-100">{file.name} <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span></p>
+          <p className="text-sm font-medium text-slate-100" dir="ltr">{file.name} <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span></p>
         ) : (
-          <p className="text-sm text-slate-200">Drag an architectural / structural / MEP PDF set here</p>
+          <p className="text-sm text-slate-200">{isAr ? 'اسحب مجموعة مخططات معمارية / إنشائية / كهروميكانيكية (MEP) بصيغة PDF إلى هنا' : 'Drag an architectural / structural / MEP PDF set here'}</p>
         )}
         <div className="flex items-center gap-2">
           <input ref={fileInput} type="file" accept=".pdf,application/pdf" className="hidden" disabled={!canIngest}
-            onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label="Drawing set to ingest" />
-          <Button variant="ghost" size="sm" disabled={!canIngest} onClick={() => fileInput.current?.click()}>Browse</Button>
+            onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label={isAr ? 'مجموعة المخططات المراد إدخالها' : 'Drawing set to ingest'} />
+          <Button variant="ghost" size="sm" disabled={!canIngest} onClick={() => fileInput.current?.click()}>{isAr ? 'تصفّح' : 'Browse'}</Button>
           <Button variant="primary" size="sm" disabled={!canIngest || !file || uploading} onClick={upload}>
-            {uploading ? 'Ingesting…' : 'Ingest'}
+            {uploading ? (isAr ? 'جارٍ الإدخال…' : 'Ingesting…') : (isAr ? 'إدخال' : 'Ingest')}
           </Button>
         </div>
       </div>
@@ -481,6 +551,8 @@ function PackageCard({
   busy: boolean;
   onGenerate: () => void;
 }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
   const floors = pkg.summary.floorHints ?? [];
   const disciplines = pkg.summary.disciplineHints ?? [];
   const scanned = !!pkg.summary.extractionNote;
@@ -492,9 +564,11 @@ function PackageCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm font-semibold text-slate-50" dir="ltr">{pkg.filename}</span>
             <Pill tone="sky">{pkg.format.toUpperCase()}</Pill>
-            <Pill tone="slate">{pkg.summary.pageCount ?? 0} pages</Pill>
+            <Pill tone="slate">{pkg.summary.pageCount ?? 0} {isAr ? 'صفحة' : 'pages'}</Pill>
             <Pill tone={floors.length > 0 ? 'emerald' : 'amber'}>
-              {floors.length > 0 ? `${detectedFloors(pkg)} floor(s) detected` : 'no floor hints'}
+              {floors.length > 0
+                ? (isAr ? `تم رصد ${detectedFloors(pkg)} طابق` : `${detectedFloors(pkg)} floor(s) detected`)
+                : (isAr ? 'لا توجد مؤشّرات طوابق' : 'no floor hints')}
             </Pill>
             {disciplines.map((d) => <Pill key={d} tone="violet">{d}</Pill>)}
           </div>
@@ -504,17 +578,17 @@ function PackageCard({
             </p>
           )}
           {floors.length > 0 && (
-            <p className="mt-2 text-[11px] text-slate-400" dir="ltr">
-              Hints: {floors.slice(0, 8).join(' · ')}{floors.length > 8 ? ` (+${floors.length - 8})` : ''}
+            <p className="mt-2 text-[11px] text-slate-400" dir={isAr ? 'rtl' : 'ltr'}>
+              {isAr ? 'المؤشّرات:' : 'Hints:'} <span dir="ltr">{floors.slice(0, 8).join(' · ')}{floors.length > 8 ? ` (+${floors.length - 8})` : ''}</span>
             </p>
           )}
-          <p className="mt-1 text-[11px] text-slate-500" dir="ltr">
-            Uploaded {new Date(pkg.createdAt).toLocaleString()}{pkg.uploadedBy ? ` by ${pkg.uploadedBy}` : ''} · SHA-archived
+          <p className="mt-1 text-[11px] text-slate-500" dir={isAr ? 'rtl' : 'ltr'}>
+            {isAr ? 'رُفِع في' : 'Uploaded'} <span dir="ltr">{new Date(pkg.createdAt).toLocaleString()}</span>{pkg.uploadedBy ? (isAr ? ` بواسطة ${pkg.uploadedBy}` : ` by ${pkg.uploadedBy}`) : ''} · {isAr ? 'مؤرشَف بـ SHA' : 'SHA-archived'}
           </p>
         </div>
         <Button variant="primary" size="sm" disabled={!canAuthor || busy} onClick={onGenerate}>
           <IconSparkles className="h-3.5 w-3.5" />
-          {busy ? 'Planning…' : 'Generate baseline from this package'}
+          {busy ? (isAr ? 'جارٍ التخطيط…' : 'Planning…') : (isAr ? 'توليد خط الأساس من هذه الحزمة' : 'Generate baseline from this package')}
         </Button>
       </div>
     </Card>

@@ -228,9 +228,12 @@ function MonthlyReportsPage() {
         method: 'POST',
         body: JSON.stringify(body),
       });
+      const cadenceLabel = lang === 'ar'
+        ? ({ day: 'يومي', week: 'أسبوعي', month: 'شهري' } as Record<Cadence, string>)[cadence]
+        : cadence.toUpperCase();
       toast.success(
         t('reportsMonthly.toast.generatedTitle'),
-        `${cadence.toUpperCase()} ${periodKey} · ${audienceLabel(t, created.audience as Audience)}`,
+        `${cadenceLabel} ${periodKey} · ${audienceLabel(t, created.audience as Audience)}`,
       );
       setOpenId(created.id);
       await refresh();
@@ -242,7 +245,7 @@ function MonthlyReportsPage() {
     } finally {
       setGenerating(false);
     }
-  }, [projectKey, cadence, month, week, day, audience, narrativeType, authoredBy, t, toast, refresh]);
+  }, [projectKey, cadence, month, week, day, audience, narrativeType, authoredBy, t, lang, toast, refresh]);
 
   const openRow = useMemo(
     () => (openId ? rows?.find((r) => r.id === openId) ?? null : null),

@@ -702,7 +702,7 @@ export class PdfRendererService {
         color: this.canvas, borderColor: this.cardBorder, borderWidth: 0.6,
       });
       page.drawRectangle({ x, y: topY - cardH, width: 3, height: cardH, color: cards[i].accent });
-      page.drawText(cards[i].label.toUpperCase(), {
+      page.drawText(this.safeAscii(cards[i].label).toUpperCase(), {
         x: x + 10, y: topY - 16, font: helvBold, size: 7, color: this.inkSoft,
       });
       const valueStr = this.safeAscii(cards[i].value);
@@ -1118,7 +1118,7 @@ export class PdfRendererService {
     if (!text) return '';
     // Normalise common Unicode typographic chars that WinAnsi rejects.
     const normalised = text
-      .replace(/[—―–]/g, '-')
+      .replace(/[—―–−‐]/g, '-')
       .replace(/[‘’‚′]/g, "'")
       .replace(/[“”„″]/g, '"')
       .replace(/…/g, '...')
