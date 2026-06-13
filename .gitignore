@@ -34,3 +34,9 @@ Thumbs.db
 # Python (legacy — removed; guard against accidental re-creation)
 .venv/
 __pycache__/
+
+# Local AI/editor assistant config (not part of the product)
+.claude/
+**/.claude/
+CLAUDE.md
+**/CLAUDE.md
