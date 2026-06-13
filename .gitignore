@@ -40,3 +40,9 @@ __pycache__/
 **/.claude/
 CLAUDE.md
 **/CLAUDE.md
+
+# Large generated artifacts / media — kept on disk, never in git (repo stays lean)
+*.mp4
+*.pdf
+docs/user-guide/shots/
+docs/user-guide/shots-new/
