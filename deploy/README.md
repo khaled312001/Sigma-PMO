@@ -14,7 +14,7 @@
 | `scripts/deploy.sh`               | pull + build + migrate + restart                       |
 | `scripts/backup-cron.sh`          | daily DB + files backup                                |
 | `scripts/restore-drill.sh`        | quarterly DR drill                                     |
-| `.env.production.example`         | template for `/etc/sigma-pmo/{backend,frontend,backup}.env` |
+| `env/*.env.example`               | templates for `/etc/sigma-pmo/{backend,frontend,backup}.env` |
 
 ## Sequence (≈ 60 min from blank VPS to live)
 
@@ -42,17 +42,19 @@
 5. **Env files** (10 min):
    ```bash
    install -d -m 0750 -o root -g sigma /etc/sigma-pmo
-   cp deploy/.env.production.example /etc/sigma-pmo/backend.env  # then edit
+   cp deploy/env/backend.env.example /etc/sigma-pmo/backend.env
+   cp deploy/env/frontend.env.example /etc/sigma-pmo/frontend.env
+   cp deploy/env/backup.env.example /etc/sigma-pmo/backup.env
    $EDITOR /etc/sigma-pmo/backend.env
-   $EDITOR /etc/sigma-pmo/frontend.env       # see template at end of example file
-   $EDITOR /etc/sigma-pmo/backup.env         # see template at end of example file
+   $EDITOR /etc/sigma-pmo/frontend.env
+   $EDITOR /etc/sigma-pmo/backup.env
    chmod 0640 /etc/sigma-pmo/*.env
    chown root:sigma /etc/sigma-pmo/*.env
    chmod 0600 /etc/sigma-pmo/backup.env
    chown sigma:sigma /etc/sigma-pmo/backup.env
    ```
-   Replace every `REPLACE_*` placeholder. Set the DB password and update the
-   MariaDB user accordingly:
+   Replace every `REPLACE_*` placeholder and `app.sigma.example`. Set the DB
+   password and update the MariaDB user accordingly:
    ```bash
    mariadb -uroot -e "ALTER USER 'sigma_pmo'@'localhost' IDENTIFIED BY '<new-pass>'; FLUSH PRIVILEGES;"
    ```

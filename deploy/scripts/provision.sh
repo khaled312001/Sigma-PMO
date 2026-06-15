@@ -93,8 +93,8 @@ Next steps (in order):
        cp deploy/systemd/*.service /etc/systemd/system/
        systemctl daemon-reload
 
-  4. Create env files under /etc/sigma-pmo/ (use .env.production.example
-     as a template):
+  4. Create env files under /etc/sigma-pmo/ (use deploy/env/*.env.example
+     as templates):
        /etc/sigma-pmo/backend.env
        /etc/sigma-pmo/frontend.env
 
@@ -108,7 +108,7 @@ Next steps (in order):
 
   8. Install the daily backup cron:
        crontab -u sigma -l 2>/dev/null > /tmp/sigma_crontab || true
-       echo '15 2 * * * /srv/sigma-pmo/scripts/backup-cron.sh' >> /tmp/sigma_crontab
+       echo '15 2 * * * /srv/sigma-pmo/deploy/scripts/backup-cron.sh >> /srv/sigma-pmo/storage/backups/cron.log 2>&1' >> /tmp/sigma_crontab
        crontab -u sigma /tmp/sigma_crontab
 
   9. Drill restore once with deploy/scripts/restore-drill.sh.

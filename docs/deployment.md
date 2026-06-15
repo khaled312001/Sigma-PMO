@@ -11,6 +11,8 @@ remains as a redirect index for backward compatibility.
 | Backups (daily / weekly) | [`runbook/backup.md`](runbook/backup.md)            |
 | Restore drill            | [`runbook/restore.md`](runbook/restore.md)          |
 | Health probes + monitoring | [`runbook/monitoring.md`](runbook/monitoring.md)  |
+| Server upload checklist    | [`../deploy/SERVER_UPLOAD_CHECKLIST.md`](../deploy/SERVER_UPLOAD_CHECKLIST.md) |
+| Production env templates   | [`../deploy/env/`](../deploy/env/)                |
 
 The `deploy/` folder at the repo root holds the artefacts the runbooks
 reference (nginx config, systemd units, provisioning + deploy + backup +

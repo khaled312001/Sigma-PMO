@@ -1,0 +1,12 @@
+Test ID,Module and layer,Test scenario,Input documents,Expected result,Actual result,Calculation reference,Evidence link,Execution ID,Build/version number,Tester,Domain reviewer,Defect reference,Retest result,Owner decision,Status
+UAT-001,Financial Engines,Validate NPV/IRR/Payback/cash flow/DSCR against independent model,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-002,Primavera and EVM,Validate activity import baselines progress PV EV AC SPI CPI EAC ETC VAC,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-003,Schedule Impact,Validate safety/fire/authority/utility/procurement events against critical path,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-004,BIM and QS,Validate BIM/BOQ output against independent QS takeoff,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-005,Claims and EOT,Validate claim chain cause-event-activity-critical path-notice-evidence-indicator,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-006,Audit Trail,Validate decision-finding-agent-evidence-source traceability,TBD,100 percent traceability for critical decisions,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-007,Alerts,Measure correct alerts false positives missed events lead time escalation closure,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-008,Completed Project Retrospective,Compare Sigma findings against known completed-project outcomes,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-009,Live Shadow Pilot,Compare Sigma weekly findings against project-team findings,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+UAT-010,Security and Access,Validate separate environment RBAC logs backups restore and access removal,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,TBD,Not Tested
+

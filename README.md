@@ -58,6 +58,10 @@ delay-exposure), and traced **Decision → Finding → Agent → Evidence → So
 - **Acceptance program:** Mr. Ayham's formal 23-test validation (`modules/acceptance/`
   + the `/acceptance` screen + `scripts/run-acceptance.ts`) — **23 / 23 PASS**.
   Results: [`docs/acceptance/acceptance-results-2026-06-13.json`](docs/acceptance/acceptance-results-2026-06-13.json).
+- **Phase 2 owner-led UAT package:** real-project validation pack prepared under
+  [`docs/uat-phase-2/`](docs/uat-phase-2/) covering the UAT plan, data checklist,
+  acceptance register, defect/retest records, independent domain validation,
+  security/performance checks, known limitations and owner acceptance certificate.
 - **Report (≈130 pp, AR/EN):** [`docs/user-guide/Sigma-PMO-Acceptance-Guide-AR.pdf`](docs/user-guide/Sigma-PMO-Acceptance-Guide-AR.pdf)
   — each layer step-by-step with real screenshots + usage per module.
 - Deterministic-first throughout; the AI narrates only, cites `[SOURCE: id]`, and runs

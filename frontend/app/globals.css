@@ -318,7 +318,7 @@ html, body, * {
   to   { opacity: 1; transform: translateX(0);    }
 }
 
-html[dir="rtl"] @keyframes slide-in-from-start {
+@keyframes slide-in-from-start-rtl {
   from { opacity: 0; transform: translateX(8px); }
   to   { opacity: 1; transform: translateX(0);   }
 }

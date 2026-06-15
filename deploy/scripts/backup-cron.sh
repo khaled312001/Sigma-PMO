@@ -9,7 +9,7 @@
 #   - rsync off-host (configured via SIGMA_OFFSITE_RSYNC env var)
 #
 # Crontab line:
-#   15 2 * * * /srv/sigma-pmo/scripts/backup-cron.sh >> /srv/sigma-pmo/storage/backups/cron.log 2>&1
+#   15 2 * * * /srv/sigma-pmo/deploy/scripts/backup-cron.sh >> /srv/sigma-pmo/storage/backups/cron.log 2>&1
 
 set -euo pipefail
 

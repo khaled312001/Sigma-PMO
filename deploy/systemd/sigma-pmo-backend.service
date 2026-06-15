@@ -10,8 +10,8 @@ Group=sigma
 WorkingDirectory=/srv/sigma-pmo/backend
 EnvironmentFile=/etc/sigma-pmo/backend.env
 
-# Built artefact from `npm run build` lives in dist/
-ExecStart=/usr/bin/node dist/main.js
+# Built artefact from `npm run build` lives in dist/src/
+ExecStart=/usr/bin/node dist/src/main.js
 
 Restart=on-failure
 RestartSec=5s
