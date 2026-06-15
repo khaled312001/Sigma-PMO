@@ -38,8 +38,13 @@ async function bootstrap(): Promise<void> {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  const defaultDevOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://[::1]:3000',
+  ];
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : ['http://localhost:3000'],
+    origin: corsOrigins.length > 0 ? corsOrigins : defaultDevOrigins,
     credentials: false,
   });
 

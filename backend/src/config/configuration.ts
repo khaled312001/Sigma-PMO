@@ -122,8 +122,8 @@ export default (): AppConfiguration => {
     username: process.env.DB_USERNAME ?? 'root',
     password: process.env.DB_PASSWORD ?? '',
     database: process.env.DB_DATABASE ?? 'sigma_pmo',
-    // Default true for zero-setup dev; force false in production regardless (DatabaseModule enforces).
-    synchronize: toBool(process.env.DB_SYNCHRONIZE, process.env.NODE_ENV !== 'production'),
+    // Runtime schema rewrites are unsafe for the mature UAT schema; use migrations instead.
+    synchronize: toBool(process.env.DB_SYNCHRONIZE, false),
     logging: toBool(process.env.DB_LOGGING, false),
   },
   anthropic: {
