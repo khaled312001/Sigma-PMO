@@ -52,6 +52,40 @@ export interface AnthropicConfig {
   enabled: boolean;
 }
 
+/**
+ * Autodesk Platform Services (APS, formerly Forge) — BIM/Revit/IFC integration.
+ * 2-legged OAuth (client_credentials). Empty client id/secret => disabled, and
+ * the BIM surface stays on the local hand-rolled IFC parser. The credentials
+ * are read env-first here, but `AutodeskApsService` prefers the encrypted
+ * `SystemSetting` (set from /admin/settings) when present — same precedence as
+ * the Anthropic key. NEVER hardcode the secret.
+ */
+export interface AutodeskConfig {
+  clientId: string;
+  clientSecret: string;
+  /** APS base host. Default is the public cloud; override only for sovereign regions. */
+  baseUrl: string;
+  /** Derived: true when both clientId and clientSecret are non-empty. */
+  enabled: boolean;
+}
+
+/**
+ * Primavera P6 EPPM REST — live schedule pull. Empty baseUrl/credentials =>
+ * disabled, and P6 data arrives only via file upload (.xer/.xml/.pdf) or the
+ * inbound webhook. `P6ClientService` prefers the encrypted `SystemSetting`
+ * values over these env defaults. NEVER hardcode the password.
+ */
+export interface PrimaveraConfig {
+  /** e.g. https://<host>/p6ws/restapi (P6 EPPM REST root). */
+  baseUrl: string;
+  /** P6 database instance name/id the REST API logs into. */
+  database: string;
+  username: string;
+  password: string;
+  /** Derived: true when baseUrl + username + password are all non-empty. */
+  enabled: boolean;
+}
+
 export interface AppConfiguration {
   env: string;
   port: number;
@@ -80,6 +114,10 @@ export interface AppConfiguration {
   throttlerIngestLimit: number;
   /** Wave 2: direct Claude SDK wiring. Separate from the legacy `llm.*` block. */
   anthropic: AnthropicConfig;
+  /** Autodesk APS (BIM/Revit/IFC) — 2-legged OAuth, env-default credentials. */
+  autodesk: AutodeskConfig;
+  /** Primavera P6 EPPM REST — live schedule pull, env-default credentials. */
+  primavera: PrimaveraConfig;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -94,6 +132,11 @@ function toInt(value: string | undefined, fallback: number): number {
 
 export default (): AppConfiguration => {
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY ?? '';
+  const autodeskClientId = process.env.AUTODESK_CLIENT_ID ?? '';
+  const autodeskClientSecret = process.env.AUTODESK_CLIENT_SECRET ?? '';
+  const p6BaseUrl = process.env.P6_BASE_URL ?? '';
+  const p6Username = process.env.P6_USERNAME ?? '';
+  const p6Password = process.env.P6_PASSWORD ?? '';
   return {
   env: process.env.NODE_ENV ?? 'development',
   port: toInt(process.env.PORT, 3001),
@@ -133,6 +176,19 @@ export default (): AppConfiguration => {
     maxTokens: toInt(process.env.ANTHROPIC_MAX_TOKENS, 4096),
     cacheTtlSeconds: toInt(process.env.ANTHROPIC_CACHE_TTL, 3600),
     enabled: !!anthropicApiKey,
+  },
+  autodesk: {
+    clientId: autodeskClientId,
+    clientSecret: autodeskClientSecret,
+    baseUrl: process.env.AUTODESK_BASE_URL ?? 'https://developer.api.autodesk.com',
+    enabled: !!autodeskClientId && !!autodeskClientSecret,
+  },
+  primavera: {
+    baseUrl: p6BaseUrl,
+    database: process.env.P6_DATABASE ?? '',
+    username: p6Username,
+    password: p6Password,
+    enabled: !!p6BaseUrl && !!p6Username && !!p6Password,
   },
   };
 };

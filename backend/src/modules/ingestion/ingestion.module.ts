@@ -9,6 +9,7 @@ import { NormalizerService } from './normalizer/normalizer.service';
 import { CsvParser } from './parsers/csv.parser';
 import { ExcelParser } from './parsers/excel.parser';
 import { MSProjectXmlParser } from './parsers/msproject-xml.parser';
+import { P6ApiParser } from './parsers/p6-api.parser';
 import { P6PdfParser } from './parsers/p6-pdf.parser';
 import { P6XerParser } from './parsers/p6-xer.parser';
 import { P6XmlParser } from './parsers/p6-xml.parser';
@@ -29,6 +30,7 @@ import { StorageService } from './storage/storage.service';
     ExcelParser,
     CsvParser,
     P6PdfParser,
+    P6ApiParser,
   ],
   exports: [IngestionService, StorageService],
 })

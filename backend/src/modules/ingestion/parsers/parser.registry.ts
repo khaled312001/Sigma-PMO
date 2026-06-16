@@ -3,6 +3,7 @@ import { Injectable, UnsupportedMediaTypeException } from '@nestjs/common';
 import { CsvParser } from './csv.parser';
 import { ExcelParser } from './excel.parser';
 import { MSProjectXmlParser } from './msproject-xml.parser';
+import { P6ApiParser } from './p6-api.parser';
 import { P6PdfParser } from './p6-pdf.parser';
 import { P6XerParser } from './p6-xer.parser';
 import { P6XmlParser } from './p6-xml.parser';
@@ -25,8 +26,11 @@ export class ParserRegistry {
     excel: ExcelParser,
     csv: CsvParser,
     p6Pdf: P6PdfParser,
+    p6Api: P6ApiParser,
   ) {
-    this.parsers = [p6Xer, p6Xml, msproject, excel, csv, p6Pdf];
+    // p6Api first — its `.p6json` / "p6-eppm-rest" marker is unambiguous and
+    // never collides with the file formats below.
+    this.parsers = [p6Api, p6Xer, p6Xml, msproject, excel, csv, p6Pdf];
   }
 
   resolve(filename: string, buffer: Buffer): SourceParser {

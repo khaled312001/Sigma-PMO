@@ -136,6 +136,72 @@ export class BimModelService {
     return row;
   }
 
+  /**
+   * Persist a `bim-model` record from element counts that were extracted by an
+   * EXTERNAL source (e.g. the Autodesk APS Model-Derivative connector) instead
+   * of the local IFC parser. Rides the exact same append-only versioning,
+   * governance checks and downstream QS surface as {@link ingestIfc}, so a
+   * model translated live from Revit/IFC via Autodesk feeds the Quantity-Survey
+   * → Cost → Governance pipeline identically to an uploaded file.
+   */
+  async ingestFromCounts(input: {
+    projectKey: string;
+    sourceRef: string;
+    projectName?: string | null;
+    counts: BimCounts;
+    storeys?: BimStorey[];
+    origin: string;
+    extra?: Record<string, unknown>;
+    uploadedBy?: string | null;
+  }): Promise<ProjectRecord> {
+    if (!input.projectKey?.trim()) throw new BadRequestException('projectKey is required');
+    if (!input.sourceRef?.trim()) throw new BadRequestException('sourceRef is required');
+
+    const storeys = input.storeys ?? [];
+    const validation = this.validationChecks(input.counts, !!input.extra?.unitsDefined);
+    const governance = this.governanceChecks(storeys, input.projectName ?? null, input.counts);
+
+    const businessKey = `${input.projectKey}:bim:${input.sourceRef}`;
+    const prior = await this.records.findOne({ where: { businessKey, isCurrent: true } });
+    if (prior) {
+      prior.isCurrent = false;
+      await this.records.save(prior);
+    }
+    const version = prior ? prior.version + 1 : 1;
+
+    const row = await this.records.save(
+      this.records.create({
+        businessKey,
+        version,
+        isCurrent: true,
+        rawSource: { source: input.origin, ref: input.sourceRef, ...(input.extra ?? {}) },
+        ingestionRunId: `bim-${businessKey}-v${version}`,
+        sourceFileId: input.sourceRef,
+        projectBusinessKey: input.projectKey,
+        recordType: 'bim-model',
+        refNumber: input.sourceRef,
+        title: input.projectName ? `BIM model — ${input.projectName}` : `BIM model — ${input.sourceRef}`,
+        status: this.allPass(validation) ? 'valid' : 'flagged',
+        party: input.uploadedBy ?? null,
+        details: {
+          projectName: input.projectName ?? null,
+          unitsDefined: !!input.extra?.unitsDefined,
+          storeys,
+          counts: input.counts,
+          checks: { validation, governance },
+          origin: input.origin,
+          ...(input.extra ?? {}),
+        },
+      }),
+    );
+
+    this.logger.log(
+      `BIM model ${row.id} ingested for ${input.projectKey} via ${input.origin}: ` +
+        `${input.counts.storeys} storey(s), ${this.totalElements(input.counts)} element(s).`,
+    );
+    return row;
+  }
+
   /** BIM-model records for one project, newest first. */
   list(projectKey: string): Promise<ProjectRecord[]> {
     if (!projectKey?.trim()) throw new BadRequestException('projectKey is required');

@@ -9,6 +9,15 @@ export enum SourceType {
   CSV = 'csv',
   /** Primavera P6 Activity Table PDF exports (e.g. "Critical Path.pdf"). */
   P6_PDF = 'p6_pdf',
+  /**
+   * Primavera P6 EPPM REST API — a LIVE pull (not a file). The P6 connector
+   * (`P6ClientService`) authenticates to the client's P6 server, fetches the
+   * project + activities + resources + assignments, and wraps them in a JSON
+   * envelope that `P6ApiParser` maps to the canonical-raw shape, so the live
+   * pull rides the exact same validate → normalise → confidence → audit
+   * pipeline as an uploaded `.xer`/`.xml`.
+   */
+  P6_API = 'p6_api',
 }
 
 /** Lifecycle of a single ingest → validate → normalise execution. */

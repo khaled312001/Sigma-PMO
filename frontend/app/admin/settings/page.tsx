@@ -93,6 +93,70 @@ const DEFS: Definition[] = [
       'رابط اتصال SMTP للإشعارات (قرارات الحوكمة، مسوّدات الخطابات). الصيغة: smtps://user:pass@host:465.',
     placeholder: 'smtps://user:pass@host:465',
   },
+  {
+    key: 'autodesk.aps_client_id',
+    title: 'Autodesk APS — Client ID',
+    titleAr: 'Autodesk APS — معرّف العميل',
+    description:
+      'Client ID of your Autodesk Platform Services app. Powers the live BIM integration — translating Revit/IFC/Navisworks models and extracting element quantities into the Quantity-Survey pipeline. Create a free app at aps.autodesk.com/myapps. Without it, BIM stays on the local IFC parser.',
+    descriptionAr:
+      'معرّف العميل (Client ID) لتطبيق Autodesk Platform Services الخاص بك. يُشغّل التكامل الحيّ مع BIM — تحويل نماذج Revit/IFC/Navisworks واستخراج كميات العناصر إلى مسار حصر الكميات. أنشئ تطبيقاً مجانياً من aps.autodesk.com/myapps. بدونه يبقى BIM على المُحلّل المحلّي لملفات IFC.',
+    placeholder: 'your-aps-client-id',
+    badge: 'critical',
+  },
+  {
+    key: 'autodesk.aps_client_secret',
+    title: 'Autodesk APS — Client Secret',
+    titleAr: 'Autodesk APS — السرّ',
+    description:
+      'Client Secret paired with the APS Client ID above (2-legged OAuth). Encrypted at rest; never returned by the API.',
+    descriptionAr:
+      'السرّ (Client Secret) المقترن بمعرّف عميل APS أعلاه (مصادقة OAuth ثنائية). يُشفَّر عند التخزين ولا تُعيده الواجهة أبداً.',
+    placeholder: '••••••••••••••••',
+    badge: 'critical',
+  },
+  {
+    key: 'primavera.p6_base_url',
+    title: 'Primavera P6 — EPPM REST URL',
+    titleAr: 'Primavera P6 — رابط EPPM REST',
+    description:
+      'Root URL of your Primavera P6 EPPM REST API (e.g. https://host/p6ws/restapi). Enables the LIVE schedule pull in addition to .xer/.xml uploads. Get it from your P6 administrator.',
+    descriptionAr:
+      'الرابط الجذري لواجهة Primavera P6 EPPM REST (مثل https://host/p6ws/restapi). يُفعّل السحب الحيّ للجداول الزمنية إضافةً إلى رفع ملفات ‎.xer/.xml. احصل عليه من مسؤول P6 لديك.',
+    placeholder: 'https://p6.example.com/p6ws/restapi',
+    badge: 'critical',
+  },
+  {
+    key: 'primavera.p6_database',
+    title: 'Primavera P6 — Database name',
+    titleAr: 'Primavera P6 — اسم قاعدة البيانات',
+    description:
+      'The P6 database instance the REST API connects to (the value your P6 login screen lists). Optional on single-database servers.',
+    descriptionAr:
+      'نسخة قاعدة بيانات P6 التي تتصل بها واجهة REST (القيمة التي تظهر في شاشة تسجيل الدخول إلى P6). اختيارية على الخوادم ذات قاعدة بيانات واحدة.',
+    placeholder: 'e.g. PMDB or 1',
+  },
+  {
+    key: 'primavera.p6_username',
+    title: 'Primavera P6 — Username',
+    titleAr: 'Primavera P6 — اسم المستخدم',
+    description:
+      'A P6 user with read access to the projects to be governed. A dedicated read-only service account is recommended.',
+    descriptionAr:
+      'مستخدم P6 له صلاحية قراءة المشاريع المطلوب حوكمتها. يُفضّل حساب خدمة مخصّص بصلاحية قراءة فقط.',
+    placeholder: 'p6-service-account',
+  },
+  {
+    key: 'primavera.p6_password',
+    title: 'Primavera P6 — Password',
+    titleAr: 'Primavera P6 — كلمة المرور',
+    description:
+      'Password for the P6 user above. Encrypted at rest with AES-256-GCM; never returned by the API.',
+    descriptionAr:
+      'كلمة مرور مستخدم P6 أعلاه. تُشفَّر عند التخزين بخوارزمية AES-256-GCM ولا تُعيدها الواجهة أبداً.',
+    placeholder: '••••••••••••',
+    badge: 'critical',
+  },
 ];
 
 export default function AdminSettingsRoute() {

@@ -165,4 +165,15 @@ export const SETTING_KEYS = {
   SLACK_WEBHOOK_URL: 'integrations.slack_webhook',
   TEAMS_WEBHOOK_URL: 'integrations.teams_webhook',
   EMAIL_SMTP_URL: 'integrations.email_smtp',
+  // ── Autodesk APS (BIM / Revit / IFC integration) ──
+  // 2-legged OAuth client credentials for Autodesk Platform Services. With
+  // both set, the platform translates Revit/IFC models via Model Derivative
+  // and extracts element quantities into the Quantity-Survey pipeline.
+  AUTODESK_CLIENT_ID: 'autodesk.aps_client_id',
+  AUTODESK_CLIENT_SECRET: 'autodesk.aps_client_secret',
+  // ── Primavera P6 EPPM REST (live schedule pull) ──
+  P6_BASE_URL: 'primavera.p6_base_url',
+  P6_DATABASE: 'primavera.p6_database',
+  P6_USERNAME: 'primavera.p6_username',
+  P6_PASSWORD: 'primavera.p6_password',
 } as const;

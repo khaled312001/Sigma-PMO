@@ -21,6 +21,8 @@ const REQUIRED_FIELDS: Record<EntityKind, string[]> = {
 
 /** Source reliability weighting — system exports rank above manual entry. */
 const SOURCE_RELIABILITY: Record<SourceType, number> = {
+  // Live authenticated P6 EPPM REST pull — system-of-record, ranks with P6 XML.
+  [SourceType.P6_API]: 1.0,
   [SourceType.P6_XML]: 1.0,
   [SourceType.P6_XER]: 0.95,
   [SourceType.MSPROJECT_XML]: 0.95,
