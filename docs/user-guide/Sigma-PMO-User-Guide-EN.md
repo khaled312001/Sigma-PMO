@@ -164,6 +164,31 @@ flow as a locally-parsed IFC. The extracted quantities then flow into Quantity S
 > nominal sizes), clearly labelled as derived. They prompt you to confirm the measured BOQ;
 > they do not replace it.
 
+### 2.4 LLM Council — multi-member AI adjudication
+
+**What it is.** When the platform *judges* a piece of information (a finding, a claim, an
+analysis), it can deliberate through an **LLM Council** instead of a single model pass.
+Several independent **members** — each with a distinct reviewing lens (Evidence & Correctness,
+Adversarial Skeptic, Governance/Contract & Risk, Pragmatic Decision) — give their opinion in
+parallel; then a **Chair** synthesizes one consensus verdict, reports how aligned the members
+were (an **agreement %**), an overall **confidence**, and surfaces any **dissent**.
+
+**Why it matters.** A council catches a single model's blind spots and makes disagreement
+explicit rather than hidden — higher-reliability judgement for governance decisions.
+
+**How to use it.**
+- **Default mode:** set `ANTHROPIC_COUNCIL_ENABLED=true` (and `ANTHROPIC_COUNCIL_SIZE` = 2–4).
+  With it on, the **AI Analysis** panels deliberate via the council instead of a single pass.
+- **Ad-hoc adjudication:** `POST /admin/claude/council` with `{ question, context,
+  bibliography?, language?, members? }` returns `{ verdict, confidence, agreement,
+  consensusStance, members[], dissent, citations }`. `GET /admin/claude/council/status`
+  reports whether it is enabled.
+
+**Discipline (unchanged).** The council only *judges/narrates* the deterministic figures — it
+never recomputes a number; every claim is cited `[SOURCE: id]`; the verdict is advisory behind
+the human-approval gate; and with no Claude key it returns a disabled verdict (no fabricated
+consensus).
+
 ---
 ## 3. Governance & Command Center
 
