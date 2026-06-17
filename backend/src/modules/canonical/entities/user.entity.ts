@@ -16,6 +16,16 @@ import { Role } from '../../auth/roles.enum';
  */
 @Entity('user')
 export class User extends UuidEntity {
+  /**
+   * Multi-tenant company scope (SaaS). NULL = platform-level user (SUPER_ADMIN)
+   * who operates above all companies; otherwise the company this user belongs
+   * to. Backfilled to a default company for pre-SaaS users by the Tenancy
+   * migration.
+   */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  companyId!: string | null;
+
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 320 })
   email!: string;

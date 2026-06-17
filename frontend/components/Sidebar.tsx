@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
 
 import { useEffect, useState } from 'react';
 
@@ -104,6 +104,14 @@ const TOOLS: NavLink[] = [
   { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, visible: govern },
 ];
 
+// ── Platform — SUPER_ADMIN only (multi-tenant control surface). ──
+const PLATFORM: NavLink[] = [
+  { href: '/super-admin',                    labelKey: 'nav.superAdmin',         surface: 'admin', icon: IconShield,    badge: 'new', visible: cap('canManagePlatform') },
+  { href: '/super-admin?tab=companies',      labelKey: 'nav.superCompanies',     surface: 'admin', icon: IconFolder,    visible: cap('canManagePlatform') },
+  { href: '/super-admin?tab=subscriptions',  labelKey: 'nav.superSubscriptions', surface: 'admin', icon: IconActivity,  badge: 'new', visible: cap('canManagePlatform') },
+  { href: '/super-admin?tab=requests',       labelKey: 'nav.superRequests',      surface: 'admin', icon: IconApproval,  visible: cap('canManagePlatform') },
+];
+
 // ── Admin — privileged operations only. ──
 const ADMIN: NavLink[] = [
   { href: '/admin/roles',    labelKey: 'nav.roles',            surface: 'admin', icon: IconUsers, badge: 'new', visible: cap('canManageRoles') },
@@ -126,6 +134,22 @@ const SURFACE_ACCENT: Record<NavLink['surface'], { rail: string; glow: string; i
   insights: { rail: 'before:bg-violet-400',   glow: 'shadow-[0_0_0_1px_rgba(167,139,250,0.45)]',  iconActive: 'text-violet-200' },
   planning: { rail: 'before:bg-sky-400',      glow: 'shadow-[0_0_0_1px_rgba(56,189,248,0.45)]',   iconActive: 'text-sky-200' },
 };
+
+/**
+ * Active-state for a nav link, query-aware so the super-admin sub-pages
+ * (`/super-admin?tab=…`) highlight the right entry. Base links without a tab
+ * stay active only on their own path (and, for `/super-admin`, the overview tab).
+ */
+function linkActive(href: string, pathname: string, search: ReadonlyURLSearchParams | null): boolean {
+  const [path, query] = href.split('?');
+  if (path === '/') return pathname === '/';
+  if (!pathname.startsWith(path)) return false;
+  const linkTab = query ? new URLSearchParams(query).get('tab') : null;
+  const curTab = search?.get('tab') ?? null;
+  if (linkTab) return curTab === linkTab;
+  if (path === '/super-admin') return !curTab || curTab === 'overview';
+  return true;
+}
 
 function NavItem({ link, active, onNavigate, collapsed }: { link: NavLink; active: boolean; onNavigate?: () => void; collapsed?: boolean }) {
   const Icon = link.icon;
@@ -191,7 +215,7 @@ function NavItem({ link, active, onNavigate, collapsed }: { link: NavLink; activ
   );
 }
 
-function NavGroup({ title, links, pathname, onNavigate, collapsed }: { title: string; links: NavLink[]; pathname: string; onNavigate?: () => void; collapsed?: boolean }) {
+function NavGroup({ title, links, pathname, search, onNavigate, collapsed }: { title: string; links: NavLink[]; pathname: string; search: ReadonlyURLSearchParams | null; onNavigate?: () => void; collapsed?: boolean }) {
   if (links.length === 0) return null;
   return (
     <div className="mt-5 first:mt-1">
@@ -201,10 +225,9 @@ function NavGroup({ title, links, pathname, onNavigate, collapsed }: { title: st
         <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</p>
       )}
       <ul className="space-y-0.5">
-        {links.map((link) => {
-          const active = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
-          return <li key={link.href}><NavItem link={link} active={active} onNavigate={onNavigate} collapsed={collapsed} /></li>;
-        })}
+        {links.map((link) => (
+          <li key={link.href}><NavItem link={link} active={linkActive(link.href, pathname, search)} onNavigate={onNavigate} collapsed={collapsed} /></li>
+        ))}
       </ul>
     </div>
   );
@@ -214,10 +237,12 @@ function SidebarBody({
   me, onSignOut, onNavigate, onClose, collapsed, onToggleCollapse,
 }: { me: MeResponse | null; onSignOut: () => void; onNavigate?: () => void; onClose?: () => void; collapsed?: boolean; onToggleCollapse?: () => void }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const { t } = useI18n();
   const portfolio = PORTFOLIO.filter((n) => n.visible(me));
   const layers = AGENT_LAYERS.filter((n) => n.visible(me));
   const tools = TOOLS.filter((n) => n.visible(me));
+  const platform = PLATFORM.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
 
   return (
@@ -263,10 +288,11 @@ function SidebarBody({
       </div>
 
       <nav className={`relative flex-1 overflow-y-auto py-3 scrollbar-thin ${collapsed ? 'px-2' : 'px-2'}`}>
-        <NavGroup title={t('nav.commandGroup')} links={portfolio} pathname={pathname} onNavigate={onNavigate} collapsed={collapsed} />
-        <NavGroup title={t('nav.agentLayers')} links={layers} pathname={pathname} onNavigate={onNavigate} collapsed={collapsed} />
-        <NavGroup title={t('nav.tools')} links={tools} pathname={pathname} onNavigate={onNavigate} collapsed={collapsed} />
-        <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.commandGroup')} links={portfolio} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.agentLayers')} links={layers} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.tools')} links={tools} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.platform')} links={platform} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
       </nav>
 
       <div className={`relative border-t border-slate-700/60 py-3 text-xs ${collapsed ? 'px-2' : 'px-3'}`}>

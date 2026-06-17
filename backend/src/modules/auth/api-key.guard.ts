@@ -63,6 +63,9 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     (req as { user?: unknown }).user = user;
+    // Multi-tenant context: expose the caller's company scope for downstream
+    // services (null for the platform SUPER_ADMIN, who reads across companies).
+    (req as { companyId?: string | null }).companyId = user.companyId ?? null;
     return true;
   }
 }

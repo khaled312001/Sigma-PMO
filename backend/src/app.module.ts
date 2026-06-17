@@ -10,6 +10,9 @@ import { HealthController } from './health/health.controller';
 import { AgentsModule } from './modules/agents/agents.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
 import { DrawingsModule } from './modules/drawings/drawings.module';
 import { EsgModule } from './modules/esg/esg.module';
@@ -71,6 +74,15 @@ import { SummaryModule } from './modules/summary/summary.module';
     DatabaseModule,
     CanonicalModule,
     AuthModule,
+    // Multi-tenant SaaS onboarding — public company self-registration (choosing
+    // the construction-entity type that configures the platform) + company-scoped
+    // user management. Imported after AuthModule so AuthService is available.
+    OnboardingModule,
+    // Multi-tenant SaaS — platform SUPER_ADMIN console (manages all companies,
+    // subscriptions, support/requests + platform analytics). Gated canManagePlatform.
+    SuperAdminModule,
+    // SaaS billing (Stripe) — subscription Checkout with trial + signed webhook.
+    BillingModule,
     GovernanceModule,
     IngestionModule,
     NotificationsModule,

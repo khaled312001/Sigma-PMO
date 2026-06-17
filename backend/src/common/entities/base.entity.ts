@@ -28,6 +28,16 @@ export abstract class UuidEntity {
  *    traceability ("why is this value here?").
  */
 export abstract class TraceableEntity extends UuidEntity {
+  /**
+   * Multi-tenant company scope (SaaS). Nullable for pre-SaaS rows (backfilled to
+   * a default company by the Tenancy migration); stamped from the request's
+   * company context on every new write. The platform SUPER_ADMIN reads across
+   * all companies. Indexed for the per-company query filter.
+   */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  companyId!: string | null;
+
   @Index()
   @Column({ type: 'char', length: 36 })
   ingestionRunId!: string;

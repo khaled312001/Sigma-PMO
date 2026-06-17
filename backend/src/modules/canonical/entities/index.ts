@@ -7,6 +7,9 @@ import { BoQ } from './boq.entity';
 import { BoqItem } from './boq-item.entity';
 import { Claim } from './claim.entity';
 import { ClashItem } from './clash-item.entity';
+import { Company } from './company.entity';
+import { Subscription } from './subscription.entity';
+import { SupportRequest } from './support-request.entity';
 import { ConceptDocument } from './concept-document.entity';
 import { ConfidenceScore } from './confidence-score.entity';
 import { CorrectiveAction } from './corrective-action.entity';
@@ -87,6 +90,9 @@ export {
   BoqItem,
   Claim,
   ClashItem,
+  Company,
+  Subscription,
+  SupportRequest,
   ConceptDocument,
   ConfidenceScore,
   CorrectiveAction,
@@ -157,6 +163,12 @@ export const CANONICAL_ENTITIES = [
   GovernanceDecision,
   DecisionReview,
   User,
+  // Multi-tenant SaaS — the Company (tenant) account + per-company Subscription
+  // + Support/Request tickets. Users + canonical records scope to a company via
+  // companyId; the platform SUPER_ADMIN manages all companies.
+  Company,
+  Subscription,
+  SupportRequest,
   // Wave 1 additions — see ADR-0010 + post-meeting plan §3.
   Persona,
   Scenario,

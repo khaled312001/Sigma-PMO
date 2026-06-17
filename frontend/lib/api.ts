@@ -56,6 +56,16 @@ export interface MeResponse {
     role: Role;
     projectScopes: string;
     emiratesId: string | null;
+    companyId?: string | null;
+  } | null;
+  /** Multi-tenant SaaS — the caller's company (null for platform users). */
+  company?: {
+    id: string;
+    name: string;
+    companyType: string;
+    status: string;
+    plan: string;
+    isOwner: boolean;
   } | null;
 }
 
@@ -69,6 +79,25 @@ export interface LoginResponse {
     projectScopes: string;
     emiratesId: string | null;
   };
+}
+
+/** Response from POST /onboarding/register (multi-tenant SaaS sign-up). */
+export interface RegisterCompanyResponse {
+  apiKey: string;
+  company: { id: string; slug: string; name: string; companyType: string; status: string; plan: string };
+  user: { id: string; email: string; displayName: string; role: Role };
+  /** Hosted Stripe Checkout URL (trial); null when billing is not configured. */
+  checkoutUrl: string | null;
+  billingEnabled: boolean;
+}
+
+/** Public company branding for the per-company login page (/c/:slug). */
+export interface PublicCompany {
+  slug: string;
+  name: string;
+  companyType: string;
+  status: string;
+  logoKey: string | null;
 }
 
 export interface IngestionRun {

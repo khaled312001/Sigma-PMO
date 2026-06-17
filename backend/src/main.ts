@@ -16,9 +16,18 @@ async function bootstrap(): Promise<void> {
   const config = app.get(ConfigService);
   const bodyLimit = config.get<string>('bodyLimit') ?? '25mb';
 
+  // Stripe webhook needs the RAW, unparsed body for signature verification, so
+  // it must bypass the JSON parser. Mount express.raw() for exactly that path,
+  // then skip the JSON/urlencoded parsers for it (they would consume the stream
+  // and break the signature). Every other route keeps the normal parsed body.
+  const STRIPE_WEBHOOK_PATH = '/api/v1/billing/webhook';
+  const jsonParser = express.json({ limit: bodyLimit });
+  const urlencodedParser = express.urlencoded({ extended: true, limit: bodyLimit });
+
   // Body size limits — replace Nest's default 100kb. Applied before any route.
-  app.use(express.json({ limit: bodyLimit }));
-  app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
+  app.use(STRIPE_WEBHOOK_PATH, express.raw({ type: '*/*', limit: bodyLimit }));
+  app.use((req, res, next) => (req.path === STRIPE_WEBHOOK_PATH ? next() : jsonParser(req, res, next)));
+  app.use((req, res, next) => (req.path === STRIPE_WEBHOOK_PATH ? next() : urlencodedParser(req, res, next)));
 
   // Helmet for security headers (CSP minimal — frontend is a separate origin).
   app.use(

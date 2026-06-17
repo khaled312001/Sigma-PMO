@@ -16,8 +16,11 @@ import { ThemeToggle } from './ThemeToggle';
 import { LangSwitch } from './LangSwitch';
 import { IconLogIn, IconLogOut, IconMenu } from './Icons';
 
-/** Routes that render full-screen without the sidebar/topbar (pro login). */
-const FULLSCREEN_ROUTES = new Set<string>(['/auth']);
+/** Routes that render full-screen without the sidebar/topbar (login + public SaaS onboarding). */
+const FULLSCREEN_ROUTES = new Set<string>(['/auth', '/intro', '/register']);
+
+/** True for the public, chrome-less surfaces — incl. the per-company login `/c/:slug`. */
+const isFullscreen = (pathname: string) => FULLSCREEN_ROUTES.has(pathname) || pathname.startsWith('/c/');
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -30,11 +33,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Unauthenticated users belong on /auth, period. No chrome, no AuthGate
-  // hero inside the shell — full split-screen sign-in.
+  // Unauthenticated visitors land on the SaaS intro first (the front door);
+  // from there they register a company or sign in. No chrome / AuthGate hero.
   useEffect(() => {
-    if (loaded && !me?.user && !FULLSCREEN_ROUTES.has(pathname)) {
-      router.replace('/auth');
+    if (loaded && !me?.user && !isFullscreen(pathname)) {
+      router.replace('/intro');
     }
   }, [loaded, me?.user, pathname, router]);
 
@@ -53,16 +56,40 @@ export function Shell({ children }: { children: React.ReactNode }) {
   };
 
   // Full-screen pages render without the shell chrome.
-  if (FULLSCREEN_ROUTES.has(pathname)) {
+  if (isFullscreen(pathname)) {
     return <>{children}</>;
   }
 
-  // While the redirect to /auth is in flight, render a minimal stub —
-  // avoids flashing the sidebar/topbar to anonymous users.
-  if (loaded && !me?.user) {
+  // Until auth is CONFIRMED, render a neutral branded splash — never the app
+  // chrome. This covers both the initial /me check (`!loaded`) and the redirect
+  // to /intro for anonymous users (`!me?.user`), so the sidebar/topbar never
+  // flash for a visitor who is about to be sent to the intro.
+  if (!loaded || !me?.user) {
+    // Branded splash built on the logo identity (deep navy ink + crimson glow +
+    // the white logo card) — explicit colors (not the theme-flipping slate
+    // tokens) so it reads as the brand instantly with no black flash.
     return (
-      <div className="grid min-h-screen place-items-center bg-slate-950 text-sm text-slate-400">
-        {t('common.loadingWorkspace')}
+      <div className="relative grid min-h-screen place-items-center overflow-hidden bg-[#0b1326]">
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-1/2 top-1/2 h-[70vh] w-[70vh] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(200,16,46,0.20),transparent_62%)] blur-[110px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(37,60,110,0.45),transparent_60%)]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070d1c] via-transparent to-transparent" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-5 [animation:fade-in-up_0.5s_ease-out_both]">
+          <div className="animate-float-y h-20 w-20 overflow-hidden rounded-[1.25rem] bg-white shadow-2xl shadow-black/50 ring-1 ring-white/15">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Sigma PMO" className="h-full w-full object-contain p-1.5" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-semibold tracking-tight text-white">
+              Sigma <span className="text-[#e2495f]">PMO</span>
+            </p>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.3em] text-slate-400">AI Governance OS</p>
+          </div>
+          <div className="relative h-1 w-32 overflow-hidden rounded-full bg-white/10">
+            <span aria-hidden className="absolute inset-y-0 w-1/2 rounded-full bg-gradient-to-r from-transparent via-[#C8102E] to-transparent animate-[shimmer_1.4s_ease-in-out_infinite]" />
+          </div>
+        </div>
       </div>
     );
   }

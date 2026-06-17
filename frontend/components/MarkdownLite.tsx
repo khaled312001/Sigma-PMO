@@ -3,9 +3,10 @@
 import { Fragment, ReactNode } from 'react';
 
 /**
- * MarkdownLite — a tiny deterministic renderer for the markdown subset the
- * feasibility study engine emits: **bold**, `- ` bullet lists and GitHub-style
- * pipe tables. No external dependency, no HTML injection (text-only nodes).
+ * MarkdownLite — a tiny deterministic renderer for the markdown the platform's
+ * AI narratives + feasibility engine emit: # / ## / ### headings, --- rules,
+ * **bold**, `- ` and `1.` lists, and GitHub-style pipe tables. No external
+ * dependency, no HTML injection (text-only nodes).
  */
 export function MarkdownLite({ text }: { text: string }) {
   const blocks = splitBlocks(text);
@@ -13,10 +14,26 @@ export function MarkdownLite({ text }: { text: string }) {
     <div className="space-y-3 text-sm leading-relaxed text-slate-200">
       {blocks.map((b, i) => {
         if (b.type === 'table') return <PipeTable key={i} rows={b.lines} />;
+        if (b.type === 'hr') return <hr key={i} className="border-slate-700/70" />;
+        if (b.type === 'h') {
+          const level = b.level ?? 2;
+          const cls =
+            level <= 1 ? 'mt-1 text-lg font-bold text-slate-50'
+            : level === 2 ? 'mt-3 text-base font-bold text-slate-50'
+            : 'mt-2 text-sm font-semibold uppercase tracking-wide text-sky-300';
+          return <p key={i} className={cls}>{inline(b.lines[0])}</p>;
+        }
+        if (b.type === 'olist') {
+          return (
+            <ol key={i} className="list-decimal space-y-1 ps-5">
+              {b.lines.map((l, j) => <li key={j}>{inline(l.replace(/^\d+\.\s+/, ''))}</li>)}
+            </ol>
+          );
+        }
         if (b.type === 'list') {
           return (
             <ul key={i} className="list-disc space-y-1 ps-5">
-              {b.lines.map((l, j) => <li key={j}>{inline(l.replace(/^- /, ''))}</li>)}
+              {b.lines.map((l, j) => <li key={j}>{inline(l.replace(/^[-*]\s+/, ''))}</li>)}
             </ul>
           );
         }
@@ -26,31 +43,39 @@ export function MarkdownLite({ text }: { text: string }) {
   );
 }
 
-interface Block { type: 'p' | 'list' | 'table'; lines: string[] }
+interface Block { type: 'p' | 'list' | 'olist' | 'table' | 'h' | 'hr'; lines: string[]; level?: number }
 
 function splitBlocks(text: string): Block[] {
   const out: Block[] = [];
   let cur: Block | null = null;
+  const push = (b: Block) => { out.push(b); cur = null; };
   for (const raw of text.split('\n')) {
     const line = raw.trimEnd();
-    const kind: Block['type'] =
-      line.startsWith('|') ? 'table' : line.startsWith('- ') ? 'list' : 'p';
     if (!line.trim()) { cur = null; continue; }
-    if (!cur || cur.type !== kind) {
-      cur = { type: kind, lines: [] };
-      out.push(cur);
-    }
+
+    const h = /^(#{1,6})\s+(.*)$/.exec(line);
+    if (h) { push({ type: 'h', level: h[1].length, lines: [h[2]] }); continue; }
+    if (/^([-*_])\1{2,}$/.test(line.trim())) { push({ type: 'hr', lines: [] }); continue; }
+
+    const kind: Block['type'] =
+      line.startsWith('|') ? 'table'
+      : /^[-*]\s/.test(line) ? 'list'
+      : /^\d+\.\s/.test(line) ? 'olist'
+      : 'p';
+    if (!cur || cur.type !== kind) { cur = { type: kind, lines: [] }; out.push(cur); }
     cur.lines.push(line);
   }
   return out;
 }
 
-/** Render **bold** spans inside a text run. */
+/** Render **bold** + `code` spans inside a text run. */
 function inline(text: string): ReactNode {
-  const parts = text.split(/\*\*(.+?)\*\*/g);
-  return parts.map((p, i) =>
-    i % 2 === 1 ? <strong key={i} className="font-semibold text-slate-50">{p}</strong> : <Fragment key={i}>{p}</Fragment>,
-  );
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((p, i) => {
+    if (/^\*\*[^*]+\*\*$/.test(p)) return <strong key={i} className="font-semibold text-slate-50">{p.slice(2, -2)}</strong>;
+    if (/^`[^`]+`$/.test(p)) return <code key={i} className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[0.85em] text-sky-300" dir="ltr">{p.slice(1, -1)}</code>;
+    return <Fragment key={i}>{p}</Fragment>;
+  });
 }
 
 function PipeTable({ rows }: { rows: string[] }) {

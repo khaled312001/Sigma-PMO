@@ -94,6 +94,44 @@ export interface PrimaveraConfig {
   enabled: boolean;
 }
 
+/**
+ * S3 (or S3-compatible) object storage for the file archive. When `enabled`
+ * (bucket + credentials set), `StorageService` writes/reads objects on S3
+ * instead of the local disk. Works with AWS S3 or any S3-compatible provider
+ * (Hetzner, MinIO, Backblaze, Wasabi) via `endpoint` + `forcePathStyle`.
+ */
+export interface S3Config {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  forcePathStyle: boolean;
+  /** Derived: true when bucket + access key + secret are all set. */
+  enabled: boolean;
+}
+
+/**
+ * Stripe billing (multi-tenant SaaS subscriptions). When `enabled`
+ * (STRIPE_SECRET_KEY + STRIPE_PRICE_ID set) registration sends the company to
+ * Stripe Checkout with a `trialDays` trial; a signed webhook syncs status.
+ * When disabled, billing degrades gracefully (trial subscription only).
+ * Discipline: `secretKey`/`webhookSecret` are read ONLY from env — never hardcoded.
+ */
+export interface StripeConfig {
+  secretKey: string;
+  publishableKey: string;
+  /** Recurring Price id (price_…) for the subscription plan. */
+  priceId: string;
+  webhookSecret: string;
+  /** Free-trial length in days before the first real charge. Default 30. */
+  trialDays: number;
+  /** Public frontend URL used to build Checkout success/cancel redirects. */
+  appUrl: string;
+  /** Derived: true when secretKey + priceId are both set. */
+  enabled: boolean;
+}
+
 export interface AppConfiguration {
   env: string;
   port: number;
@@ -126,6 +164,12 @@ export interface AppConfiguration {
   autodesk: AutodeskConfig;
   /** Primavera P6 EPPM REST — live schedule pull, env-default credentials. */
   primavera: PrimaveraConfig;
+  /** S3 / S3-compatible object storage for the file archive (optional). */
+  s3: S3Config;
+  /** Stripe billing (SaaS subscriptions) — optional, config-driven. */
+  stripe: StripeConfig;
+  /** Public URL of the frontend app (Checkout redirects, company login links). */
+  appUrl: string;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -145,7 +189,11 @@ export default (): AppConfiguration => {
   const p6BaseUrl = process.env.P6_BASE_URL ?? '';
   const p6Username = process.env.P6_USERNAME ?? '';
   const p6Password = process.env.P6_PASSWORD ?? '';
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? '';
+  const stripePriceId = process.env.STRIPE_PRICE_ID ?? '';
+  const appUrl = process.env.APP_PUBLIC_URL ?? 'http://localhost:3000';
   return {
+  appUrl,
   env: process.env.NODE_ENV ?? 'development',
   port: toInt(process.env.PORT, 3001),
   storageDir: process.env.STORAGE_DIR ?? '../data/storage',
@@ -199,6 +247,24 @@ export default (): AppConfiguration => {
     username: p6Username,
     password: p6Password,
     enabled: !!p6BaseUrl && !!p6Username && !!p6Password,
+  },
+  s3: {
+    endpoint: process.env.S3_ENDPOINT ?? '',
+    region: process.env.S3_REGION ?? 'us-east-1',
+    bucket: process.env.S3_BUCKET ?? '',
+    accessKeyId: process.env.S3_ACCESS_KEY ?? '',
+    secretAccessKey: process.env.S3_SECRET_KEY ?? '',
+    forcePathStyle: toBool(process.env.S3_FORCE_PATH_STYLE, true),
+    enabled: !!(process.env.S3_BUCKET && process.env.S3_ACCESS_KEY && process.env.S3_SECRET_KEY),
+  },
+  stripe: {
+    secretKey: stripeSecretKey,
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? '',
+    priceId: stripePriceId,
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+    trialDays: toInt(process.env.STRIPE_TRIAL_DAYS, 30),
+    appUrl,
+    enabled: !!(stripeSecretKey && stripePriceId),
   },
   };
 };

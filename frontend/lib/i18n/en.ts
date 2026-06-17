@@ -16,6 +16,11 @@ export const en: Dictionary = {
     reports: 'Reports',
     reporting: 'Reporting',
     settings: 'Advanced settings',
+    superAdmin: 'Platform Admin',
+    platform: 'Platform',
+    superCompanies: 'Companies',
+    superSubscriptions: 'Subscriptions',
+    superRequests: 'Requests & Support',
     engineering: 'Engineering',
     governance: 'Governance',
     clashes: 'Clashes',
@@ -511,6 +516,11 @@ export interface Dictionary {
     baselines: string; planning: string;
     reports: string; reporting: string;
     settings: string;
+    superAdmin: string;
+    platform: string;
+    superCompanies: string;
+    superSubscriptions: string;
+    superRequests: string;
     engineering: string; governance: string;
     clashes: string; drawings: string; letters: string; sources: string; simulation: string;
     comparison: string;

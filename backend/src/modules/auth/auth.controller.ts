@@ -18,7 +18,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { User } from '../canonical/entities';
+import { Company, User } from '../canonical/entities';
 import { AuthService } from './auth.service';
 import { LoginDto, SetPasswordDto } from './dto/login.dto';
 import { RequiresCapability } from './require-capability.decorator';
@@ -34,6 +34,16 @@ interface MeResponse {
     role: Role;
     projectScopes: string;
     emiratesId: string | null;
+    companyId: string | null;
+  } | null;
+  /** The caller's company (multi-tenant SaaS); null for platform users. */
+  company: {
+    id: string;
+    name: string;
+    companyType: string;
+    status: string;
+    plan: string;
+    isOwner: boolean;
   } | null;
 }
 
@@ -82,6 +92,7 @@ interface UpdateUserBody {
 export class AuthController {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Company) private readonly companies: Repository<Company>,
     private readonly auth: AuthService,
   ) {}
 
@@ -98,6 +109,16 @@ export class AuthController {
   async login(@Body() body: LoginDto): Promise<LoginResponse> {
     const user = await this.auth.authenticateByPassword(body.email, body.password);
     if (!user) throw new UnauthorizedException('Invalid email or password');
+
+    // Per-company login page (/c/:slug): scope the sign-in to that company so a
+    // company's portal only authenticates its OWN users, not every account.
+    if (body.companySlug) {
+      const company = await this.companies.findOne({ where: { slug: body.companySlug } });
+      if (!company || user.companyId !== company.id) {
+        throw new UnauthorizedException('This account is not part of this company');
+      }
+    }
+
     const apiKey = await this.auth.issueApiKey(user);
     return {
       apiKey,
@@ -134,10 +155,15 @@ export class AuthController {
   @Get('me')
   async me(@Headers('x-api-key') rawKey?: string): Promise<MeResponse> {
     const userCount = await this.auth.countUsers();
-    if (userCount === 0) return { authenticated: false, bootstrapMode: true, user: null };
-    if (!rawKey) return { authenticated: false, bootstrapMode: false, user: null };
+    if (userCount === 0) return { authenticated: false, bootstrapMode: true, user: null, company: null };
+    if (!rawKey) return { authenticated: false, bootstrapMode: false, user: null, company: null };
     const user = await this.auth.findActiveByApiKey(rawKey);
-    if (!user) return { authenticated: false, bootstrapMode: false, user: null };
+    if (!user) return { authenticated: false, bootstrapMode: false, user: null, company: null };
+
+    const company = user.companyId
+      ? await this.companies.findOne({ where: { id: user.companyId } })
+      : null;
+
     return {
       authenticated: true,
       bootstrapMode: false,
@@ -148,7 +174,18 @@ export class AuthController {
         role: user.role,
         projectScopes: user.projectScopes,
         emiratesId: user.emiratesId,
+        companyId: user.companyId,
       },
+      company: company
+        ? {
+            id: company.id,
+            name: company.name,
+            companyType: company.companyType,
+            status: company.status,
+            plan: company.plan,
+            isOwner: company.createdById === user.id,
+          }
+        : null,
     };
   }
 
