@@ -246,7 +246,7 @@ function SidebarBody({
   const adm = ADMIN.filter((n) => n.visible(me));
 
   return (
-    <div className={`relative flex h-full shrink-0 flex-col border-e border-slate-700/60 bg-slate-950/95 backdrop-blur-xl transition-[width] duration-300 ease-out ${collapsed ? 'w-[68px]' : 'w-64'}`}>
+    <div className={`relative flex h-full shrink-0 flex-col border-e border-slate-700/60 bg-slate-950/95 backdrop-blur-xl transition-[width] duration-300 ease-out ${collapsed ? 'w-[68px]' : 'w-[18.5rem]'}`}>
       {/* Subtle ambient glow at the top */}
       <div
         aria-hidden

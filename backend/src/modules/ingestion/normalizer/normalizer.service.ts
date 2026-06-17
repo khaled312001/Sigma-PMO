@@ -3,6 +3,7 @@ import { EntityManager, FindOptionsWhere } from 'typeorm';
 
 import { asDate, asFraction, asNumber, asString, toDateOnly } from '../../../common/coerce';
 import { TraceableEntity } from '../../../common/entities/base.entity';
+import { currentCompanyId } from '../../../common/tenant/tenant-context';
 import { ReportType, ResourceType } from '../../../common/enums';
 import {
   Activity,
@@ -192,6 +193,9 @@ export class NormalizerService {
     entity.version = version;
     entity.isCurrent = true;
     entity.rawSource = (raw.__raw ?? raw) as Record<string, unknown>;
+    // Multi-tenant: stamp the ingesting company so the data is scoped to them.
+    // Inherit the prior version's company when re-ingesting outside a request.
+    entity.companyId = currentCompanyId() ?? prior?.companyId ?? null;
     return entity;
   }
 }

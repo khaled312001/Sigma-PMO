@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { buildLoggerModule } from './common/logger';
 import { RequestIdMiddleware } from './common/request-id.middleware';
+import { TenantContextMiddleware } from './common/tenant/tenant.middleware';
 import { AppThrottlerModule } from './common/throttler.module';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
@@ -226,6 +227,8 @@ import { SummaryModule } from './modules/summary/summary.module';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     // Request-ID first — pino-http reads x-request-id via its genReqId callback.
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
+    // Tenant context opens the per-request company-scope store (filled by the
+    // auth guard) so data services isolate each company's records.
+    consumer.apply(RequestIdMiddleware, TenantContextMiddleware).forRoutes('*');
   }
 }

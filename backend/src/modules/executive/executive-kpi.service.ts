@@ -155,7 +155,7 @@ export class ExecutiveKpiService {
   }
 
   async computePortfolio(): Promise<PortfolioKpis> {
-    const projects = await this.projects.find({ where: { isCurrent: true }, order: { name: 'ASC' } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() }, order: { name: 'ASC' } });
     const list = await Promise.all(
       projects.map(async (p) => {
         const evm = await this.evmForProject(p);

@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { companyScope } from '../../common/tenant/tenant-context';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Project } from './entities';
 import { ProjectScores, ProjectsScoresService } from './projects-scores.service';
@@ -39,7 +40,7 @@ export class ProjectsController {
   @RequiresCapability('canRead')
   async list(): Promise<ProjectSummaryWithScores[]> {
     const rows = await this.projects.find({
-      where: { isCurrent: true },
+      where: { isCurrent: true, ...companyScope() },
       order: { name: 'ASC' },
     });
 

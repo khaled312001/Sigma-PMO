@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-import { api, RegisterCompanyResponse } from '../../lib/api';
+import { api, clearApiKey, RegisterCompanyResponse } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { LangSwitch } from '../../components/LangSwitch';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -110,6 +110,9 @@ export default function RegisterPage() {
         method: 'POST',
         body: JSON.stringify({ companyName, companyType, country, ownerEmail, ownerDisplayName: ownerName, ownerPassword }),
       });
+      // Fresh session: drop any stale key so the new company starts clean and
+      // the owner signs in to their own company portal (no bleed-through).
+      clearApiKey();
       // Billing on → Stripe Checkout (trial); off → straight to company login.
       if (res.checkoutUrl) { window.location.href = res.checkoutUrl; return; }
       router.push(`/c/${res.company.slug}?welcome=1`);

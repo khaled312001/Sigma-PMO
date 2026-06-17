@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { GovernanceStatus, HierarchyLevel } from '../../common/enums';
+import { companyScope } from '../../common/tenant/tenant-context';
 import {
   Enterprise,
   Portfolio,
@@ -189,11 +190,12 @@ export class HierarchyService {
   // ───────────────────────── assembly ─────────────────────────
 
   async getTree(): Promise<GovernanceTree> {
+    // Multi-tenant: scope every governance node to the caller's company.
     const [enterprises, portfolios, programs, projects] = await Promise.all([
-      this.enterprises.find({ where: { isCurrent: true } }),
-      this.portfolios.find({ where: { isCurrent: true } }),
-      this.programs.find({ where: { isCurrent: true } }),
-      this.projects.find({ where: { isCurrent: true } }),
+      this.enterprises.find({ where: { isCurrent: true, ...companyScope() } }),
+      this.portfolios.find({ where: { isCurrent: true, ...companyScope() } }),
+      this.programs.find({ where: { isCurrent: true, ...companyScope() } }),
+      this.projects.find({ where: { isCurrent: true, ...companyScope() } }),
     ]);
 
     const projByProgram = new Map<string, TreeProject[]>();

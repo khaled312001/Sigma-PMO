@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import { setCurrentCompanyId } from '../../common/tenant/tenant-context';
 import { AuthService } from './auth.service';
 import { CapabilitiesService } from './capabilities.service';
 import { ROLE_CAPABILITIES, Role } from './roles.enum';
@@ -64,8 +65,10 @@ export class ApiKeyGuard implements CanActivate {
 
     (req as { user?: unknown }).user = user;
     // Multi-tenant context: expose the caller's company scope for downstream
-    // services (null for the platform SUPER_ADMIN, who reads across companies).
+    // services on the request object AND in the AsyncLocalStorage tenant store
+    // (the latter is what the data layer reads to isolate each company's data).
     (req as { companyId?: string | null }).companyId = user.companyId ?? null;
+    setCurrentCompanyId(user.companyId ?? null);
     return true;
   }
 }
