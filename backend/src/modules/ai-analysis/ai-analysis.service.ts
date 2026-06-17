@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import { ClaudeService } from '../claude/claude.service';
+import { LlmCouncilService } from '../claude/llm-council.service';
 import { DomainKey, DomainReference, referencesFor } from './domain-references';
 
 export interface AnalysisResult {
@@ -12,6 +13,14 @@ export interface AnalysisResult {
   sources: Array<{ id: string; title: string; author: string; reference: string; url?: string; cited: boolean }>;
   model: string | null;
   disclaimer: string;
+  /** Present when the narrative was produced by the LLM Council (multi-member). */
+  council?: {
+    agreement: number;
+    confidence: number;
+    consensusStance: 'agree' | 'disagree' | 'uncertain';
+    members: number;
+    dissent: string;
+  };
 }
 
 /**
@@ -32,7 +41,10 @@ export interface AnalysisResult {
 export class AiAnalysisService {
   private readonly logger = new Logger(AiAnalysisService.name);
 
-  constructor(private readonly claude: ClaudeService) {}
+  constructor(
+    private readonly claude: ClaudeService,
+    @Optional() private readonly council?: LlmCouncilService,
+  ) {}
 
   isEnabled(): boolean {
     return this.claude.isEnabled();
@@ -43,6 +55,8 @@ export class AiAnalysisService {
     title: string;
     context: Record<string, unknown> | string;
     language?: 'en' | 'ar';
+    /** Force LLM-Council deliberation; defaults to the configured council mode. */
+    council?: boolean;
   }): Promise<AnalysisResult> {
     const language = input.language ?? 'en';
     const refs = referencesFor(input.domain);
@@ -61,6 +75,35 @@ export class AiAnalysisService {
         model: null,
         disclaimer: 'Advisory only — figures are deterministic; AI narration requires a configured key.',
       };
+    }
+
+    // LLM Council mode (Mr. Ayham, 2026-06-17): deliberate the deterministic
+    // findings through a multi-member council instead of a single pass.
+    const useCouncil = (input.council ?? this.council?.isDefaultMode() ?? false) && !!this.council;
+    if (useCouncil && this.council) {
+      try {
+        const v = await this.council.adjudicate({
+          question: `${input.title} — are the platform's deterministic findings sound and well-governed, and what should the owner do next?`,
+          context: contextText,
+          bibliography: this.buildBibliography(refs),
+          language,
+        });
+        const cited = new Set(v.citations);
+        this.logger.log(
+          `AI council analysis (${input.domain}, ${language}): ${v.members.length} members, ` +
+            `agreement=${v.agreement}%, confidence=${v.confidence}%.`,
+        );
+        return {
+          enabled: true, domain: input.domain, language,
+          narrative: v.verdict, citations: v.citations,
+          sources: refs.map((r) => ({ id: r.id, title: r.title, author: r.author, reference: r.reference, url: r.url, cited: cited.has(r.id) })),
+          model: v.model, disclaimer: v.disclaimer,
+          council: { agreement: v.agreement, confidence: v.confidence, consensusStance: v.consensusStance, members: v.members.length, dissent: v.dissent },
+        };
+      } catch (err) {
+        this.logger.warn(`Council analysis failed for ${input.domain}, falling back to single pass: ${(err as Error).message}`);
+        // fall through to single-pass below
+      }
     }
 
     const system = this.buildSystem(refs, language);
@@ -93,8 +136,13 @@ export class AiAnalysisService {
     }
   }
 
+  /** The citeable bibliography for a domain, one "[id] title — author, ref" per line. */
+  private buildBibliography(refs: DomainReference[]): string {
+    return refs.map((r) => `[${r.id}] ${r.title} — ${r.author}, ${r.reference}${r.url ? ` (${r.url})` : ''}`).join('\n');
+  }
+
   private buildSystem(refs: DomainReference[], language: 'en' | 'ar'): string {
-    const bib = refs.map((r) => `[${r.id}] ${r.title} — ${r.author}, ${r.reference}${r.url ? ` (${r.url})` : ''}`).join('\n');
+    const bib = this.buildBibliography(refs);
     const langRule = language === 'ar'
       ? 'Write the analysis in professional Arabic, keeping standard English technical terms (NPV, IRR, BOQ, NRM, DSCR…) inline.'
       : 'Write the analysis in professional English.';

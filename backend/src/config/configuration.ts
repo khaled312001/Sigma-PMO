@@ -50,6 +50,14 @@ export interface AnthropicConfig {
   cacheTtlSeconds: number;
   /** Derived: true when `apiKey` is non-empty. */
   enabled: boolean;
+  /**
+   * LLM Council (Mr. Ayham, 2026-06-17): when true, AI adjudications default to
+   * a multi-member deliberation (council) instead of a single pass. Off by
+   * default — callers can still opt in per-call.
+   */
+  councilEnabled: boolean;
+  /** Number of council members (2..4); the chair is additional. */
+  councilSize: number;
 }
 
 /**
@@ -176,6 +184,8 @@ export default (): AppConfiguration => {
     maxTokens: toInt(process.env.ANTHROPIC_MAX_TOKENS, 4096),
     cacheTtlSeconds: toInt(process.env.ANTHROPIC_CACHE_TTL, 3600),
     enabled: !!anthropicApiKey,
+    councilEnabled: toBool(process.env.ANTHROPIC_COUNCIL_ENABLED, false),
+    councilSize: toInt(process.env.ANTHROPIC_COUNCIL_SIZE, 3),
   },
   autodesk: {
     clientId: autodeskClientId,

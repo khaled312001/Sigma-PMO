@@ -6,6 +6,7 @@ import { ProjectMemoryModule } from '../project-memory/project-memory.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ClaudeController } from './claude.controller';
 import { ClaudeService } from './claude.service';
+import { LlmCouncilService } from './llm-council.service';
 
 /**
  * Wave 2 — direct `@anthropic-ai/sdk` wiring.
@@ -24,7 +25,7 @@ import { ClaudeService } from './claude.service';
 @Module({
   imports: [PersonasModule, SettingsModule, PolicyAddonsModule, ProjectMemoryModule],
   controllers: [ClaudeController],
-  providers: [ClaudeService],
-  exports: [ClaudeService],
+  providers: [ClaudeService, LlmCouncilService],
+  exports: [ClaudeService, LlmCouncilService],
 })
 export class ClaudeModule {}
