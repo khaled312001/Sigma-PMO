@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { ProcurementPackage, ProjectRecord } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { classifyElement } from '../quantity-survey/cost-classification';
 import { BimCounts, deriveQuantitiesFromBim } from '../quantity-survey/bim-quantities';
 
@@ -17,6 +18,7 @@ export class ProcurementPlanningService {
   constructor(
     @InjectRepository(ProcurementPackage) private readonly packages: Repository<ProcurementPackage>,
     @InjectRepository(ProjectRecord) private readonly records: Repository<ProjectRecord>,
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   async create(input: {
@@ -82,6 +84,7 @@ export class ProcurementPlanningService {
   }>): Promise<ProcurementPackage> {
     const p = await this.packages.findOne({ where: { id } });
     if (!p) throw new NotFoundException(`Package ${id} not found`);
+    await this.ownership?.assertOwns(p.projectBusinessKey); // multi-tenant ownership
     if (patch.status !== undefined) p.status = patch.status;
     if (patch.strategy !== undefined) p.strategy = patch.strategy;
     if (patch.longLead !== undefined) p.longLead = patch.longLead;
@@ -104,6 +107,7 @@ export class ProcurementPlanningService {
   async get(id: string): Promise<ProcurementPackage> {
     const p = await this.packages.findOne({ where: { id } });
     if (!p) throw new NotFoundException(`Package ${id} not found`);
+    await this.ownership?.assertOwns(p.projectBusinessKey); // multi-tenant ownership
     return p;
   }
 

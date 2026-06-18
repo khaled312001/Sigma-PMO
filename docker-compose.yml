@@ -1,0 +1,65 @@
+# Sigma PMO — local/demo stack (MySQL + backend + frontend).
+# Production secrets (ANTHROPIC_API_KEY, STRIPE_*, S3_*, BACKUP_ENCRYPTION_KEY)
+# come from your environment / secrets manager — never commit them.
+#
+# First run: the backend keeps DB_SYNCHRONIZE=false, so create the schema once
+# (run the TypeORM migrations, then the dev apply-scripts if needed) before the
+# app can serve data. See docs/DEPLOYMENT.md.
+
+services:
+  db:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpw}
+      MYSQL_DATABASE: ${DB_DATABASE:-sigma_pmo}
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-rootpw}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:-rootpw}
+      DB_DATABASE: ${DB_DATABASE:-sigma_pmo}
+      DB_SYNCHRONIZE: "false"
+      PORT: "3001"
+      CORS_ORIGINS: "http://localhost:3000"
+      APP_PUBLIC_URL: "http://localhost:3000"
+      # Optional integrations — set to enable:
+      # ANTHROPIC_API_KEY, STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET,
+      # S3_BUCKET, S3_ACCESS_KEY, S3_SECRET_KEY, BACKUP_ENCRYPTION_KEY
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: "http://localhost:3001/api/v1"
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  dbdata:

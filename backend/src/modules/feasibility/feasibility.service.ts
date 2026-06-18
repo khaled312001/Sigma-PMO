@@ -138,7 +138,7 @@ export class FeasibilityService {
   }
 
   async update(id: string, input: UpdateOpportunityInput): Promise<InvestmentOpportunity> {
-    const opp = await this.opportunities.findOne({ where: { id } });
+    const opp = await this.opportunities.findOne({ where: { id, ...companyScope() } });
     if (!opp) throw new NotFoundException(`Opportunity ${id} not found`);
     if (input.title !== undefined) {
       if (!input.title.trim()) throw new BadRequestException('title cannot be empty');

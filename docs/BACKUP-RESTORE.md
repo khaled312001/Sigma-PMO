@@ -1,5 +1,9 @@
 # Database backups → S3 + restore
 
+> This is the **S3 (object-storage) backup** path. The bare-metal deploy also ships an rsync/off-host
+> backup in [`runbook/backup.md`](runbook/backup.md) + `deploy/scripts/backup-cron.sh` — use whichever
+> fits your hosting (S3 here, or rsync there; they can run side by side).
+
 The Sigma PMO database (MySQL) is an OLTP store; it can't run *on* S3 directly. Durability is achieved
 with **automated encrypted backups to S3** (object storage) plus the **file archive on S3**. This is the
 "database on S3" architecture for this stack.

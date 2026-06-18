@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { FundingFacility } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 
 /** Input to create a funding facility (createdBy is stamped by the controller). */
 export interface CreateFacilityInput {
@@ -63,6 +64,7 @@ export class FundingService {
 
   constructor(
     @InjectRepository(FundingFacility) private readonly facilities: Repository<FundingFacility>,
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   /** All current facilities for a project (newest first). */
@@ -78,6 +80,7 @@ export class FundingService {
   async get(id: string): Promise<FundingFacility> {
     const row = await this.facilities.findOne({ where: { id } });
     if (!row) throw new NotFoundException(`Funding facility "${id}" not found`);
+    await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership (covers updateFacility)
     return row;
   }
 
