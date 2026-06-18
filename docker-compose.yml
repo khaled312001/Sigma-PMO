@@ -1,15 +1,19 @@
 # Sigma PMO — full stack: MySQL (db) + NestJS (backend) + Next.js (frontend).
-# Each service is its own container; the database has its own persistent volume
-# and private network — nothing else touches it directly.
+# Each service is its own container; the db keeps its own persistent volume.
 #
-# Secrets (DB_PASSWORD, SETTINGS_ENCRYPTION_KEY, ANTHROPIC_API_KEY, S3_*, STRIPE_*,
-# BACKUP_ENCRYPTION_KEY) are injected from the host / Coolify "Environment
-# Variables" — never commit real values. Non-secret defaults are inlined so the
-# stack boots with sensible production URLs out of the box.
+# NOTE FOR COOLIFY: do NOT define a custom `networks:` block. Coolify attaches
+# its own proxy (Traefik) network to the services that have a domain so the
+# reverse proxy can reach them; a custom network isolates the containers and
+# causes "Bad Gateway" / "no available server". Inter-service traffic (backend
+# -> db) uses the default compose network, where services resolve by name.
+#
+# Secrets (DB_PASSWORD, SETTINGS_ENCRYPTION_KEY, ANTHROPIC_API_KEY, S3_*,
+# STRIPE_*, BACKUP_ENCRYPTION_KEY) come from the host / Coolify "Environment
+# Variables" — never commit real values.
 #
 # Schema: the backend runs the TypeORM migrations AUTOMATICALLY on first boot
-# (NODE_ENV=production => migrationsRun), so a fresh db volume is fully built
-# before the API serves traffic. No manual migration step.
+# (NODE_ENV=production => migrationsRun) and seeds demo data (SEED_DEMO=true),
+# so a fresh db volume is fully built before the API serves traffic.
 
 services:
   db:
@@ -20,8 +24,6 @@ services:
       MYSQL_DATABASE: ${DB_DATABASE:-sigma_pmo}
     volumes:
       - dbdata:/var/lib/mysql
-    networks:
-      - sigma
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD:-rootpw}"]
       interval: 10s
@@ -32,6 +34,9 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    # The port the reverse proxy routes the backend domain to.
+    expose:
+      - "3001"
     environment:
       NODE_ENV: production
       PORT: "3001"
@@ -42,8 +47,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-rootpw}
       DB_DATABASE: ${DB_DATABASE:-sigma_pmo}
       DB_SYNCHRONIZE: "false"
-      # Seed the default company + 15 demo role accounts on first boot so the
-      # login user-picker works immediately. Set to "false" for a real tenant.
+      # Seed the default company + 15 demo role accounts on first boot.
       SEED_DEMO: ${SEED_DEMO:-true}
       # Public URLs (Coolify domains).
       CORS_ORIGINS: ${CORS_ORIGINS:-https://system.sigma-pmo.com}
@@ -64,17 +68,9 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-    networks:
-      - sigma
     depends_on:
       db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/v1/live"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 40s
 
   frontend:
     build:
@@ -85,14 +81,11 @@ services:
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://system-api.sigma-pmo.com/api/v1}
         NEXT_PUBLIC_DEMO_LOGIN: ${NEXT_PUBLIC_DEMO_LOGIN:-true}
     restart: unless-stopped
-    networks:
-      - sigma
+    # The port the reverse proxy routes the frontend domain to.
+    expose:
+      - "3000"
     depends_on:
       - backend
-
-networks:
-  sigma:
-    driver: bridge
 
 volumes:
   dbdata:
