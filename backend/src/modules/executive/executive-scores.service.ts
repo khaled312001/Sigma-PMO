@@ -3,11 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { HierarchyLevel } from '../../common/enums';
+import { companyScope, currentCompanyId } from '../../common/tenant/tenant-context';
 import {
+  Enterprise,
   FeasibilityAssessment,
   FundingFacility,
   GovernanceStatusSnapshot,
   OpportunityScreening,
+  Portfolio,
+  Program,
   Project,
 } from '../canonical/entities';
 import { clamp01, statusPoints } from './health-score';
@@ -60,6 +64,9 @@ export class ExecutiveScoresService {
     private readonly opportunities: Repository<OpportunityScreening>,
     @InjectRepository(FundingFacility)
     private readonly facilities: Repository<FundingFacility>,
+    @InjectRepository(Enterprise) private readonly enterprises: Repository<Enterprise>,
+    @InjectRepository(Portfolio) private readonly portfolios: Repository<Portfolio>,
+    @InjectRepository(Program) private readonly programs: Repository<Program>,
   ) {}
 
   async compute(asOfDate = '2026-06-12'): Promise<ExecutiveScores> {
@@ -172,7 +179,7 @@ export class ExecutiveScoresService {
    * the shared 4-tier band points (green=100…red=0, missing=50).
    */
   private async portfolioGovernance(): Promise<GovernanceScore> {
-    const projects = await this.projects.find({ where: { isCurrent: true } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
     if (projects.length === 0) {
       return {
         score: 50,
@@ -200,7 +207,7 @@ export class ExecutiveScoresService {
    * proceed=100, watchlist=50, reject=0. 0 when there are no screenings.
    */
   private async opportunityPipeline(): Promise<GovernanceScore> {
-    const screenings = await this.opportunities.find();
+    const screenings = await this.opportunities.find({ where: { ...companyScope() } });
     if (screenings.length === 0) {
       return {
         score: 0,
@@ -226,7 +233,7 @@ export class ExecutiveScoresService {
    * heuristic (NPV>0 → 75, else 25).
    */
   private async bankability(): Promise<GovernanceScore> {
-    const latest = (await this.feasibility.find({ order: { createdAt: 'DESC' }, take: 1 }))[0] ?? null;
+    const latest = (await this.feasibility.find({ where: { ...companyScope() }, order: { createdAt: 'DESC' }, take: 1 }))[0] ?? null;
     if (!latest) {
       return {
         score: 50,
@@ -265,7 +272,11 @@ export class ExecutiveScoresService {
    * 100. Facilities with no covenant/DSCR are skipped. 50 when none usable.
    */
   private async fundingHealth(): Promise<GovernanceScore> {
-    const facilities = await this.facilities.find({ where: { isCurrent: true } });
+    // FundingFacility is keyed by projectBusinessKey — scope to the caller's projects.
+    const myProjects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
+    const myKeys = new Set(myProjects.map((p) => p.businessKey));
+    const facilities = (await this.facilities.find({ where: { isCurrent: true } }))
+      .filter((f) => myKeys.has(f.projectBusinessKey));
     const usable = facilities.filter(
       (f) =>
         f.currentDscr !== null &&
@@ -304,12 +315,32 @@ export class ExecutiveScoresService {
       order: { computedAt: 'DESC' },
       take: 500,
     });
+    // GovernanceStatusSnapshot has no companyId — scope by the caller's node keys.
+    const allowed = await this.companyNodeKeys(types);
     const latestByNode = new Map<string, number>();
     for (const r of rows) {
+      if (allowed && !allowed.has(r.nodeBusinessKey)) continue;
       const key = `${r.nodeType}:${r.nodeBusinessKey}`;
       if (!latestByNode.has(key)) latestByNode.set(key, r.score);
     }
     return [...latestByNode.values()].filter((v) => Number.isFinite(v));
+  }
+
+  /**
+   * The set of governance-node businessKeys owned by the caller's company for
+   * the given hierarchy levels. Returns null when unscoped (legacy/tests) so the
+   * snapshot reads stay unfiltered there.
+   */
+  private async companyNodeKeys(types: HierarchyLevel[]): Promise<Set<string> | null> {
+    if (!currentCompanyId()) return null;
+    const where = { isCurrent: true, ...companyScope() };
+    const keys = new Set<string>();
+    const add = (rows: Array<{ businessKey: string }>) => rows.forEach((r) => keys.add(r.businessKey));
+    if (types.includes(HierarchyLevel.ENTERPRISE)) add(await this.enterprises.find({ where }));
+    if (types.includes(HierarchyLevel.PORTFOLIO)) add(await this.portfolios.find({ where }));
+    if (types.includes(HierarchyLevel.PROGRAM)) add(await this.programs.find({ where }));
+    if (types.includes(HierarchyLevel.PROJECT)) add(await this.projects.find({ where }));
+    return keys;
   }
 
   /** Latest project-node governance tier for a project (null when none). */
@@ -325,6 +356,7 @@ export class ExecutiveScoresService {
   private async latestFeasibilityPerOpportunity(): Promise<FeasibilityAssessment[]> {
     // Newest-first; the first row seen per opportunityId is its latest run.
     const rows = await this.feasibility.find({
+      where: { ...companyScope() },
       order: { createdAt: 'DESC' },
       take: 1000,
     });

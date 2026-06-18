@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { HierarchyLevel } from '../../common/enums';
+import { companyScope } from '../../common/tenant/tenant-context';
 import {
   Activity,
   Claim,
@@ -68,10 +69,10 @@ export class RollupService {
 
   async rollups(): Promise<RollupsResponse> {
     const [enterprises, portfolios, programs, projects] = await Promise.all([
-      this.enterprises.find({ where: { isCurrent: true } }),
-      this.portfolios.find({ where: { isCurrent: true } }),
-      this.programs.find({ where: { isCurrent: true } }),
-      this.projects.find({ where: { isCurrent: true } }),
+      this.enterprises.find({ where: { isCurrent: true, ...companyScope() } }),
+      this.portfolios.find({ where: { isCurrent: true, ...companyScope() } }),
+      this.programs.find({ where: { isCurrent: true, ...companyScope() } }),
+      this.projects.find({ where: { isCurrent: true, ...companyScope() } }),
     ]);
 
     // 1) Compute every project's leaf metrics directly from canonical rows.

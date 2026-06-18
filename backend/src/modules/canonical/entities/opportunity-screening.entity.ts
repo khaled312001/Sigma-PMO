@@ -12,6 +12,11 @@ import { UuidEntity } from '../../../common/entities/base.entity';
 @Entity('opportunity_screening')
 @Index(['projectType', 'recommendation'])
 export class OpportunityScreening extends UuidEntity {
+  /** Owning company (multi-tenant SaaS) — null for legacy/default-tenant rows. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  companyId!: string | null;
+
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 32 })
   code!: string;

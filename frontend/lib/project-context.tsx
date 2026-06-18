@@ -32,10 +32,14 @@ export function useProject(): ProjectContextValue {
   return ctx;
 }
 
-/** Shorthand for the current businessKey (for API calls). Defaults to 'P-1000' until projects load. */
+/**
+ * Shorthand for the current businessKey (for API calls). Empty string when the
+ * company has no project selected/owned — callers must guard on it so a tenant
+ * with no projects never queries another company's seed project (e.g. P-1000).
+ */
 export function useCurrentProjectKey(): string {
   const { current } = useProject();
-  return current?.businessKey ?? 'P-1000';
+  return current?.businessKey ?? '';
 }
 
 function readStoredKey(): string | null {

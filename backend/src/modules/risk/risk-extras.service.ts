@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { companyScope } from '../../common/tenant/tenant-context';
 import { Project, Risk } from '../canonical/entities';
 import {
   MatchedMitigations,
@@ -170,10 +171,13 @@ export class RiskExtrasService {
     };
   }
 
-  /** Whole-estate risk roll-up grouped by portfolio + program. */
+  /** Whole-estate risk roll-up grouped by portfolio + program (company-scoped). */
   async portfolio(): Promise<PortfolioRiskResult> {
-    const projects = await this.projects.find({ where: { isCurrent: true } });
-    const allRisks = await this.risks.find({ where: { status: In(['open', 'mitigating']) } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
+    // Risk has no companyId — scope it to the caller's (already-scoped) projects.
+    const projectKeys = new Set(projects.map((p) => p.businessKey));
+    const allRisks = (await this.risks.find({ where: { status: In(['open', 'mitigating']) } }))
+      .filter((r) => projectKeys.has(r.projectBusinessKey));
 
     const byProjectKey = new Map<string, Risk[]>();
     for (const r of allRisks) {

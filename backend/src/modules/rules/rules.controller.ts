@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, NotFoundException, Post, Query } from 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, Project, RuleEvaluation } from '../canonical/entities';
 import { EvaluateDto } from './dto/evaluate.dto';
@@ -94,6 +95,10 @@ export class RulesController {
     if (projectId)   qb.andWhere('a.projectId = :projectId', { projectId });
     if (projectKey)  qb.andWhere('p.businessKey = :projectKey', { projectKey });
     if (severity)    qb.andWhere('a.severity = :severity', { severity });
+    // Multi-tenant: an alert belongs to the caller's company iff its (joined)
+    // project does. Null cid = unscoped (legacy/tests) → no extra filter.
+    const cid = currentCompanyId();
+    if (cid) qb.andWhere('p.companyId = :cid', { cid });
     const rows = await qb.getRawMany<Record<string, unknown>>();
     return rows.map((r) => ({
       ...r,
@@ -106,6 +111,15 @@ export class RulesController {
   @RequiresCapability('canRead')
   listEvaluations(@Query('limit') limit?: string): Promise<RuleEvaluation[]> {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '20', 10) || 20, 1), 100);
-    return this.evaluations.find({ order: { createdAt: 'DESC' }, take });
+    // Multi-tenant: scope to the caller's company via the evaluated project
+    // (RuleEvaluation has no companyId; its project carries it).
+    const qb = this.evaluations
+      .createQueryBuilder('e')
+      .leftJoin('project', 'p', 'p.id = e.projectId')
+      .orderBy('e.createdAt', 'DESC')
+      .take(take);
+    const cid = currentCompanyId();
+    if (cid) qb.andWhere('p.companyId = :cid', { cid });
+    return qb.getMany();
   }
 }

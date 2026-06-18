@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { AlertSeverity, HierarchyLevel } from '../../common/enums';
+import { companyScope } from '../../common/tenant/tenant-context';
 import {
   Activity,
   Alert,
@@ -104,7 +105,7 @@ export class CommandCenterService {
     }));
 
     // Derived rows from current degraded status.
-    const projects = await this.projects.find({ where: { isCurrent: true } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
     const derived: RecommendedAction[] = [];
     for (const p of projects) {
       const status = await this.latestStatus(HierarchyLevel.PROJECT, p.businessKey, p.governanceStatus ?? null);
@@ -206,7 +207,7 @@ export class CommandCenterService {
    * gap (weighted progress target minus weighted realized).
    */
   async impactAnalysis(): Promise<ImpactAnalysis> {
-    const projects = await this.projects.find({ where: { isCurrent: true } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
 
     // Compute EVM (bac/ev/pv) per project locally.
     const evm = await Promise.all(projects.map((p) => this.projectEvm(p)));

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { HierarchyLevel } from '../../common/enums';
+import { companyScope } from '../../common/tenant/tenant-context';
 import {
   Activity,
   AgentExecution,
@@ -203,8 +204,8 @@ export class ExecutiveKpiService {
     else if (s === 'yellow') alignment += 15;
     if (evm.spi !== null && evm.spi >= 0.95) alignment += 30;
 
-    // portfolioValueTracking across ALL current projects.
-    const projects = await this.projects.find({ where: { isCurrent: true } });
+    // portfolioValueTracking across ALL current projects (company-scoped).
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
     let totalBAC = 0, totalEV = 0, totalAC = 0;
     for (const p of projects) {
       const e = await this.evmForProject(p);
@@ -249,8 +250,10 @@ export class ExecutiveKpiService {
   // ───────────────────────── deterministic helpers ─────────────────────────
 
   private async currentProject(projectKey: string): Promise<Project> {
+    // Multi-tenant: only resolve a project the caller's company owns — a foreign
+    // key 404s here (the dashboard KPI tiles then fall back to "—").
     const project = await this.projects.findOne({
-      where: { businessKey: projectKey, isCurrent: true },
+      where: { businessKey: projectKey, isCurrent: true, ...companyScope() },
     });
     if (!project) throw new NotFoundException(`No current project "${projectKey}"`);
     return project;

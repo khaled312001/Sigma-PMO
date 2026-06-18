@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { companyScope } from '../../common/tenant/tenant-context';
 import { Project, Scenario } from '../canonical/entities';
 
 /**
@@ -101,11 +102,14 @@ export class PortfolioScenarioService {
 
   /** Every OPEN scenario across the portfolio + a per-scenario impact summary. */
   async portfolioImpact(): Promise<PortfolioImpactResponse> {
-    const open = await this.scenarios.find({
+    // Scenario has no companyId — scope to the caller's current projects.
+    const myProjects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
+    const myKeys = new Set(myProjects.map((p) => p.businessKey));
+    const open = (await this.scenarios.find({
       where: { status: 'open' },
       order: { forkedFromAt: 'DESC' },
       take: 500,
-    });
+    })).filter((s) => myKeys.has(s.projectBusinessKey));
 
     // Resolve project display names in one pass (businessKey → current name).
     const keys = [...new Set(open.map((s) => s.projectBusinessKey))];

@@ -10,6 +10,11 @@ import { IngestionStatus } from '../../../common/enums';
  */
 @Entity('ingestion_run')
 export class IngestionRun extends UuidEntity {
+  /** Owning company (multi-tenant SaaS) — null for legacy/default-tenant runs. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  companyId!: string | null;
+
   @Index()
   @Column({ type: 'char', length: 36 })
   sourceFileId!: string;

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { companyScope } from '../../common/tenant/tenant-context';
 import { AnalyticsSnapshot, Project } from '../canonical/entities';
 import { SnapshotService } from '../rules/snapshot.service';
 import { AnalyticsAgentService } from './analytics-agent.service';
@@ -131,9 +132,9 @@ export class AnalyticsExtrasService {
     };
   }
 
-  /** Whole-estate portfolio roll-up across every current project. */
+  /** Whole-estate portfolio roll-up across every current project (company-scoped). */
   async portfolio(): Promise<PortfolioResult> {
-    const projects = await this.projects.find({ where: { isCurrent: true } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
     const rows: PortfolioProjectRow[] = [];
     const totals = { pv: 0, ev: 0, ac: 0, bac: 0 };
     let spiWeightNum = 0;

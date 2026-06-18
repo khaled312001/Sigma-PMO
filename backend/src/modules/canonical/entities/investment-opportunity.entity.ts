@@ -12,6 +12,11 @@ import { UuidEntity } from '../../../common/entities/base.entity';
  */
 @Entity('investment_opportunity')
 export class InvestmentOpportunity extends UuidEntity {
+  /** Owning company (multi-tenant SaaS) — null for legacy/default-tenant rows. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  companyId!: string | null;
+
   /** Natural reference, e.g. "INV-0007". Assigned at creation, stable forever. */
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 32 })

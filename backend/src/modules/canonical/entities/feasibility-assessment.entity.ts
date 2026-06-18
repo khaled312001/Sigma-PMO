@@ -13,6 +13,11 @@ import { UuidEntity } from '../../../common/entities/base.entity';
 @Entity('feasibility_assessment')
 @Index(['opportunityId', 'createdAt'])
 export class FeasibilityAssessment extends UuidEntity {
+  /** Owning company (multi-tenant SaaS) — null for legacy/default-tenant rows. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  companyId!: string | null;
+
   @Index()
   @Column({ type: 'char', length: 36 })
   opportunityId!: string;

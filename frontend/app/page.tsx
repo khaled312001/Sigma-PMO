@@ -75,8 +75,19 @@ function Overview() {
   useEffect(() => {
     (async () => {
       try {
-        const [runsList, alertsList, summaries] = await Promise.all([
-          api<IngestionRun[]>('/ingestion/runs?limit=50'),
+        // Ingestion runs are company-scoped server-side (a run can span projects).
+        const runsList = await api<IngestionRun[]>('/ingestion/runs?limit=50');
+        setLatestRun(runsList[0] ?? null);
+        setRuns(runsList);
+        // No project selected/owned (e.g. a brand-new company) → no project-scoped
+        // data. Never query with an empty/foreign key — show a clean empty state.
+        if (!projectKey) {
+          setCounts({ runs: runsList.length, alerts: 0, critical: 0, warning: 0 });
+          setAlerts([]);
+          setSummary(null);
+          return;
+        }
+        const [alertsList, summaries] = await Promise.all([
           api<AlertRecord[]>(`/rules/alerts?limit=300&projectKey=${encodeURIComponent(projectKey)}`),
           api<ExecutiveSummary[]>(`/summary?limit=1&projectKey=${encodeURIComponent(projectKey)}`),
         ]);
@@ -86,9 +97,7 @@ function Overview() {
           critical: alertsList.filter((a) => a.severity === 'critical').length,
           warning: alertsList.filter((a) => a.severity === 'warning').length,
         });
-        setLatestRun(runsList[0] ?? null);
         setSummary(summaries[0] ?? null);
-        setRuns(runsList);
         setAlerts(alertsList);
       } catch (e) {
         setError((e as Error).message);
@@ -103,13 +112,14 @@ function Overview() {
     let alive = true;
     (async () => {
       try {
-        const [k, pf] = await Promise.all([
-          api<ExecutiveKpis>(`/executive/kpis?projectKey=${encodeURIComponent(projectKey)}`),
-          api<PortfolioKpis>('/executive/kpis/portfolio'),
-        ]);
+        // Portfolio health is company-scoped server-side; project KPIs need a key.
+        const pf = await api<PortfolioKpis>('/executive/kpis/portfolio');
+        if (!alive) return;
+        setPortfolio(pf);
+        if (!projectKey) { setKpis(null); return; }
+        const k = await api<ExecutiveKpis>(`/executive/kpis?projectKey=${encodeURIComponent(projectKey)}`);
         if (!alive) return;
         setKpis(k);
-        setPortfolio(pf);
       } catch {
         if (!alive) return;
         setKpis(null);

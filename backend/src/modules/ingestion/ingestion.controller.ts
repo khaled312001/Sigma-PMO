@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { resolveAllowedPath } from '../../common/path-allowlist';
+import { companyScope } from '../../common/tenant/tenant-context';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { IngestionRun } from '../canonical/entities';
 import { IngestPathDto } from './dto/ingest-path.dto';
@@ -57,6 +58,6 @@ export class IngestionController {
   @RequiresCapability('canRead')
   listRuns(@Query('limit') limit?: string): Promise<IngestionRun[]> {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '50', 10) || 50, 1), 200);
-    return this.runs.find({ order: { createdAt: 'DESC' }, take });
+    return this.runs.find({ where: { ...companyScope() }, order: { createdAt: 'DESC' }, take });
   }
 }

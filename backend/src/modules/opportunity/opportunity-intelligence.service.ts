@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { GovernanceStatus } from '../../common/enums';
+import { companyScope, currentCompanyId } from '../../common/tenant/tenant-context';
 import { OpportunityScreening } from '../canonical/entities';
 import {
   PROJECT_TYPE_ASSUMPTIONS,
@@ -202,6 +203,7 @@ export class OpportunityIntelligenceService {
     const code = await this.nextCode();
 
     const row = this.screenings.create({
+      companyId: currentCompanyId(),
       code,
       title: input.title,
       projectType,
@@ -228,11 +230,11 @@ export class OpportunityIntelligenceService {
   }
 
   list(): Promise<OpportunityScreening[]> {
-    return this.screenings.find({ order: { createdAt: 'DESC' } });
+    return this.screenings.find({ where: { ...companyScope() }, order: { createdAt: 'DESC' } });
   }
 
   get(id: string): Promise<OpportunityScreening | null> {
-    return this.screenings.findOne({ where: { id } });
+    return this.screenings.findOne({ where: { id, ...companyScope() } });
   }
 
   /**

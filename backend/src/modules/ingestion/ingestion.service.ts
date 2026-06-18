@@ -8,6 +8,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
 import { IngestionStatus } from '../../common/enums';
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { IngestionRun, SourceFile } from '../canonical/entities';
 import { ConfidenceService } from '../governance/confidence.service';
 import { ValidationReport } from '../validation/validation.types';
@@ -65,6 +66,7 @@ export class IngestionService {
 
     const run = await runRepo.save(
       runRepo.create({
+        companyId: currentCompanyId(),
         sourceFileId: source.id,
         parser: parser.name,
         status: IngestionStatus.PENDING,

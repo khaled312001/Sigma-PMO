@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { daysBetween } from '../../common/dates';
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import {
   Alert,
   ConfidenceScore,
@@ -103,13 +104,16 @@ export class SummaryService {
       // Summaries pin to a VERSIONED project id; scope by the stable
       // businessKey across all versions (never group by project.id — versioned
       // rows would undercount after each re-ingestion rolls the project).
-      return this.summaries
+      const qb = this.summaries
         .createQueryBuilder('s')
         .innerJoin(Project, 'p', 'p.id = s.projectId')
         .where('p.businessKey = :projectKey', { projectKey })
         .orderBy('s.createdAt', 'DESC')
-        .take(take)
-        .getMany();
+        .take(take);
+      // Multi-tenant: only the owning company's summaries (foreign key → empty).
+      const cid = currentCompanyId();
+      if (cid) qb.andWhere('p.companyId = :cid', { cid });
+      return qb.getMany();
     }
     return this.summaries.find({
       where: projectId ? { projectId } : {},

@@ -12,6 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { HierarchyLevel } from '../../common/enums';
+import { companyScope } from '../../common/tenant/tenant-context';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { CorrectiveAction, Project } from '../canonical/entities';
 import {
@@ -66,7 +67,7 @@ export class SigmaGovernanceController {
   @Get('overview')
   @RequiresCapability('canRead')
   async overview(): Promise<{ nodes: ConsolidatedNode[]; statusTally: Record<string, number> }> {
-    const projects = await this.projects.find({ where: { isCurrent: true } });
+    const projects = await this.projects.find({ where: { isCurrent: true, ...companyScope() } });
     const nodes = await Promise.all(
       projects.map((p) => this.l8.consolidate(HierarchyLevel.PROJECT, p.businessKey)),
     );

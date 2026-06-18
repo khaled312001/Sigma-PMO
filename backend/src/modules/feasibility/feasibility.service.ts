@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { companyScope, currentCompanyId } from '../../common/tenant/tenant-context';
 import {
   ConceptDocument,
   FeasibilityAssessment,
@@ -68,6 +69,7 @@ export class FeasibilityService {
     const code = `INV-${String(count + 1).padStart(4, '0')}`;
     return this.opportunities.save(
       this.opportunities.create({
+        companyId: currentCompanyId(),
         code,
         title: input.title.trim(),
         projectType: input.projectType,
@@ -87,7 +89,7 @@ export class FeasibilityService {
 
   /** List with the latest assessment headline stitched on (single query each). */
   async list(): Promise<Array<InvestmentOpportunity & { latestAssessment: Partial<FeasibilityAssessment> | null }>> {
-    const opps = await this.opportunities.find({ order: { createdAt: 'DESC' } });
+    const opps = await this.opportunities.find({ where: { ...companyScope() }, order: { createdAt: 'DESC' } });
     if (!opps.length) return [];
     const latest = await this.assessments
       .createQueryBuilder('a')
@@ -125,7 +127,7 @@ export class FeasibilityService {
     sections: FeasibilityStudySection[];
     documents: ConceptDocument[];
   }> {
-    const opportunity = await this.opportunities.findOne({ where: { id } });
+    const opportunity = await this.opportunities.findOne({ where: { id, ...companyScope() } });
     if (!opportunity) throw new NotFoundException(`Opportunity ${id} not found`);
     const [assessRows, sections, documents] = await Promise.all([
       this.assessments.find({ where: { opportunityId: id }, order: { createdAt: 'DESC' }, take: 1 }),

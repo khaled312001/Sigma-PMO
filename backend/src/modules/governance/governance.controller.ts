@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, Query,
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, DecisionReview, GovernanceDecision, GovernancePolicy, User } from '../canonical/entities';
 import { SettingsService } from '../settings/settings.service';
@@ -148,7 +149,7 @@ export class GovernanceController {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '100', 10) || 100, 1), 500);
     const reviews = await this.reviews.listForDecisionMany([]);
     void reviews; // silence: we use a direct query below
-    const rows = await this.decisionRepo.manager
+    const rows = this.decisionRepo.manager
       .createQueryBuilder()
       .select('r.id', 'reviewId')
       .addSelect('r.createdAt', 'createdAt')
@@ -167,10 +168,13 @@ export class GovernanceController {
       .from('decision_review', 'r')
       .leftJoin('governance_decision', 'd', 'd.id = r.decisionId')
       .leftJoin('alert', 'a', 'a.id = r.alertId')
+      .leftJoin('project', 'p', 'p.id = a.projectId')
       .orderBy('r.createdAt', 'DESC')
-      .limit(take)
-      .getRawMany();
-    return rows;
+      .limit(take);
+    // Multi-tenant: only audit rows whose alert's project is in the caller's company.
+    const cid = currentCompanyId();
+    if (cid) rows.andWhere('p.companyId = :cid', { cid });
+    return rows.getRawMany();
   }
 
   @Get('decisions')
@@ -181,19 +185,19 @@ export class GovernanceController {
     @Query('limit') limit?: string,
   ) {
     const take = Math.min(Math.max(Number.parseInt(limit ?? '100', 10) || 100, 1), 500);
-    let rows: GovernanceDecision[];
-    if (alertId) {
-      rows = await this.decisionRepo.find({ where: { alertId }, order: { createdAt: 'DESC' }, take });
-    } else if (evaluationId) {
-      // Decisions don't store evaluationId; resolve via the Alert table.
-      const alerts = await this.alertRepo.find({ where: { ruleEvaluationId: evaluationId } });
-      const ids = alerts.map((a) => a.id);
-      rows = ids.length === 0
-        ? []
-        : await this.decisionRepo.find({ where: { alertId: In(ids) }, order: { createdAt: 'DESC' }, take });
-    } else {
-      rows = await this.decisionRepo.find({ order: { createdAt: 'DESC' }, take });
-    }
+    // Multi-tenant: scope decisions to the caller's company via alert → project.
+    // (GovernanceDecision has no companyId; the alert's project carries it.)
+    const qb = this.decisionRepo
+      .createQueryBuilder('d')
+      .leftJoin('alert', 'a', 'a.id = d.alertId')
+      .leftJoin('project', 'p', 'p.id = a.projectId')
+      .orderBy('d.createdAt', 'DESC')
+      .take(take);
+    if (alertId) qb.andWhere('d.alertId = :alertId', { alertId });
+    if (evaluationId) qb.andWhere('a.ruleEvaluationId = :evaluationId', { evaluationId });
+    const cid = currentCompanyId();
+    if (cid) qb.andWhere('p.companyId = :cid', { cid });
+    const rows = await qb.getMany();
     return this.enrichDecisions(rows);
   }
 

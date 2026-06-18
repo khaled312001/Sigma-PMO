@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { GovernanceStatus } from '../../common/enums';
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { FeasibilityAssessment, InvestmentOpportunity } from '../canonical/entities';
 import {
   ASSUMPTION_LIBRARY_VERSION,
@@ -134,6 +135,7 @@ export class RapidAssessmentService {
     const attractivenessScore = attractiveness(out, hurdle, riskScore);
 
     const assessment = this.assessments.create({
+      companyId: currentCompanyId(),
       opportunityId: opp.id,
       level: 1,
       inputs: {
