@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -32,8 +34,14 @@ import type { DatabaseConfig } from '../config/configuration';
           logging: db.logging,
           charset: 'utf8mb4',
           timezone: 'Z',
-          // Migrations are loaded by the standalone data-source.ts for CLI;
-          // the runtime connection runs whatever the migrations have applied.
+          // Compiled migrations ship in the image at dist/src/migrations. In
+          // production we run any pending migrations automatically on connect,
+          // so a fresh database (e.g. a brand-new container/volume) is fully
+          // built BEFORE the app serves traffic — no manual migration step.
+          // In dev the schema is managed locally, so auto-run stays off.
+          migrations: [join(__dirname, '..', 'migrations', '*.{js,ts}')],
+          migrationsRun: isProd,
+          migrationsTableName: 'migrations',
         };
       },
     }),

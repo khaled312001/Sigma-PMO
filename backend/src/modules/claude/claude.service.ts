@@ -191,12 +191,21 @@ export class ClaudeService implements OnModuleInit {
    */
   async onModuleInit(): Promise<void> {
     if (!this.settings) return;
-    await this.refreshFromSettings();
-    this.settings.onChange(async (settingKey) => {
-      if (settingKey === SETTING_KEYS.ANTHROPIC_API_KEY) {
-        await this.refreshFromSettings();
-      }
-    });
+    try {
+      await this.refreshFromSettings();
+      this.settings.onChange(async (settingKey) => {
+        if (settingKey === SETTING_KEYS.ANTHROPIC_API_KEY) {
+          await this.refreshFromSettings();
+        }
+      });
+    } catch (err) {
+      // Never let a settings read crash startup (e.g. a not-yet-migrated DB on
+      // the very first boot). Fall back to the env-provided ANTHROPIC_API_KEY;
+      // the key can also be set later via /admin/settings once the DB is ready.
+      this.logger.warn(
+        `Claude settings init skipped (${(err as Error).message}); using env ANTHROPIC_API_KEY if present.`,
+      );
+    }
   }
 
   /**

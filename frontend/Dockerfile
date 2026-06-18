@@ -11,6 +11,9 @@ COPY . .
 # API, so it must be the PUBLIC backend URL (override per environment).
 ARG NEXT_PUBLIC_API_BASE=http://localhost:3001/api/v1
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+# One-click demo user-picker on the login page (set to "false" to hide it).
+ARG NEXT_PUBLIC_DEMO_LOGIN=true
+ENV NEXT_PUBLIC_DEMO_LOGIN=$NEXT_PUBLIC_DEMO_LOGIN
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
