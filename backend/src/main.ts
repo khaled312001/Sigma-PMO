@@ -60,7 +60,8 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const port = config.get<number>('port') ?? 3001;
-  await app.listen(port);
+  // Bind to all interfaces so the container is reachable from the reverse proxy.
+  await app.listen(port, '0.0.0.0');
 }
 
 void bootstrap();

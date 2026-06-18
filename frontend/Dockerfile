@@ -25,6 +25,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# Bind to all interfaces — without this, Next's standalone server binds to the
+# Docker-assigned HOSTNAME (the container id) and the reverse proxy can't reach
+# it (502 Bad Gateway).
+ENV HOSTNAME=0.0.0.0
 COPY --from=build /app/public ./public
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
