@@ -33,9 +33,10 @@ const LAYERS = [
   { tag: 'L8', label: 'Sigma Governance AI', labelAr: 'ذكاء سيجما للحوكمة', accent: 'from-fuchsia-400/70 to-rose-500/50' },
 ];
 
-/** The seeded role accounts — selecting one fills its email + the matching
- *  password so switching user types always lands valid credentials. These are
- *  the local demo seeds; rotate them for any real deployment. */
+/** The seeded role accounts — pick one to sign in instantly (email + password
+ *  auto-applied, no typing). These are the local demo seeds; set
+ *  `NEXT_PUBLIC_DEMO_LOGIN=false` to hide the picker for a real (non-demo)
+ *  deployment, and rotate these credentials. */
 const ROLE_ACCOUNTS: { role: Role; email: string; password: string }[] = [
   { role: 'sigma_admin', email: 'admin@sigma.local', password: 'AdminSigma#2026' },
   { role: 'sigma_reviewer', email: 'reviewer@sigma.local', password: 'ReviewerSigma#2026' },
@@ -54,11 +55,15 @@ const ROLE_ACCOUNTS: { role: Role; email: string; password: string }[] = [
   { role: 'asset_manager', email: 'assetmgr@sigma.ae', password: 'AssetMgrSigma#2026' },
 ];
 
+/** Show the one-click user picker unless explicitly disabled for real prod. */
+const SHOW_PICKER = process.env.NEXT_PUBLIC_DEMO_LOGIN !== 'false';
+
 export default function AuthPage() {
   const router = useRouter();
   const toast = useToast();
   const { refresh } = useMe();
   const { t, lang } = useI18n();
+  const ar = lang === 'ar';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [reveal, setReveal] = useState(false);
@@ -66,53 +71,68 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bootstrap, setBootstrap] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  // When the picker is on, the manual email/password form stays hidden behind a
+  // toggle (for real admins + registered company users).
+  const [manual, setManual] = useState(!SHOW_PICKER);
+  const [autoBusy, setAutoBusy] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
-
-  const pickRole = (account: typeof ROLE_ACCOUNTS[number]) => {
-    setSelectedRole(account.role);
-    setEmail(account.email);
-    setPassword(account.password);
-    setError(null);
-    passwordRef.current?.focus();
-  };
 
   useEffect(() => {
     (async () => {
       try {
         const me = await api<MeResponse>('/auth/me');
-        if (me.bootstrapMode) setBootstrap(true);
+        if (me.bootstrapMode) { setBootstrap(true); setManual(true); }
         else if (me.authenticated) router.push('/');
       } catch { /* ignore */ }
     })();
-    emailRef.current?.focus();
   }, [router]);
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setCapsLock(e.getModifierState && e.getModifierState('CapsLock'));
   };
 
-  const submit = async (e: React.FormEvent) => {
+  /** Shared sign-in: authenticate, store the key, refresh context, redirect. */
+  const loginWith = async (em: string, pw: string): Promise<void> => {
+    const res = await api<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: em.trim().toLowerCase(), password: pw }),
+    });
+    setApiKey(res.apiKey);
+    await refresh();
+    toast.success(t('auth.welcome', { name: res.user.displayName }));
+    router.push('/');
+  };
+
+  const friendlyError = (err: unknown): string => {
+    const message = (err as Error).message ?? '';
+    return /401|unauthor/i.test(message) ? t('auth.loginFailed') : message;
+  };
+
+  /** One-click: sign in as the picked seeded user (no typing). */
+  const autoLogin = async (account: (typeof ROLE_ACCOUNTS)[number]): Promise<void> => {
+    setAutoBusy(account.email); setError(null);
+    try {
+      await loginWith(account.email, account.password);
+    } catch (err) {
+      setError(friendlyError(err));
+      setAutoBusy(null);
+    }
+  };
+
+  const submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      const res = await api<LoginResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
-      });
-      setApiKey(res.apiKey);
-      await refresh();
-      toast.success(t('auth.welcome', { name: res.user.displayName }));
-      router.push('/');
+      await loginWith(email, password);
     } catch (err) {
-      const message = (err as Error).message ?? '';
-      const friendly = /401|unauthor/i.test(message) ? t('auth.loginFailed') : message;
-      setError(friendly);
+      setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
   };
+
+  const showPicker = SHOW_PICKER && !manual;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
@@ -155,7 +175,7 @@ export default function AuthPage() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400" style={{ animation: 'ring-ping 2s cubic-bezier(0,0,0.2,1) infinite' }} />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
               </span>
-              {lang === 'ar' ? 'رسمي' : 'Official'}
+              {ar ? 'رسمي' : 'Official'}
             </span>
           </header>
 
@@ -184,7 +204,7 @@ export default function AuthPage() {
                     <span className={`grid h-5 w-7 shrink-0 place-items-center rounded bg-gradient-to-br ${l.accent} font-mono text-[10px] font-bold text-white ring-1 ring-white/10`} dir="ltr">
                       {l.tag}
                     </span>
-                    <span className="truncate text-[11px] text-slate-300">{lang === 'ar' ? l.labelAr : l.label}</span>
+                    <span className="truncate text-[11px] text-slate-300">{ar ? l.labelAr : l.label}</span>
                   </div>
                 </div>
               ))}
@@ -229,109 +249,149 @@ export default function AuthPage() {
             {/* Glass sign-in card */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-8">
               <h2 className="text-2xl font-semibold tracking-tight">{t('auth.title')}</h2>
-              <p className="mt-2 text-sm text-slate-400">{t('auth.subtitle')}</p>
+              <p className="mt-2 text-sm text-slate-400">
+                {showPicker
+                  ? ar ? 'اختر مستخدماً للدخول الفوري — بدون كتابة بريد أو كلمة مرور.' : 'Pick a user to sign in instantly — no email or password to type.'
+                  : t('auth.subtitle')}
+              </p>
 
-              {/* User-type selector — pick the role to sign in as (fills its email). */}
-              <div className="mt-5">
-                <p className="text-[11px] font-medium text-slate-400">{t('auth.signInAs')}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {ROLE_ACCOUNTS.map((account) => (
-                    <button
-                      key={account.role}
-                      type="button"
-                      onClick={() => pickRole(account)}
-                      aria-pressed={selectedRole === account.role}
-                      className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-                        selectedRole === account.role
-                          ? 'border-sky-400/60 bg-sky-500/15 text-sky-100 shadow-sm shadow-sky-500/20'
-                          : 'border-white/10 bg-white/[0.03] text-slate-300 hover:border-slate-500 hover:text-slate-50'
-                      }`}
-                    >
-                      {ROLE_LABEL[account.role]}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* ===== One-click user picker (demo) ===== */}
+              {showPicker && (
+                <div className="mt-6">
+                  <div className="grid max-h-[48vh] grid-cols-1 gap-1.5 overflow-y-auto pe-1 sm:grid-cols-2 scrollbar-thin">
+                    {ROLE_ACCOUNTS.map((account) => {
+                      const loading = autoBusy === account.email;
+                      return (
+                        <button
+                          key={account.role}
+                          type="button"
+                          onClick={() => void autoLogin(account)}
+                          disabled={autoBusy !== null}
+                          className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-start transition hover:border-sky-400/60 hover:bg-sky-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-500/40 to-violet-500/30 text-[12px] font-bold text-white ring-1 ring-white/10" dir="ltr">
+                            {ROLE_LABEL[account.role].slice(0, 1)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-medium text-slate-100">{ROLE_LABEL[account.role]}</span>
+                            <span className="block truncate text-[10px] text-slate-400" dir="ltr">{account.email}</span>
+                          </span>
+                          {loading ? (
+                            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-300/40 border-t-sky-300" />
+                          ) : (
+                            <IconLogIn className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-sky-300" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              {bootstrap && (
-                <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
-                  <p className="font-medium">{t('auth.bootstrap.title')}</p>
-                  <p className="mt-1 text-xs text-amber-100/80">{t('auth.bootstrap.body')}</p>
-                  <pre dir="ltr" className="mt-2 overflow-auto rounded-lg bg-black/40 p-2 text-[11px] text-amber-50">npm run user:create -- you@example.com sigma_admin &quot;StrongPassword!&quot; &quot;Your Name&quot;</pre>
-                  <p className="mt-2 text-xs text-amber-100/80">{t('auth.bootstrap.hint')}</p>
+                  {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
+
+                  <button
+                    type="button"
+                    onClick={() => { setManual(true); setError(null); }}
+                    className="mt-4 text-[11px] text-slate-400 underline-offset-2 transition hover:text-slate-200 hover:underline"
+                  >
+                    {ar ? 'أو سجّل الدخول يدوياً بالبريد وكلمة المرور ←' : '→ Or sign in manually with email & password'}
+                  </button>
                 </div>
               )}
 
-              <form onSubmit={submit} className="mt-7 space-y-5" autoComplete="on">
-                <div>
-                  <label htmlFor="email" className="block text-xs font-medium text-slate-300">{t('auth.emailLabel')}</label>
-                  <input
-                    id="email"
-                    ref={emailRef}
-                    type="email"
-                    autoComplete="username"
-                    required
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setSelectedRole(null); }}
-                    placeholder={t('auth.emailPlaceholder')}
-                    className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-100 shadow-inner shadow-black/20 transition placeholder:text-slate-500 focus:border-sky-500/70 focus:bg-slate-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40"
-                    dir="ltr"
-                  />
-                </div>
+              {/* ===== Manual sign-in (real admins / registered company users) ===== */}
+              {!showPicker && (
+                <>
+                  {bootstrap && (
+                    <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+                      <p className="font-medium">{t('auth.bootstrap.title')}</p>
+                      <p className="mt-1 text-xs text-amber-100/80">{t('auth.bootstrap.body')}</p>
+                      <pre dir="ltr" className="mt-2 overflow-auto rounded-lg bg-black/40 p-2 text-[11px] text-amber-50">npm run user:create -- you@example.com sigma_admin &quot;StrongPassword!&quot; &quot;Your Name&quot;</pre>
+                      <p className="mt-2 text-xs text-amber-100/80">{t('auth.bootstrap.hint')}</p>
+                    </div>
+                  )}
 
-                <div>
-                  <div className="flex items-baseline justify-between">
-                    <label htmlFor="password" className="block text-xs font-medium text-slate-300">{t('auth.passwordLabel')}</label>
-                    <span className="cursor-help text-[11px] text-slate-500 hover:text-slate-300" title={t('auth.forgotPasswordHint')}>{t('auth.forgotPassword')}</span>
-                  </div>
-                  <div className="relative mt-2">
-                    <input
-                      id="password"
-                      ref={passwordRef}
-                      type={reveal ? 'text' : 'password'}
-                      autoComplete="current-password"
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onKeyDown={onKey}
-                      onKeyUp={onKey}
-                      placeholder={t('auth.passwordPlaceholder')}
-                      aria-describedby={error ? 'login-error' : capsLock ? 'caps-warning' : undefined}
-                      aria-invalid={error !== null}
-                      className="block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 pe-20 text-sm text-slate-100 shadow-inner shadow-black/20 transition placeholder:text-slate-500 focus:border-sky-500/70 focus:bg-slate-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40"
-                      dir="ltr"
-                    />
+                  <form onSubmit={submit} className="mt-7 space-y-5" autoComplete="on">
+                    <div>
+                      <label htmlFor="email" className="block text-xs font-medium text-slate-300">{t('auth.emailLabel')}</label>
+                      <input
+                        id="email"
+                        ref={emailRef}
+                        type="email"
+                        autoComplete="username"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder={t('auth.emailPlaceholder')}
+                        className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-100 shadow-inner shadow-black/20 transition placeholder:text-slate-500 focus:border-sky-500/70 focus:bg-slate-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline justify-between">
+                        <label htmlFor="password" className="block text-xs font-medium text-slate-300">{t('auth.passwordLabel')}</label>
+                        <span className="cursor-help text-[11px] text-slate-500 hover:text-slate-300" title={t('auth.forgotPasswordHint')}>{t('auth.forgotPassword')}</span>
+                      </div>
+                      <div className="relative mt-2">
+                        <input
+                          id="password"
+                          ref={passwordRef}
+                          type={reveal ? 'text' : 'password'}
+                          autoComplete="current-password"
+                          required
+                          minLength={8}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onKeyDown={onKey}
+                          onKeyUp={onKey}
+                          placeholder={t('auth.passwordPlaceholder')}
+                          aria-describedby={error ? 'login-error' : capsLock ? 'caps-warning' : undefined}
+                          aria-invalid={error !== null}
+                          className="block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 pe-20 text-sm text-slate-100 shadow-inner shadow-black/20 transition placeholder:text-slate-500 focus:border-sky-500/70 focus:bg-slate-900/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40"
+                          dir="ltr"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setReveal((r) => !r)}
+                          className="absolute end-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition hover:border-slate-400 hover:text-slate-50"
+                          aria-label={reveal ? t('auth.hide') : t('auth.show')}
+                        >
+                          {reveal ? t('auth.hide') : t('auth.show')}
+                        </button>
+                      </div>
+                      {capsLock && (
+                        <p id="caps-warning" className="mt-1.5 flex items-center gap-1 text-[11px] text-amber-300">
+                          <span aria-hidden>⇧</span> {t('auth.capsLock')}
+                        </p>
+                      )}
+                    </div>
+
+                    {error && <div id="login-error"><ErrorBanner message={error} /></div>}
+
+                    <Button type="submit" variant="primary" disabled={busy || !email || password.length < 8} className="group relative w-full justify-center overflow-hidden py-2.5 text-sm">
+                      <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                      {busy ? (
+                        <span className="relative flex items-center gap-2">
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                          {t('auth.verifying')}
+                        </span>
+                      ) : (
+                        <span className="relative flex items-center gap-2"><IconLogIn className="h-4 w-4" /> {t('auth.submit')}</span>
+                      )}
+                    </Button>
+                  </form>
+
+                  {SHOW_PICKER && (
                     <button
                       type="button"
-                      onClick={() => setReveal((r) => !r)}
-                      className="absolute end-2 top-1/2 -translate-y-1/2 rounded-md border border-white/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-300 transition hover:border-slate-400 hover:text-slate-50"
-                      aria-label={reveal ? t('auth.hide') : t('auth.show')}
+                      onClick={() => { setManual(false); setError(null); }}
+                      className="mt-4 text-[11px] text-slate-400 underline-offset-2 transition hover:text-slate-200 hover:underline"
                     >
-                      {reveal ? t('auth.hide') : t('auth.show')}
+                      {ar ? '→ رجوع لاختيار المستخدم' : '← Back to user picker'}
                     </button>
-                  </div>
-                  {capsLock && (
-                    <p id="caps-warning" className="mt-1.5 flex items-center gap-1 text-[11px] text-amber-300">
-                      <span aria-hidden>⇧</span> {t('auth.capsLock')}
-                    </p>
                   )}
-                </div>
-
-                {error && <div id="login-error"><ErrorBanner message={error} /></div>}
-
-                <Button type="submit" variant="primary" disabled={busy || !email || password.length < 8} className="group relative w-full justify-center overflow-hidden py-2.5 text-sm">
-                  <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-                  {busy ? (
-                    <span className="relative flex items-center gap-2">
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      {t('auth.verifying')}
-                    </span>
-                  ) : (
-                    <span className="relative flex items-center gap-2"><IconLogIn className="h-4 w-4" /> {t('auth.submit')}</span>
-                  )}
-                </Button>
-              </form>
+                </>
+              )}
             </div>
 
             <p className="mt-5 flex items-center justify-center gap-1.5 text-center text-[11px] text-slate-500">

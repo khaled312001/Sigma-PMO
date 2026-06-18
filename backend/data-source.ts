@@ -10,8 +10,6 @@ import 'reflect-metadata';
 import { config as loadEnv } from 'dotenv';
 import { DataSource } from 'typeorm';
 
-import { CANONICAL_ENTITIES } from './src/modules/canonical/entities';
-
 loadEnv();
 
 const port = Number.parseInt(process.env.DB_PORT ?? '3306', 10);
@@ -25,6 +23,10 @@ export default new DataSource({
   database: process.env.DB_DATABASE ?? 'sigma_pmo',
   charset: 'utf8mb4',
   timezone: 'Z',
-  entities: CANONICAL_ENTITIES,
+  // Load EVERY entity file (mirrors the app's runtime `autoLoadEntities: true`),
+  // not just the curated CANONICAL_ENTITIES barrel — module-owned entities
+  // (Source, OutboxEvent, Letter, OrgChartReview) aren't in the barrel, so a
+  // barrel-only list would silently drop their tables from generated migrations.
+  entities: ['src/**/*.entity.ts'],
   migrations: ['src/migrations/*.ts'],
 });
