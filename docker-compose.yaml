@@ -1,0 +1,65 @@
+version: "3.9"
+ 
+services:
+  # ===== التطبيق الأساسي (Sigma PMO) =====
+  sigma-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@sigma-db:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://sigma-redis:6379
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      sigma-db:
+        condition: service_healthy
+      sigma-redis:
+        condition: service_started
+    networks:
+      - sigma-internal
+    labels:
+      # هذه الأسطر هي ما يقرأه Traefik تلقائيًا لتوجيه الدومين - Coolify يضيفها تلقائيًا غالبًا
+      - "traefik.enable=true"
+      - "traefik.http.routers.sigma.rule=Host(`system.sigma-pmo.com`)"
+      - "traefik.http.routers.sigma.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sigma.loadbalancer.server.port=3000"
+ 
+  # ===== قاعدة البيانات (منفصلة تمامًا) =====
+  sigma-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - sigma-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sigma-internal
+    # ملاحظة حاسمة: لا يوجد "ports:" هنا إطلاقًا - راجع الطبقة الثالثة من الملف الأول
+ 
+  # ===== Redis (منفصلة تمامًا) =====
+  sigma-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - sigma-redis-data:/data
+    networks:
+      - sigma-internal
+    # هنا أيضًا لا يوجد "ports:" مفتوح للخارج
+ 
+networks:
+  sigma-internal:
+    driver: bridge
+ 
+volumes:
+  sigma-db-data:
+  sigma-redis-data:
