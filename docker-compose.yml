@@ -81,6 +81,11 @@ services:
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://system-api.sigma-pmo.com/api/v1}
         NEXT_PUBLIC_DEMO_LOGIN: ${NEXT_PUBLIC_DEMO_LOGIN:-true}
     restart: unless-stopped
+    # Force Next's standalone server to bind to all interfaces on 3000 so the
+    # reverse proxy can reach it (runtime env beats any Docker-assigned hostname).
+    environment:
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
     # The port the reverse proxy routes the frontend domain to.
     expose:
       - "3000"
