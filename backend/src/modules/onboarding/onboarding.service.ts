@@ -16,6 +16,7 @@ import { SupportKind } from '../canonical/entities/support-request.entity';
 import { AuthService } from '../auth/auth.service';
 import { Role } from '../auth/roles.enum';
 import { StripeService } from '../billing/stripe.service';
+import { planFor } from '../billing/plans';
 import { COMPANY_PRESETS, presetFor, slugifyCompany } from './company-presets';
 
 export interface RegisterCompanyDto {
@@ -188,6 +189,15 @@ export class OnboardingService {
     if (!company) throw new NotFoundException('Company not found');
     if (company.createdById !== caller.id) {
       throw new ForbiddenException('Only the company owner can add users');
+    }
+
+    // Seat limit: a company can only have as many users as its plan allows.
+    const plan = planFor(company.plan);
+    const seatsUsed = await this.users.count({ where: { companyId: caller.companyId } });
+    if (seatsUsed >= plan.seats) {
+      throw new ForbiddenException(
+        `Seat limit reached for the ${plan.name} plan (${plan.seats} seats). Upgrade your plan to add more users.`,
+      );
     }
 
     const email = dto.email?.trim().toLowerCase();

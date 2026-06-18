@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { CostEstimate } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { ClassificationStandard } from './cost-classification';
 import { CostEstimationService } from './cost-estimation.service';
 
@@ -19,6 +20,7 @@ export class QuantitySurveyService {
   constructor(
     @InjectRepository(CostEstimate) private readonly estimates: Repository<CostEstimate>,
     private readonly estimation: CostEstimationService,
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   async createEstimate(input: {
@@ -124,6 +126,7 @@ export class QuantitySurveyService {
   async get(id: string): Promise<CostEstimate> {
     const e = await this.estimates.findOne({ where: { id } });
     if (!e) throw new NotFoundException(`Cost estimate ${id} not found`);
+    await this.ownership?.assertOwns(e.projectBusinessKey); // multi-tenant ownership
     return e;
   }
 }

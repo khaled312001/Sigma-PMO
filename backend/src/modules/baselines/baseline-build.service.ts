@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 
 import { SourceType } from '../../common/enums';
 import { Activity, BaselineBuildJob, DrawingPackage, Project, SourceFile } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { StorageService } from '../ingestion/storage/storage.service';
 import { BaselineTemplateService, TemplateActivity, TemplateDependency } from './baseline-template.service';
 import { XerWriterService } from './xer-writer.service';
@@ -59,6 +60,7 @@ export class BaselineBuildService {
     @Optional() @Inject(StorageService) private readonly storage?: StorageService,
     @Optional() @Inject(BaselineTemplateService) private readonly template?: BaselineTemplateService,
     @Optional() @InjectRepository(DrawingPackage) private readonly drawingPackages?: Repository<DrawingPackage>,
+    @Optional() @Inject(ProjectOwnershipService) private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   /**
@@ -156,6 +158,7 @@ export class BaselineBuildService {
   async getJob(id: string): Promise<BaselineBuildJob> {
     const row = await this.jobs.findOne({ where: { id } });
     if (!row) throw new NotFoundException(`No baseline build job with id ${id}`);
+    await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership
     return row;
   }
 

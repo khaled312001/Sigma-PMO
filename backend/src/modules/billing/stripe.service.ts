@@ -14,6 +14,7 @@ import type { StripeConfig } from '../../config/configuration';
 import { Company } from '../canonical/entities/company.entity';
 import { Subscription, SubscriptionStatus } from '../canonical/entities/subscription.entity';
 import { User } from '../canonical/entities';
+import { PLAN_LIST, Plan, planFor } from './plans';
 
 /** Stripe client instance type (the v22 default export is the constructor). */
 type StripeClient = InstanceType<typeof Stripe>;
@@ -103,16 +104,51 @@ export class StripeService {
     return this.createCheckoutUrl(company, user.email);
   }
 
-  /** Subscription status for the caller's company (dashboard billing badge). */
-  async statusForUser(user: User): Promise<{ enabled: boolean; status: string; trialEndsAt: Date | null; plan: string } | null> {
+  /** The public plan catalog (pricing page + upgrade picker). */
+  plans(): Plan[] {
+    return PLAN_LIST;
+  }
+
+  /** Subscription status + seat usage for the caller's company (billing badge). */
+  async statusForUser(user: User): Promise<
+    | { enabled: boolean; status: string; trialEndsAt: Date | null; plan: string; planName: string; seatsUsed: number; seatsLimit: number }
+    | null
+  > {
     if (!user.companyId) return null;
-    const sub = await this.subs.findOne({ where: { companyId: user.companyId } });
+    const [sub, company, seatsUsed] = await Promise.all([
+      this.subs.findOne({ where: { companyId: user.companyId } }),
+      this.companies.findOne({ where: { id: user.companyId } }),
+      this.users.count({ where: { companyId: user.companyId } }),
+    ]);
+    const plan = planFor(company?.plan ?? sub?.plan);
     return {
       enabled: this.isEnabled(),
       status: sub?.status ?? 'trial',
       trialEndsAt: sub?.trialEndsAt ?? null,
-      plan: sub?.plan ?? 'trial',
+      plan: plan.code,
+      planName: plan.name,
+      seatsUsed,
+      seatsLimit: plan.seats,
     };
+  }
+
+  /**
+   * Stripe Customer Portal URL — lets a company manage its card, invoices, and
+   * cancellation. Requires billing enabled + a completed Checkout (customer id).
+   */
+  async createPortalUrl(user: User): Promise<string | null> {
+    const c = this.cfg();
+    if (!c.enabled) return null;
+    if (!user.companyId) throw new ForbiddenException('Caller is not scoped to a company');
+    const sub = await this.subs.findOne({ where: { companyId: user.companyId } });
+    if (!sub?.stripeCustomerId) {
+      throw new BadRequestException('No active Stripe subscription for this company yet');
+    }
+    const session = await this.stripe().billingPortal.sessions.create({
+      customer: sub.stripeCustomerId,
+      return_url: `${c.appUrl}/account`,
+    });
+    return session.url;
   }
 
   /**

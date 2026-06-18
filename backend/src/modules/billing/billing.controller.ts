@@ -33,6 +33,21 @@ export class BillingController {
     return { enabled: this.stripe.isEnabled(), publishableKey: this.stripe.publishableKey() };
   }
 
+  /** Public plan catalog (pricing + upgrade picker). */
+  @Get('plans')
+  plans() {
+    return this.stripe.plans();
+  }
+
+  /** Stripe Customer Portal URL — manage card / invoices / cancellation. */
+  @Post('portal')
+  @HttpCode(200)
+  @RequiresCapability('canRead')
+  async portal(@Headers('x-api-key') rawKey?: string) {
+    const url = await this.stripe.createPortalUrl(await this.caller(rawKey));
+    return { url };
+  }
+
   /**
    * Stripe webhook. The raw (unparsed) request body is required for signature
    * verification — main.ts mounts `express.raw()` for exactly this path so

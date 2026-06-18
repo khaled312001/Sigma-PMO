@@ -6,6 +6,7 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { Layer, IngestionStatus, SourceType } from '../../common/enums';
 import { ClashItem, IngestionRun, SourceFile } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { OutboxService } from '../outbox/outbox.service';
 import {
   ClashDataset,
@@ -79,6 +80,7 @@ export class ClashIngestionService {
     @InjectRepository(ClashItem) private readonly clashes: Repository<ClashItem>,
     private readonly parser: ClashExcelParser,
     private readonly outbox: OutboxService,
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   /**
@@ -238,6 +240,7 @@ export class ClashIngestionService {
   async getById(id: string): Promise<ClashItem> {
     const row = await this.clashes.findOne({ where: { id } });
     if (!row) throw new NotFoundException(`No clash item with id ${id}`);
+    await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership
     return row;
   }
 
