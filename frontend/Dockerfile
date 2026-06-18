@@ -5,7 +5,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Force devDependencies (TypeScript, Tailwind, etc. needed by `next build`) even
+# when the build host injects NODE_ENV=production — otherwise `npm ci` omits them.
+RUN npm ci --include=dev
 COPY . .
 # NEXT_PUBLIC_* are inlined at BUILD time — the browser uses this to reach the
 # API, so it must be the PUBLIC backend URL (override per environment).

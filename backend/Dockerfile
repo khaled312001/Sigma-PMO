@@ -5,7 +5,10 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Force devDependencies (e.g. @nestjs/cli for `nest build`) even when the build
+# host injects NODE_ENV=production — otherwise `npm ci` omits them and the build
+# fails with "nest: command not found" (exit 127).
+RUN npm ci --include=dev
 COPY . .
 RUN npm run build
 # Drop dev dependencies for a lean runtime node_modules.
