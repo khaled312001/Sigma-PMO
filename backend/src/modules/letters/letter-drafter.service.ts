@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { SourceFile } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { ClaudeService, PersonaCallResult } from '../claude/claude.service';
 import { SourcesService } from '../sources/sources.service';
 import { Letter, LetterTrigger } from './letter.entity';
@@ -124,6 +125,8 @@ export class LetterDrafterService {
     @InjectRepository(SourceFile) private readonly sourceFiles: Repository<SourceFile>,
     private readonly claude: ClaudeService,
     private readonly sources: SourcesService,
+    // Optional only for the positional unit specs; DI always injects at runtime.
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   // ───────────────────────── public surface ─────────────────────────
@@ -258,6 +261,7 @@ export class LetterDrafterService {
   async getById(id: string): Promise<Letter> {
     const row = await this.letters.findOne({ where: { id } });
     if (!row) throw new NotFoundException(`No letter with id ${id}`);
+    await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership
     return row;
   }
 

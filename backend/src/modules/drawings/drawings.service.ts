@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { SourceType } from '../../common/enums';
 import { DrawingPackage, SourceFile } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { StorageService } from '../ingestion/storage/storage.service';
 
 /**
@@ -35,6 +36,8 @@ export class DrawingsService {
     @InjectRepository(DrawingPackage) private readonly packages: Repository<DrawingPackage>,
     @InjectRepository(SourceFile) private readonly sourceFiles: Repository<SourceFile>,
     private readonly storage: StorageService,
+    // Optional only for the positional unit specs; DI always injects at runtime.
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   /** Ingest one PDF drawing set. */
@@ -97,6 +100,7 @@ export class DrawingsService {
   async getById(id: string): Promise<DrawingPackage> {
     const row = await this.packages.findOne({ where: { id } });
     if (!row) throw new NotFoundException(`No drawing package with id ${id}`);
+    await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership
     return row;
   }
 

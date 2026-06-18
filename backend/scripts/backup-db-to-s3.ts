@@ -1,12 +1,20 @@
 /**
  * Database backup → S3. Runs `mysqldump` on the configured database, gzips the
- * dump, uploads it to `db-backups/<db>-<timestamp>.sql.gz` on the S3 bucket, and
- * prunes old backups beyond BACKUP_RETENTION (default 14). Reads DB_* + S3_* from
+ * dump, OPTIONALLY encrypts it (AES-256-GCM, client-side) when
+ * `BACKUP_ENCRYPTION_KEY` is set, uploads it to
+ * `db-backups/<db>-<timestamp>.sql.gz[.enc]` on the S3 bucket, and prunes old
+ * backups beyond BACKUP_RETENTION (default 14). Reads DB_* + S3_* + BACKUP_* from
  * the environment (.env). Run: `npx ts-node scripts/backup-db-to-s3.ts`
- * (schedule via cron / Task Scheduler). Restore: `gunzip -c dump.sql.gz | mysql <db>`.
+ * (schedule via cron / Task Scheduler — see docs/BACKUP-RESTORE.md).
+ * Restore with `scripts/restore-db-from-s3.ts`.
+ *
+ * Security: the dump contains EVERY tenant's data. Set `BACKUP_ENCRYPTION_KEY`
+ * (32-byte key, hex or base64) so the object is encrypted before it leaves this
+ * host; optionally set `S3_SSE=AES256` for server-side-at-rest encryption too.
  */
 import 'dotenv/config';
 import { spawnSync } from 'node:child_process';
+import { createCipheriv, randomBytes } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 
 import {
@@ -14,7 +22,27 @@ import {
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
+  type ServerSideEncryption,
 } from '@aws-sdk/client-s3';
+
+/** Parse a 32-byte key from hex or base64 (or null when unset → no encryption). */
+function backupKey(): Buffer | null {
+  const raw = process.env.BACKUP_ENCRYPTION_KEY;
+  if (!raw) return null;
+  const buf = /^[0-9a-fA-F]{64}$/.test(raw) ? Buffer.from(raw, 'hex') : Buffer.from(raw, 'base64');
+  if (buf.length !== 32) {
+    throw new Error('BACKUP_ENCRYPTION_KEY must be 32 bytes (64 hex chars or base64). Generate: openssl rand -hex 32');
+  }
+  return buf;
+}
+
+/** AES-256-GCM. Output layout: [12-byte iv][16-byte authTag][ciphertext]. */
+function encrypt(data: Buffer, key: Buffer): Buffer {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  const enc = Buffer.concat([cipher.update(data), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), enc]);
+}
 
 async function main(): Promise<void> {
   const DB_HOST = process.env.DB_HOST ?? 'localhost';
@@ -40,8 +68,10 @@ async function main(): Promise<void> {
     throw new Error(`mysqldump failed (${dump.status}): ${dump.stderr?.toString().slice(0, 400)}`);
   }
   const gz = gzipSync(dump.stdout);
+  const encKey = backupKey();
+  const body = encKey ? encrypt(gz, encKey) : gz;
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const key = `db-backups/${DB_DATABASE}-${ts}.sql.gz`;
+  const key = `db-backups/${DB_DATABASE}-${ts}.sql.gz${encKey ? '.enc' : ''}`;
 
   const s3 = new S3Client({
     region: process.env.S3_REGION ?? 'us-east-1',
@@ -50,8 +80,15 @@ async function main(): Promise<void> {
     credentials: { accessKeyId: process.env.S3_ACCESS_KEY, secretAccessKey: process.env.S3_SECRET_KEY },
   });
 
-  console.log(`[2/3] uploading ${key} (${(gz.length / 1024 / 1024).toFixed(2)} MB) …`);
-  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: gz, ContentType: 'application/gzip' }));
+  const sse = process.env.S3_SSE as ServerSideEncryption | undefined; // e.g. 'AES256' on AWS
+  console.log(`[2/3] uploading ${key} (${(body.length / 1024 / 1024).toFixed(2)} MB${encKey ? ', AES-256-GCM encrypted' : ''}) …`);
+  await s3.send(new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: body,
+    ContentType: encKey ? 'application/octet-stream' : 'application/gzip',
+    ...(sse ? { ServerSideEncryption: sse } : {}),
+  }));
 
   const retain = Number(process.env.BACKUP_RETENTION ?? 14);
   const list = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: 'db-backups/' }));

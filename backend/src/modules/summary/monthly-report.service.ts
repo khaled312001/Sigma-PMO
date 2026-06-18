@@ -13,6 +13,7 @@ import {
   MonthlyReport,
   Project,
 } from '../canonical/entities';
+import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { ClaudeService } from '../claude/claude.service';
 import { SnapshotService } from '../rules/snapshot.service';
 import { ProjectSnapshot } from '../rules/types';
@@ -126,6 +127,9 @@ export class MonthlyReportService {
     private readonly claude: ClaudeService,
     private readonly sources: SourcesService,
     private readonly pdf: PdfRendererService,
+    // Optional only so the existing positional unit specs construct without it;
+    // NestJS DI always injects it at runtime (CanonicalModule exports it).
+    private readonly ownership?: ProjectOwnershipService,
   ) {}
 
   /**
@@ -301,6 +305,7 @@ export class MonthlyReportService {
   async getById(id: string): Promise<MonthlyReport> {
     const row = await this.reports.findOne({ where: { id } });
     if (!row) throw new NotFoundException(`No monthly report with id ${id}`);
+    await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership
     return row;
   }
 
