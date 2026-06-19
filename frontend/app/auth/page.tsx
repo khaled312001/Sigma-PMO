@@ -38,12 +38,13 @@ const LAYERS = [
  *  `DEMO_SEED_PASSWORD`. NOT a real secret — these are throwaway demo logins. */
 const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'SigmaDemo2026';
 
-/** The NON-privileged sample accounts — pick one to sign in instantly (no
- *  typing). The privileged Sigma Admin / Reviewer are deliberately NOT here:
- *  platform-admin access is never one-click and never public — it requires the
- *  manual login with a private (env-set) password. Set
- *  `NEXT_PUBLIC_DEMO_LOGIN=false` to hide the picker entirely for UAT/prod. */
-const ROLE_ACCOUNTS: { role: Role; email: string }[] = [
+/** The sample accounts shown in the picker. Picking one fills ONLY the email;
+ *  the password is always typed manually. The privileged accounts (`privileged`)
+ *  use a PRIVATE admin password (never the demo password, never hinted). Hide
+ *  the whole picker for real prod with `NEXT_PUBLIC_DEMO_LOGIN=false`. */
+const ROLE_ACCOUNTS: { role: Role; email: string; privileged?: boolean }[] = [
+  { role: 'sigma_admin', email: 'admin@sigma.local', privileged: true },
+  { role: 'sigma_reviewer', email: 'reviewer@sigma.local', privileged: true },
   { role: 'client', email: 'client@sigma.ae' },
   { role: 'consultant', email: 'consultant@sigma.ae' },
   { role: 'contractor', email: 'contractor@sigma.ae' },
@@ -59,7 +60,10 @@ const ROLE_ACCOUNTS: { role: Role; email: string }[] = [
   { role: 'asset_manager', email: 'assetmgr@sigma.ae' },
 ];
 
-/** Show the one-click user picker unless explicitly disabled for real prod. */
+/** Privileged accounts never get the public demo password (admin/reviewer). */
+const isPrivileged = (role: Role): boolean => role === 'sigma_admin' || role === 'sigma_reviewer';
+
+/** Show the user-type picker unless explicitly disabled for real prod. */
 const SHOW_PICKER = process.env.NEXT_PUBLIC_DEMO_LOGIN !== 'false';
 
 export default function AuthPage() {
@@ -268,23 +272,39 @@ export default function AuthPage() {
               {showPicker && (
                 <div className="mt-6">
                   <div className="grid max-h-[48vh] grid-cols-1 gap-1.5 overflow-y-auto pe-1 sm:grid-cols-2 scrollbar-thin">
-                    {ROLE_ACCOUNTS.map((account) => (
-                      <button
-                        key={account.role}
-                        type="button"
-                        onClick={() => pickAccount(account)}
-                        className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-start transition hover:border-sky-400/60 hover:bg-sky-500/10"
-                      >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-500/40 to-violet-500/30 text-[12px] font-bold text-white ring-1 ring-white/10" dir="ltr">
-                          {ROLE_LABEL[account.role].slice(0, 1)}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-medium text-slate-100">{ROLE_LABEL[account.role]}</span>
-                          <span className="block truncate text-[10px] text-slate-400" dir="ltr">{account.email}</span>
-                        </span>
-                        <IconLogIn className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-sky-300" />
-                      </button>
-                    ))}
+                    {ROLE_ACCOUNTS.map((account) => {
+                      const priv = !!account.privileged;
+                      const selected = selectedRole === account.role;
+                      return (
+                        <button
+                          key={account.role}
+                          type="button"
+                          onClick={() => pickAccount(account)}
+                          aria-pressed={selected}
+                          className={`group relative flex items-center gap-2.5 overflow-hidden rounded-xl border px-3 py-2.5 text-start transition ${
+                            priv
+                              ? 'border-amber-400/30 bg-amber-400/[0.06] hover:border-amber-300/70 hover:bg-amber-400/10'
+                              : 'border-white/10 bg-white/[0.03] hover:border-sky-400/70 hover:bg-sky-500/10'
+                          } ${selected ? (priv ? 'ring-2 ring-amber-300/60' : 'ring-2 ring-sky-400/60') : ''}`}
+                        >
+                          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[13px] font-bold text-white ring-1 ring-white/10 ${priv ? 'bg-gradient-to-br from-amber-500/55 to-rose-500/45' : 'bg-gradient-to-br from-sky-500/45 to-violet-500/35'}`} dir="ltr">
+                            {ROLE_LABEL[account.role].slice(0, 1)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-1.5">
+                              <span className="truncate text-[13px] font-semibold text-slate-100">{ROLE_LABEL[account.role]}</span>
+                              {priv && (
+                                <span className="shrink-0 rounded bg-amber-400/20 px-1.5 py-[1px] text-[8px] font-bold uppercase tracking-wider text-amber-200">
+                                  {ar ? 'مسؤول' : 'Admin'}
+                                </span>
+                              )}
+                            </span>
+                            <span className="block truncate text-[10px] text-slate-400" dir="ltr">{account.email}</span>
+                          </span>
+                          <IconLogIn className={`h-4 w-4 shrink-0 transition ${priv ? 'text-amber-300/60 group-hover:text-amber-200' : 'text-slate-500 group-hover:text-sky-300'}`} />
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
@@ -380,11 +400,16 @@ export default function AuthPage() {
                           <span aria-hidden>⇧</span> {t('auth.capsLock')}
                         </p>
                       )}
-                      {SHOW_PICKER && selectedRole && (
+                      {SHOW_PICKER && selectedRole && !isPrivileged(selectedRole) && (
                         <p className="mt-2 text-[11px] text-slate-400">
                           {ar ? 'كلمة المرور التجريبية:' : 'Demo password:'}{' '}
                           <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-slate-200" dir="ltr">{DEMO_PASSWORD}</code>{' '}
                           — {ar ? 'اكتبها يدوياً' : 'type it manually'}
+                        </p>
+                      )}
+                      {SHOW_PICKER && selectedRole && isPrivileged(selectedRole) && (
+                        <p className="mt-2 text-[11px] text-amber-300/80">
+                          {ar ? 'حساب مسؤول — اكتب كلمة مرور المسؤول الخاصة (ليست كلمة المرور التجريبية).' : 'Admin account — type your private admin password (not the demo password).'}
                         </p>
                       )}
                     </div>
