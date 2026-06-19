@@ -245,7 +245,7 @@ export default (): AppConfiguration => {
   bootstrapToken: process.env.BOOTSTRAP_TOKEN ?? '',
   sentryDsn: process.env.SENTRY_DSN ?? '',
   bodyLimit: process.env.BODY_LIMIT ?? '25mb',
-  throttlerDefaultLimit: toInt(process.env.RATE_LIMIT_DEFAULT_LIMIT, 100),
+  throttlerDefaultLimit: toInt(process.env.RATE_LIMIT_DEFAULT_LIMIT, 600),
   throttlerDefaultTtlMs: toInt(process.env.RATE_LIMIT_DEFAULT_TTL_MS, 60_000),
   throttlerAuthLimit: toInt(process.env.RATE_LIMIT_AUTH_LIMIT, 10),
   throttlerIngestLimit: toInt(process.env.RATE_LIMIT_INGEST_LIMIT, 30),

@@ -22,31 +22,23 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
         const isDev = (config.get<string>('env') ?? process.env.NODE_ENV) !== 'production';
         const devMultiplier = isDev ? 50 : 1;
         const m = (limit: number): number => limit * devMultiplier;
+        // IMPORTANT: ThrottlerGuard enforces EVERY registered throttler on EVERY
+        // route. So `default` is the only bucket that may carry a real global
+        // limit — it protects all routes. The `auth`/`ingest`/`ai` buckets exist
+        // ONLY so the per-route `@Throttle({ auth|ingest|ai: { limit } })`
+        // decorators (login, register, ingest, AI) can tighten THEIR routes; they
+        // MUST stay effectively unlimited globally, otherwise the smallest of them
+        // (auth=10/min) would silently cap the entire API to ~10 req/min per IP.
+        const UNBOUND = 10_000_000;
         return [
           {
             name: 'default',
             ttl: config.get<number>('throttlerDefaultTtlMs') ?? 60_000,
-            limit: m(config.get<number>('throttlerDefaultLimit') ?? 100),
+            limit: m(config.get<number>('throttlerDefaultLimit') ?? 600),
           },
-          {
-            name: 'auth',
-            ttl: 60_000,
-            limit: m(config.get<number>('throttlerAuthLimit') ?? 10),
-          },
-          {
-            name: 'ingest',
-            ttl: 60_000,
-            limit: m(config.get<number>('throttlerIngestLimit') ?? 30),
-          },
-          {
-            // Match the bucket name used by `@Throttle({ ai: { ... } })` on
-            // the clash-solution-proposer controller — without it registered
-            // here the global guard would fall back to the most restrictive
-            // bucket (auth) on the AI route.
-            name: 'ai',
-            ttl: 60_000,
-            limit: m(12),
-          },
+          { name: 'auth', ttl: 60_000, limit: UNBOUND },
+          { name: 'ingest', ttl: 60_000, limit: UNBOUND },
+          { name: 'ai', ttl: 60_000, limit: UNBOUND },
         ];
       },
     }),

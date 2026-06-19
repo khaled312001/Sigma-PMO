@@ -92,10 +92,12 @@ export abstract class BaseAgentService implements Agent {
         if (!confidenceScoreId) {
           const score = await this.deps.confidences.save(
             this.deps.confidences.create({
-              // Agent-run confidence is keyed on the execution id (these scores
-              // are not ingestion-run scoped — the unique index is on a
-              // distinct id namespace `agent:<execId>`).
-              ingestionRunId: `agent:${exec.id}`,
+              // Agent-run confidence is keyed on the execution id. The execution
+              // id is itself a UUID (globally unique, never collides with a real
+              // IngestionRun id), so we store it directly — a prefixed value like
+              // `agent:<execId>` is 42 chars and overflows the char(36) column,
+              // failing the INSERT under MySQL strict mode (the run path 500s).
+              ingestionRunId: exec.id,
               completeness: result.confidence.completeness ?? result.confidence.overall,
               consistency: result.confidence.consistency ?? result.confidence.overall,
               sourceReliability:

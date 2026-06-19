@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnModuleInit, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { AppConfiguration } from '../../../config/configuration';
@@ -132,11 +132,11 @@ export class P6ClientService implements OnModuleInit {
    */
   async syncProject(projectId: string): Promise<IngestionOutcome> {
     if (!this.isEnabled()) {
-      throw new Error('Primavera P6 is not configured — set the P6 base URL + credentials in /admin/settings.');
+      throw new ServiceUnavailableException('Primavera P6 is not configured — set the P6 base URL + credentials in /admin/settings.');
     }
     const projects = await this.get('/project', PROJECT_FIELDS, `Id='${escapeFilter(projectId)}'`);
     const project = projects[0] ?? null;
-    if (!project) throw new Error(`P6 project "${projectId}" not found or not visible to these credentials.`);
+    if (!project) throw new NotFoundException(`P6 project "${projectId}" not found or not visible to these credentials.`);
     const oid = String(project.ObjectId ?? '');
     const projFilter = oid ? `ProjectObjectId=${oid}` : undefined;
 
@@ -174,7 +174,7 @@ export class P6ClientService implements OnModuleInit {
     filter?: string,
   ): Promise<Array<Record<string, unknown>>> {
     const creds = this.resolveCredentials();
-    if (!creds) throw new Error('Primavera P6 credentials are not configured.');
+    if (!creds) throw new ServiceUnavailableException('Primavera P6 credentials are not configured.');
 
     const url = new URL(`${creds.baseUrl.replace(/\/+$/, '')}${path}`);
     url.searchParams.set('Fields', fields);

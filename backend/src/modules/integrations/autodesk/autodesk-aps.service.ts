@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { AppConfiguration } from '../../../config/configuration';
@@ -126,7 +126,7 @@ export class AutodeskApsService implements OnModuleInit {
     bucketKey?: string;
   }): Promise<AutodeskImportResult> {
     if (!this.isEnabled()) {
-      throw new Error('Autodesk APS is not configured — set the client id/secret in /admin/settings.');
+      throw new ServiceUnavailableException('Autodesk APS is not configured — set the client id/secret in /admin/settings.');
     }
     const objectKey = sanitizeObjectKey(input.filename);
     const bucketKey = (input.bucketKey ?? this.defaultBucketKey()).toLowerCase();
@@ -162,7 +162,7 @@ export class AutodeskApsService implements OnModuleInit {
     if (cached && cached.expiresAt - Date.now() > 60_000) return cached;
 
     const creds = this.resolveCredentials();
-    if (!creds) throw new Error('Autodesk APS credentials are not configured.');
+    if (!creds) throw new ServiceUnavailableException('Autodesk APS credentials are not configured.');
 
     const body = new URLSearchParams({
       grant_type: 'client_credentials',

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -181,7 +181,7 @@ export class ProcurementValidationService {
 
   async setStatus(id: string, status: string): Promise<ProcurementFinding> {
     const f = await this.findings.findOne({ where: { id } });
-    if (!f) throw new Error(`Procurement finding ${id} not found`);
+    if (!f) throw new NotFoundException(`Procurement finding ${id} not found`);
     f.status = status;
     return this.findings.save(f);
   }
