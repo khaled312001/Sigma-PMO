@@ -19,7 +19,7 @@ import { RollupService } from './rollup.service';
 @Module({
   imports: [CanonicalModule],
   controllers: [HierarchyController],
-  providers: [HierarchyService, GovernanceStatusService, RollupService],
+  providers: [HierarchyService, GovernanceStatusService, RollupService, DeleteProjectService],
   exports: [HierarchyService, GovernanceStatusService, RollupService],
 })
 export class HierarchyModule {}
