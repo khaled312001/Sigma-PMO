@@ -72,4 +72,14 @@ export class User extends UuidEntity {
 
   @Column({ type: 'boolean', default: true })
   active!: boolean;
+
+  /**
+   * True for the seeded demo/sample role accounts (the one-click login pool).
+   * When `DEMO_LOGIN_PUBLIC=false` (every UAT / production environment) these
+   * accounts are refused authentication at the API — the sample login is dead,
+   * not merely hidden on the frontend. Real accounts are always `false`.
+   */
+  @Index()
+  @Column({ type: 'boolean', default: false })
+  isDemo!: boolean;
 }

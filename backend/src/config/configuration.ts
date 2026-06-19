@@ -132,6 +132,33 @@ export interface StripeConfig {
   enabled: boolean;
 }
 
+/**
+ * SaaS security posture — controls the demo/sample-login surface and the
+ * environment classification (demo | uat | production). The defaults are
+ * SECURE: demo login is allowed ONLY when demo seeding is on (a demo box),
+ * and privileged demo accounts never carry a public password.
+ *
+ * Discipline: `adminSeedPassword` is read ONLY from env; when unset the seeder
+ * generates a strong random password and logs it once — it is NEVER baked into
+ * the source or the frontend.
+ */
+export interface SecurityConfig {
+  /** demo | uat | production — drives banners + the external-sharing posture. */
+  appEnv: 'demo' | 'uat' | 'production';
+  /** Seed the demo company + sample role accounts on boot (mirrors SEED_DEMO). */
+  seedDemo: boolean;
+  /**
+   * When false, demo (seeded, isDemo=true) accounts CANNOT authenticate — the
+   * one-click sample login is dead at the API, not just hidden on the frontend.
+   * Defaults to `seedDemo` (allowed on a demo box, denied on UAT/production).
+   */
+  demoLoginPublic: boolean;
+  /** Shared password for the NON-privileged sample accounts (rotated per deploy). */
+  demoPassword: string;
+  /** Password for the privileged sample admin/reviewer; '' => random generated. */
+  adminSeedPassword: string;
+}
+
 export interface AppConfiguration {
   env: string;
   port: number;
@@ -170,6 +197,8 @@ export interface AppConfiguration {
   stripe: StripeConfig;
   /** Public URL of the frontend app (Checkout redirects, company login links). */
   appUrl: string;
+  /** SaaS security posture — demo-login gating + environment classification. */
+  security: SecurityConfig;
 }
 
 function toBool(value: string | undefined, fallback: boolean): boolean {
@@ -192,6 +221,17 @@ export default (): AppConfiguration => {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY ?? '';
   const stripePriceId = process.env.STRIPE_PRICE_ID ?? '';
   const appUrl = process.env.APP_PUBLIC_URL ?? 'http://localhost:3000';
+  // Demo seeding is OFF unless explicitly enabled. Demo (sample) login is then
+  // permitted by default ONLY on a demo box (where seeding is on); on UAT /
+  // production it is denied by default — secure unless someone opts in.
+  const seedDemo = toBool(process.env.SEED_DEMO, false);
+  const rawAppEnv = (process.env.APP_ENV ?? '').toLowerCase();
+  const appEnv: SecurityConfig['appEnv'] =
+    rawAppEnv === 'demo' || rawAppEnv === 'uat' || rawAppEnv === 'production'
+      ? rawAppEnv
+      : seedDemo
+        ? 'demo'
+        : 'production';
   return {
   appUrl,
   env: process.env.NODE_ENV ?? 'development',
@@ -265,6 +305,14 @@ export default (): AppConfiguration => {
     trialDays: toInt(process.env.STRIPE_TRIAL_DAYS, 30),
     appUrl,
     enabled: !!(stripeSecretKey && stripePriceId),
+  },
+  security: {
+    appEnv,
+    seedDemo,
+    // Allowed on a demo box by default; denied on UAT/production by default.
+    demoLoginPublic: toBool(process.env.DEMO_LOGIN_PUBLIC, seedDemo),
+    demoPassword: process.env.DEMO_SEED_PASSWORD ?? 'Sigma$Demo2026',
+    adminSeedPassword: process.env.ADMIN_SEED_PASSWORD ?? '',
   },
   };
 };

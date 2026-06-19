@@ -1,0 +1,191 @@
+{
+  "summary": {
+    "target": "http://127.0.0.1:3009/api/v1",
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "ranAt": "2026-06-18T23:34:33.243Z"
+  },
+  "evidence": [
+    {
+      "id": "T1",
+      "name": "Public demo (sample) login refused at the API",
+      "request": "POST /auth/login  (as demo client)",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "result": "PASS",
+      "detail": "(sample account exists but cannot authenticate)"
+    },
+    {
+      "id": "T2",
+      "name": "Company A self-registers (tenant A created)",
+      "request": "POST /onboarding/register  (as public)",
+      "expected": "HTTP 200 + tenant id",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "companyId=aaf771c0-640c-4cff-9b91-ddd48d7af612"
+    },
+    {
+      "id": "T3",
+      "name": "Company B self-registers (separate tenant id)",
+      "request": "POST /onboarding/register  (as public)",
+      "expected": "HTTP 200 + DIFFERENT tenant id",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "companyId=9f1113aa-ca64-4086-a6bc-3faf5fe39bc2"
+    },
+    {
+      "id": "T4",
+      "name": "Registered owner is NOT a platform admin (role from preset)",
+      "request": "— derived  (as Company A owner)",
+      "expected": "role != sigma_admin",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "role=pmo"
+    },
+    {
+      "id": "T5",
+      "name": "Company A cannot reach the platform super-admin console",
+      "request": "GET /super-admin/companies  (as Company A owner)",
+      "expected": "HTTP 401/403 (denied)",
+      "actual": "HTTP 401",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T6",
+      "name": "Company A ingests a project (data stamped to tenant A)",
+      "request": "POST /ingestion/upload  (as Company A owner)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "project P-1000 -> tenant A"
+    },
+    {
+      "id": "T7",
+      "name": "Company A reads its OWN project",
+      "request": "GET /executive/overview?projectKey=P-1000  (as Company A owner)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T8",
+      "name": "Company B is DENIED Company A's project/report data",
+      "request": "GET /executive/overview?projectKey=P-1000  (as Company B owner)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": "(cross-tenant read blocked)"
+    },
+    {
+      "id": "T9",
+      "name": "Company B's project list excludes Company A's project",
+      "request": "GET /projects  (as Company B owner)",
+      "expected": "P-1000 absent",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "B sees 0 project(s)"
+    },
+    {
+      "id": "T10",
+      "name": "Ingestion-run history is isolated per tenant",
+      "request": "GET /ingestion/runs  (as A vs B)",
+      "expected": "A >= 1 run, B = 0 runs",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "A=1, B=0"
+    },
+    {
+      "id": "T11",
+      "name": "Direct API access without a key is rejected",
+      "request": "GET /executive/overview?projectKey=P-1000  (as anonymous)",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T12",
+      "name": "Platform super-admin authenticates (real, non-demo account)",
+      "request": "POST /auth/login  (as super-admin)",
+      "expected": "HTTP 200 + key",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T13a",
+      "name": "Super-admin suspends Company A",
+      "request": "PATCH /super-admin/companies/aaf771c0-640c-4cff-9b91-ddd48d7af612/status  (as super-admin)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T13b",
+      "name": "Suspended company is blocked from the platform",
+      "request": "GET /projects  (as Company A owner)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T13c",
+      "name": "Reactivation restores access",
+      "request": "PATCH then GET /projects /super-admin/companies/aaf771c0-640c-4cff-9b91-ddd48d7af612/status  (as super-admin -> A)",
+      "expected": "HTTP 200 + access",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "reactivate=200, read=200"
+    },
+    {
+      "id": "T14a",
+      "name": "Cancelled subscription blocks access",
+      "request": "PATCH sub + GET /projects /super-admin/subscriptions/b7b7223d-10b0-4c06-b6ef-9423240a2808  (as super-admin -> A)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": "cancel=200"
+    },
+    {
+      "id": "T14b",
+      "name": "Restoring the subscription lifts the block",
+      "request": "GET /projects  (as Company A owner)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T15a",
+      "name": "Expired free trial blocks access",
+      "request": "GET /projects  (as Company A owner)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": "(trialEndsAt in the past)"
+    },
+    {
+      "id": "T15b",
+      "name": "Extending the trial restores access",
+      "request": "GET /projects  (as Company A owner)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "T16",
+      "name": "Always-on audit log captured logins + mutations",
+      "request": "GET /audit  (as super-admin)",
+      "expected": "rows incl auth + mutations",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "22 entries (login=true, patch=true, failedLogin=true)"
+    }
+  ]
+}

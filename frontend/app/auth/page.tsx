@@ -33,26 +33,30 @@ const LAYERS = [
   { tag: 'L8', label: 'Sigma Governance AI', labelAr: 'ذكاء سيجما للحوكمة', accent: 'from-fuchsia-400/70 to-rose-500/50' },
 ];
 
-/** The seeded role accounts — pick one to sign in instantly (email + password
- *  auto-applied, no typing). These are the local demo seeds; set
- *  `NEXT_PUBLIC_DEMO_LOGIN=false` to hide the picker for a real (non-demo)
- *  deployment, and rotate these credentials. */
-const ROLE_ACCOUNTS: { role: Role; email: string; password: string }[] = [
-  { role: 'sigma_admin', email: 'admin@sigma.local', password: 'AdminSigma#2026' },
-  { role: 'sigma_reviewer', email: 'reviewer@sigma.local', password: 'ReviewerSigma#2026' },
-  { role: 'client', email: 'client@sigma.ae', password: 'ClientSigma#2026' },
-  { role: 'consultant', email: 'consultant@sigma.ae', password: 'ConsultantSigma#2026' },
-  { role: 'contractor', email: 'contractor@sigma.ae', password: 'ContractorSigma#2026' },
-  { role: 'subcontractor', email: 'subcontractor@sigma.ae', password: 'SubcontractorSigma#2026' },
-  { role: 'owner', email: 'owner@sigma.ae', password: 'OwnerSigma#2026' },
-  { role: 'operator', email: 'operator@sigma.ae', password: 'OperatorSigma#2026' },
-  { role: 'investor', email: 'investor@sigma.ae', password: 'InvestorSigma#2026' },
-  { role: 'lender', email: 'lender@sigma.ae', password: 'LenderSigma#2026' },
-  { role: 'pmo', email: 'pmo@sigma.ae', password: 'PmoSigma#2026' },
-  { role: 'governance_board', email: 'board@sigma.ae', password: 'BoardSigma#2026' },
-  { role: 'bank', email: 'bank@sigma.ae', password: 'BankSigma#2026' },
-  { role: 'government_regulator', email: 'regulator@sigma.ae', password: 'RegulatorSigma#2026' },
-  { role: 'asset_manager', email: 'assetmgr@sigma.ae', password: 'AssetMgrSigma#2026' },
+/** Shared password for the non-privileged sample accounts (demo only). Sourced
+ *  from the build-time env so it can be rotated per deploy; matches the backend
+ *  `DEMO_SEED_PASSWORD`. NOT a real secret — these are throwaway demo logins. */
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'Sigma$Demo2026';
+
+/** The NON-privileged sample accounts — pick one to sign in instantly (no
+ *  typing). The privileged Sigma Admin / Reviewer are deliberately NOT here:
+ *  platform-admin access is never one-click and never public — it requires the
+ *  manual login with a private (env-set) password. Set
+ *  `NEXT_PUBLIC_DEMO_LOGIN=false` to hide the picker entirely for UAT/prod. */
+const ROLE_ACCOUNTS: { role: Role; email: string }[] = [
+  { role: 'client', email: 'client@sigma.ae' },
+  { role: 'consultant', email: 'consultant@sigma.ae' },
+  { role: 'contractor', email: 'contractor@sigma.ae' },
+  { role: 'subcontractor', email: 'subcontractor@sigma.ae' },
+  { role: 'owner', email: 'owner@sigma.ae' },
+  { role: 'operator', email: 'operator@sigma.ae' },
+  { role: 'investor', email: 'investor@sigma.ae' },
+  { role: 'lender', email: 'lender@sigma.ae' },
+  { role: 'pmo', email: 'pmo@sigma.ae' },
+  { role: 'governance_board', email: 'board@sigma.ae' },
+  { role: 'bank', email: 'bank@sigma.ae' },
+  { role: 'government_regulator', email: 'regulator@sigma.ae' },
+  { role: 'asset_manager', email: 'assetmgr@sigma.ae' },
 ];
 
 /** Show the one-click user picker unless explicitly disabled for real prod. */
@@ -113,7 +117,7 @@ export default function AuthPage() {
   const autoLogin = async (account: (typeof ROLE_ACCOUNTS)[number]): Promise<void> => {
     setAutoBusy(account.email); setError(null);
     try {
-      await loginWith(account.email, account.password);
+      await loginWith(account.email, DEMO_PASSWORD);
     } catch (err) {
       setError(friendlyError(err));
       setAutoBusy(null);

@@ -64,7 +64,14 @@ export class SuperAdminService {
 
   async updateSubscription(
     id: string,
-    dto: { plan?: string; status?: SubscriptionStatus; seats?: number; renewsAt?: string | null; mrr?: number },
+    dto: {
+      plan?: string;
+      status?: SubscriptionStatus;
+      seats?: number;
+      renewsAt?: string | null;
+      mrr?: number;
+      trialEndsAt?: string | null;
+    },
   ) {
     const s = await this.subs.findOne({ where: { id } });
     if (!s) throw new NotFoundException('Subscription not found');
@@ -73,6 +80,7 @@ export class SuperAdminService {
     if (dto.seats !== undefined) s.seats = dto.seats;
     if (dto.renewsAt !== undefined) s.renewsAt = dto.renewsAt;
     if (dto.mrr !== undefined) s.mrr = String(dto.mrr);
+    if (dto.trialEndsAt !== undefined) s.trialEndsAt = dto.trialEndsAt ? new Date(dto.trialEndsAt) : null;
     await this.subs.save(s);
     return { ok: true as const };
   }

@@ -1,11 +1,12 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { User } from '../canonical/entities';
+import type { SecurityConfig } from '../../config/configuration';
+import { Company, Subscription, User } from '../canonical/entities';
 import { Role } from './roles.enum';
 
 const SCRYPT_KEYLEN = 64;
@@ -22,6 +23,8 @@ export class AuthService {
 
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Company) private readonly companies: Repository<Company>,
+    @InjectRepository(Subscription) private readonly subscriptions: Repository<Subscription>,
     private readonly config: ConfigService,
   ) {}
 
@@ -60,7 +63,43 @@ export class AuthService {
     const user = await this.users.findOne({ where: { email: email.toLowerCase(), active: true } });
     if (!user || !user.passwordHash || !user.passwordSalt) return null;
     if (!this.verifyPassword(password, user.passwordHash, user.passwordSalt)) return null;
+    // Demo (sample) accounts cannot authenticate on a UAT / production box.
+    if (user.isDemo && !this.demoLoginPublic()) {
+      this.logger.warn(`Demo account login refused (DEMO_LOGIN_PUBLIC=false): ${user.email}`);
+      return null;
+    }
     return user;
+  }
+
+  /** Whether seeded sample (isDemo) accounts may authenticate in this env. */
+  demoLoginPublic(): boolean {
+    return this.config.get<SecurityConfig>('security')?.demoLoginPublic ?? false;
+  }
+
+  /**
+   * Tenant access gate (multi-tenant SaaS): block a user whose company is
+   * suspended/cancelled, or whose trial has ended. The platform super-admin
+   * (companyId = null) is never gated. Called by the auth guard on every
+   * request and by the login controller. Throws 403 when access is denied.
+   */
+  async assertCompanyActive(user: Pick<User, 'companyId'>): Promise<void> {
+    if (!user.companyId) return; // platform-level user — above all companies
+    const company = await this.companies.findOne({ where: { id: user.companyId } });
+    if (!company) return; // defensive: no tenant record => do not lock the user out
+    if (company.status === 'suspended') {
+      throw new ForbiddenException('Your company account is suspended. Please contact the platform administrator.');
+    }
+    if (company.status === 'cancelled') {
+      throw new ForbiddenException('Your company account has been cancelled. Please contact the platform administrator.');
+    }
+    const sub = await this.subscriptions.findOne({ where: { companyId: user.companyId } });
+    if (!sub) return;
+    if (sub.status === 'cancelled') {
+      throw new ForbiddenException('Your subscription has been cancelled. Please renew to continue.');
+    }
+    if (sub.status === 'trial' && sub.trialEndsAt && sub.trialEndsAt.getTime() < Date.now()) {
+      throw new ForbiddenException('Your free trial has ended. Please subscribe to continue.');
+    }
   }
 
   countUsers(): Promise<number> {

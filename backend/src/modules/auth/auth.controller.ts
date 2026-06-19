@@ -15,9 +15,11 @@ import {
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { Company, User } from '../canonical/entities';
 import { AuthService } from './auth.service';
 import { LoginDto, SetPasswordDto } from './dto/login.dto';
@@ -106,6 +108,8 @@ export class AuthController {
    */
   @Post('login')
   @HttpCode(200)
+  // Tight per-IP rate limit on credential checks (brute-force protection).
+  @Throttle({ auth: { limit: 10, ttl: 60_000 } })
   async login(@Body() body: LoginDto): Promise<LoginResponse> {
     const user = await this.auth.authenticateByPassword(body.email, body.password);
     if (!user) throw new UnauthorizedException('Invalid email or password');
@@ -118,6 +122,9 @@ export class AuthController {
         throw new UnauthorizedException('This account is not part of this company');
       }
     }
+
+    // Block sign-in for a suspended/cancelled company or an expired trial.
+    await this.auth.assertCompanyActive(user);
 
     const apiKey = await this.auth.issueApiKey(user);
     return {
@@ -142,8 +149,7 @@ export class AuthController {
   @HttpCode(200)
   @RequiresCapability('canManageRoles')
   async setPassword(@Param('id') id: string, @Body() body: SetPasswordDto): Promise<{ ok: true }> {
-    const user = await this.users.findOne({ where: { id } });
-    if (!user) throw new NotFoundException(`User ${id} not found`);
+    const user = await this.findUserInScope(id);
     const { hash, salt } = this.auth.hashPassword(body.password);
     user.passwordHash = hash;
     user.passwordSalt = salt;
@@ -237,8 +243,7 @@ export class AuthController {
   @HttpCode(200)
   @RequiresCapability('canManageRoles')
   async updateUser(@Param('id') id: string, @Body() body: UpdateUserBody): Promise<{ ok: true }> {
-    const user = await this.users.findOne({ where: { id } });
-    if (!user) throw new NotFoundException(`User ${id} not found`);
+    const user = await this.findUserInScope(id);
 
     const demoting = body.role !== undefined && body.role !== Role.SIGMA_ADMIN && user.role === Role.SIGMA_ADMIN;
     const deactivating = body.active === false && user.active && user.role === Role.SIGMA_ADMIN;
@@ -269,7 +274,13 @@ export class AuthController {
   @Get('users')
   @RequiresCapability('canReadAll')
   async listUsers(): Promise<UserListItem[]> {
-    const all = await this.users.find({ order: { createdAt: 'DESC' } });
+    // Multi-tenant isolation: a company admin sees only their own company's
+    // users; the platform super-admin (companyId = null) sees all.
+    const cid = currentCompanyId();
+    const all = await this.users.find({
+      where: cid ? { companyId: cid } : {},
+      order: { createdAt: 'DESC' },
+    });
     return all.map((u) => ({
       id: u.id,
       email: u.email,
@@ -291,8 +302,7 @@ export class AuthController {
   @HttpCode(200)
   @RequiresCapability('canManageRoles')
   async rotateKey(@Param('id') id: string): Promise<{ apiKey: string }> {
-    const user = await this.users.findOne({ where: { id } });
-    if (!user) throw new NotFoundException(`User ${id} not found`);
+    const user = await this.findUserInScope(id);
     const rawKey = `sk_${randomBytes(24).toString('hex')}`;
     user.apiKeyHash = this.auth.hashApiKey(rawKey);
     await this.users.save(user);
@@ -308,8 +318,7 @@ export class AuthController {
   @HttpCode(200)
   @RequiresCapability('canManageRoles')
   async deleteUser(@Param('id') id: string): Promise<{ deleted: true }> {
-    const user = await this.users.findOne({ where: { id } });
-    if (!user) throw new NotFoundException(`User ${id} not found`);
+    const user = await this.findUserInScope(id);
     if (user.role === Role.SIGMA_ADMIN) {
       const remainingAdmins = await this.auth.countActiveAdmins(id);
       if (remainingAdmins === 0) {
@@ -320,5 +329,17 @@ export class AuthController {
     }
     await this.users.remove(user);
     return { deleted: true };
+  }
+
+  /**
+   * Load a user by id, enforcing tenant isolation: a company admin may only
+   * reach users within their own company; the platform super-admin (companyId
+   * null) may reach any user. Throws 404 when not found within scope.
+   */
+  private async findUserInScope(id: string): Promise<User> {
+    const cid = currentCompanyId();
+    const user = await this.users.findOne({ where: cid ? { id, companyId: cid } : { id } });
+    if (!user) throw new NotFoundException(`User ${id} not found`);
+    return user;
   }
 }

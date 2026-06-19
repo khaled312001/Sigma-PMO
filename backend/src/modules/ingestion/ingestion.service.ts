@@ -56,6 +56,7 @@ export class IngestionService {
 
     const source = await sourceRepo.save(
       sourceRepo.create({
+        companyId: currentCompanyId(),
         filename,
         sourceType: parser.sourceType,
         contentSha256: sha256,

@@ -63,6 +63,10 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException(`Role ${user.role} lacks capability ${capability}`);
     }
 
+    // Multi-tenant access gate: refuse a suspended/cancelled company or an
+    // expired trial (throws 403). The platform super-admin is never gated.
+    await this.auth.assertCompanyActive(user);
+
     (req as { user?: unknown }).user = user;
     // Multi-tenant context: expose the caller's company scope for downstream
     // services on the request object AND in the AsyncLocalStorage tenant store

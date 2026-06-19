@@ -11,6 +11,7 @@ import { HealthController } from './health/health.controller';
 import { AgentsModule } from './modules/agents/agents.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -76,6 +77,9 @@ import { SummaryModule } from './modules/summary/summary.module';
     DatabaseModule,
     CanonicalModule,
     AuthModule,
+    // Always-on platform audit (records every mutation + login). Registered
+    // right after AuthModule so its global interceptor wraps every controller.
+    AuditModule,
     // Multi-tenant SaaS onboarding — public company self-registration (choosing
     // the construction-entity type that configures the platform) + company-scoped
     // user management. Imported after AuthModule so AuthService is available.

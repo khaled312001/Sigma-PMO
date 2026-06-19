@@ -16,6 +16,10 @@ ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
 # One-click demo user-picker on the login page (set to "false" to hide it).
 ARG NEXT_PUBLIC_DEMO_LOGIN=true
 ENV NEXT_PUBLIC_DEMO_LOGIN=$NEXT_PUBLIC_DEMO_LOGIN
+# Shared password for the sample picker accounts — rotate per deploy to match
+# the backend DEMO_SEED_PASSWORD (demo only; not a real secret).
+ARG NEXT_PUBLIC_DEMO_PASSWORD=Sigma$Demo2026
+ENV NEXT_PUBLIC_DEMO_PASSWORD=$NEXT_PUBLIC_DEMO_PASSWORD
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

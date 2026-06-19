@@ -42,6 +42,9 @@ function fakeAuthService(opts: {
     countUsers: jest.fn().mockResolvedValue(opts.userCount ?? 0),
     isBootstrapPermitted: jest.fn().mockReturnValue(opts.bootstrapPermitted ?? false),
     findActiveByApiKey: jest.fn().mockResolvedValue(opts.user ?? null),
+    // Multi-tenant access gate — no-op in the guard unit tests (covered in
+    // auth.service.spec); resolves so canActivate proceeds past the gate.
+    assertCompanyActive: jest.fn().mockResolvedValue(undefined),
   } as unknown as AuthService;
 }
 

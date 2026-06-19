@@ -47,8 +47,20 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-rootpw}
       DB_DATABASE: ${DB_DATABASE:-sigma_pmo}
       DB_SYNCHRONIZE: "false"
-      # Seed the default company + 15 demo role accounts on first boot.
+      # Environment posture: demo | uat | production. On uat/production set
+      # SEED_DEMO=false and DEMO_LOGIN_PUBLIC=false (no sample accounts, no
+      # one-click login). See deploy/env/{demo,uat,prod}.env.example.
+      APP_ENV: ${APP_ENV:-demo}
+      # Seed the default company + sample role accounts on first boot.
       SEED_DEMO: ${SEED_DEMO:-true}
+      # Demo (sample) accounts may authenticate ONLY when this is true. Defaults
+      # to SEED_DEMO; force "false" on every uat/production environment.
+      DEMO_LOGIN_PUBLIC: ${DEMO_LOGIN_PUBLIC:-${SEED_DEMO:-true}}
+      # Rotated shared password for the non-privileged sample accounts.
+      DEMO_SEED_PASSWORD: ${DEMO_SEED_PASSWORD:-Sigma$$Demo2026}
+      # Private password for the sample admin/reviewer — set this for a stable,
+      # non-public platform-admin login (else a random one is generated + logged).
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:-}
       # Public URLs (Coolify domains).
       CORS_ORIGINS: ${CORS_ORIGINS:-https://system.sigma-pmo.com}
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://system.sigma-pmo.com}
@@ -80,6 +92,7 @@ services:
         # the browser will call, and the demo-login toggle.
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://system-api.sigma-pmo.com/api/v1}
         NEXT_PUBLIC_DEMO_LOGIN: ${NEXT_PUBLIC_DEMO_LOGIN:-true}
+        NEXT_PUBLIC_DEMO_PASSWORD: ${NEXT_PUBLIC_DEMO_PASSWORD:-Sigma$$Demo2026}
     restart: unless-stopped
     # Force Next's standalone server to bind to all interfaces on 3000 so the
     # reverse proxy can reach it (runtime env beats any Docker-assigned hostname).

@@ -46,7 +46,15 @@ export class SuperAdminController {
   @RequiresCapability('canManagePlatform')
   updateSubscription(
     @Param('id') id: string,
-    @Body() body: { plan?: string; status?: SubscriptionStatus; seats?: number; renewsAt?: string | null; mrr?: number },
+    @Body()
+    body: {
+      plan?: string;
+      status?: SubscriptionStatus;
+      seats?: number;
+      renewsAt?: string | null;
+      mrr?: number;
+      trialEndsAt?: string | null;
+    },
   ) {
     return this.svc.updateSubscription(id, body);
   }
