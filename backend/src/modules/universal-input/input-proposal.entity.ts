@@ -35,6 +35,22 @@ export interface InputItem {
   question: string | null;
   /** Source reference (file name / section / "pasted text"). */
   evidence: string | null;
+  /**
+   * Dates found in or inferred for this item — document/revision/issue/received/
+   * approval/event/effective/baseline/schedule-update/upload date, each tagged
+   * with whether it was explicit in the input or inferred by the AI.
+   */
+  dates?: { type: string; value: string; inferred: boolean }[];
+  /** The governing date for chronological ordering (ISO yyyy-mm-dd or null). */
+  effectiveDate?: string | null;
+  /**
+   * Inferred chronological position when the date is missing/unclear, e.g.
+   * "later revision superseding an earlier one", "retrospective record",
+   * "refers to an earlier event", "possible duplicate".
+   */
+  chronologyNote?: string | null;
+  /** True when the AI detected a chronological conflict/inconsistency. */
+  chronologyConflict?: boolean;
   /** Set during review/commit. */
   decision?: InputItemDecision;
   /** When the user corrects the value. */

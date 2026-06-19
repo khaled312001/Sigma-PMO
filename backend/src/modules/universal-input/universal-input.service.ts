@@ -62,13 +62,21 @@ Sigma layers (use the exact slug):
 - missing-information: REQUIRED information that is absent (raise a question)
 - supporting-evidence: documents/photos/references that back other items
 
+DATES & CHRONOLOGY (critical — do NOT rely only on the upload date):
+- For every item, capture the relevant dates found IN the input, each tagged with its type: document, revision, issue, received, approval, event, effective, baseline, schedule-update, upload. Set inferred=false for dates written in the document.
+- When a date is MISSING or unclear, INFER the likely chronological position by comparing content, revision markers, references to earlier decisions/events, and differences vs. other items — and set inferred=true with a clear note. Possible notes: "later revision superseding an earlier one", "older superseded version", "duplicate", "conflicting document", "refers to an earlier event", "retrospective record", "requires user confirmation".
+- Set "effectiveDate" to the single governing date (yyyy-mm-dd) used to place the item on the timeline (explicit if available, else your best inference), or null if it cannot be determined.
+- Distinguish the date of a document from the date of the underlying event it describes (e.g. a claim document vs. the delay event).
+- Set "chronologyConflict"=true when you detect an inconsistency: a drawing/issue dated after the activity it relates to had started, a later revision contradicting an earlier one, an old document arriving after newer ones, or information conflicting with a stated baseline/schedule. Explain it in "chronologyNote" and raise a "question".
+- When chronology is uncertain, lower the confidence and ask the user to confirm whether the item is older / newer / superseded / effective / rejected / for-reference.
+
 Rules:
 - NEVER invent data. If a value is uncertain, set completeness="uncertain" and lower the confidence.
 - For REQUIRED information that is absent, add an item with layer="missing-information", completeness="missing", value="", and a clear "question".
 - List any assumptions you made to produce a value.
 - Be specific: ONE fact per item; prefer many precise items over few vague ones.
 - Output STRICT JSON ONLY — no prose, no markdown, no code fences — exactly:
-{"summary": string, "items": [{"layer": string, "label": string, "value": string, "confidence": number, "completeness": "complete"|"uncertain"|"missing", "assumptions": string[], "question": string|null, "evidence": string|null}], "questions": string[]}`;
+{"summary": string, "items": [{"layer": string, "label": string, "value": string, "confidence": number, "completeness": "complete"|"uncertain"|"missing", "assumptions": string[], "question": string|null, "evidence": string|null, "dates": [{"type": string, "value": string, "inferred": boolean}], "effectiveDate": string|null, "chronologyNote": string|null, "chronologyConflict": boolean}], "questions": string[]}`;
 
 @Injectable()
 export class UniversalInputService {
@@ -157,6 +165,12 @@ export class UniversalInputService {
       assumptions: Array.isArray(it.assumptions) ? it.assumptions.map(String).slice(0, 10) : [],
       question: it.question ? String(it.question).slice(0, 500) : null,
       evidence: it.evidence ? String(it.evidence).slice(0, 300) : null,
+      dates: Array.isArray(it.dates)
+        ? (it.dates as Array<Record<string, unknown>>).slice(0, 12).map((d) => ({ type: String(d.type ?? 'document'), value: String(d.value ?? ''), inferred: !!d.inferred }))
+        : [],
+      effectiveDate: it.effectiveDate ? String(it.effectiveDate).slice(0, 32) : null,
+      chronologyNote: it.chronologyNote ? String(it.chronologyNote).slice(0, 500) : null,
+      chronologyConflict: !!it.chronologyConflict,
       decision: 'pending',
       correctedValue: null,
     }));

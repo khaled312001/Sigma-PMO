@@ -22,6 +22,10 @@ interface InputItem {
   assumptions: string[];
   question: string | null;
   evidence: string | null;
+  dates?: { type: string; value: string; inferred: boolean }[];
+  effectiveDate?: string | null;
+  chronologyNote?: string | null;
+  chronologyConflict?: boolean;
   decision?: Decision;
   correctedValue?: string | null;
 }
@@ -255,6 +259,14 @@ function UniversalInput() {
                                 <CompletenessBadge c={it.completeness} ar={isAr} />
                               </div>
                             </div>
+                            {(it.effectiveDate || (it.dates?.length ?? 0) > 0 || it.chronologyNote || it.chronologyConflict) && (
+                              <div className={`mt-1.5 rounded-md px-2 py-1 text-[11px] ${it.chronologyConflict ? 'bg-rose-500/10 text-rose-200 ring-1 ring-rose-400/30' : 'bg-slate-500/10 text-slate-300'}`}>
+                                <span className="font-medium">{it.chronologyConflict ? (isAr ? '⚠ تعارض زمني' : '⚠ Chronology conflict') : (isAr ? '🕑 التسلسل الزمني' : '🕑 Chronology')}</span>
+                                {it.effectiveDate && <span> · {isAr ? 'تاريخ فعّال:' : 'Effective:'} {it.effectiveDate}</span>}
+                                {(it.dates ?? []).map((d, k) => <span key={k}> · {d.type}: {d.value}{d.inferred ? (isAr ? ' (مُستنتَج)' : ' (inferred)') : ''}</span>)}
+                                {it.chronologyNote && <span className="block text-[10px] opacity-90">{it.chronologyNote}</span>}
+                              </div>
+                            )}
                             {it.assumptions.length > 0 && <p className="mt-1.5 text-[11px] text-amber-200/80">{isAr ? 'افتراضات: ' : 'Assumptions: '}{it.assumptions.join(' · ')}</p>}
                             {it.question && <p className="mt-1 text-[11px] text-rose-200/80">❓ {it.question}</p>}
                             {it.evidence && <p className="mt-1 text-[10px] text-slate-500">{isAr ? 'المصدر: ' : 'Source: '}{it.evidence}</p>}
