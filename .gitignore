@@ -44,5 +44,7 @@ CLAUDE.md
 # Large generated artifacts / media — kept on disk, never in git (repo stays lean)
 *.mp4
 *.pdf
+*.ogg
+*.wav
 docs/user-guide/shots/
 docs/user-guide/shots-new/

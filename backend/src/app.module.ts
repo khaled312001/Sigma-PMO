@@ -47,6 +47,7 @@ import { DataCollectionModule } from './modules/data-collection/data-collection.
 import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { UniversalInputModule } from './modules/universal-input/universal-input.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { LettersModule } from './modules/letters/letters.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -99,6 +100,9 @@ import { SummaryModule } from './modules/summary/summary.module';
     // upload/paste any project info -> Claude maps it to the Sigma layers ->
     // staged human review -> confirm -> commit to official records + audit.
     UniversalInputModule,
+    // Communication governance (Mr. Ayham, 2026-06-19) — auditable project
+    // communications with an authenticated open-in-Sigma evidence trail.
+    CommunicationsModule,
     NotificationsModule,
     IntegrationsModule,
     RulesModule,

@@ -72,6 +72,12 @@ export const ar: Dictionary = {
     expandMenu: 'فتح الشريط الجانبي',
     project: 'المشروع',
     bootstrapMode: 'وضع التهيئة الأولى',
+    communications: 'المراسلات',
+    groupWorkspace: 'مساحة العمل',
+    groupIntelligence: 'الذكاء والتحليلات',
+    groupCommercial: 'التجاري والاستثمار',
+    groupRisk: 'المخاطر والامتثال',
+    groupDocs: 'المستندات والأدلّة',
   },
   roles: {
     sigma_admin: 'مسؤول سيجما',

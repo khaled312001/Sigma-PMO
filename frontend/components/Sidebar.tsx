@@ -52,74 +52,80 @@ const govern = (me: MeResponse | null) =>
 const cap = (flag: keyof (typeof CAPABILITIES)['sigma_admin']) =>
   (me: MeResponse | null) => !me?.user || CAPABILITIES[me.user.role][flag];
 
-// ── Governance command (the destinations) — strategic-governance tier only. ──
-const PORTFOLIO: NavLink[] = [
-  { href: '/',         labelKey: 'nav.overview', surface: 'overview', icon: IconDashboard, visible: () => true },
-  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, badge: 'new', visible: govern },
-  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, badge: 'new', visible: govern },
-  { href: '/hierarchy', labelKey: 'nav.hierarchy', surface: 'overview', icon: IconFolder, badge: 'new', visible: govern },
-  { href: '/agents', labelKey: 'nav.agents', surface: 'insights', icon: IconSparkles, badge: 'new', visible: govern },
-  { href: '/opportunity', labelKey: 'nav.opportunity', surface: 'insights', icon: IconSparkles, badge: 'new', tag: 'OPP', visible: cap('canRunOpportunity') },
-  { href: '/feasibility', labelKey: 'nav.feasibility', surface: 'approval', icon: IconActivity, badge: 'new', tag: 'INV', visible: cap('canRunFeasibility') },
-  { href: '/quantity-survey', labelKey: 'nav.quantitySurvey', surface: 'planning', icon: IconList, badge: 'new', tag: 'QS', visible: cap('canRunQuantitySurvey') },
-  { href: '/procurement', labelKey: 'nav.procurement', surface: 'input', icon: IconDatabase, badge: 'new', tag: 'PRC', visible: cap('canRunProcurement') },
-  { href: '/revenue', labelKey: 'nav.revenue', surface: 'evidence', icon: IconActivity, badge: 'new', tag: 'REV', visible: cap('canRunRevenueGovernance') },
-  { href: '/funding', labelKey: 'nav.funding', surface: 'approval', icon: IconShield, badge: 'new', tag: 'FND', visible: cap('canRunFunding') },
-  { href: '/predictive', labelKey: 'nav.predictive', surface: 'insights', icon: IconActivity, badge: 'new', tag: 'PRD', visible: cap('canRunPredictive') },
-  // Full governance lifecycle (Mr. Ayham, 2026-06-13).
-  { href: '/bankability', labelKey: 'nav.bankability', surface: 'approval', icon: IconShield, badge: 'new', tag: 'BNK', visible: cap('canRunBankability') },
-  { href: '/safety', labelKey: 'nav.safety', surface: 'review', icon: IconShield, badge: 'new', tag: 'SAF', visible: cap('canRunSafety') },
-  { href: '/fire-safety', labelKey: 'nav.fireSafety', surface: 'review', icon: IconShield, badge: 'new', tag: 'FLS', visible: cap('canRunFireLifeSafety') },
-  { href: '/authority', labelKey: 'nav.authority', surface: 'approval', icon: IconEvidence, badge: 'new', tag: 'AUT', visible: cap('canRunAuthority') },
-  { href: '/utility', labelKey: 'nav.utility', surface: 'planning', icon: IconActivity, badge: 'new', tag: 'UTL', visible: cap('canRunUtility') },
-  { href: '/operational-readiness', labelKey: 'nav.operationalReadiness', surface: 'evidence', icon: IconList, badge: 'new', tag: 'OPR', visible: cap('canRunOperationalReadiness') },
-  { href: '/projects', labelKey: 'projects.title', surface: 'overview', icon: IconFolder, visible: read },
+// ── Workspace — the everyday flow: input -> review -> communicate -> report. ──
+const WORKSPACE: NavLink[] = [
+  { href: '/',                labelKey: 'nav.overview',       surface: 'overview', icon: IconDashboard, visible: () => true },
+  { href: '/input',           labelKey: 'nav.input',          surface: 'input',    icon: IconUpload,    badge: 'new', visible: cap('canIngestSchedule') },
+  { href: '/review',          labelKey: 'nav.review',         surface: 'review',   icon: IconReview,    visible: cap('canEvaluateRules') },
+  { href: '/communications',  labelKey: 'nav.communications', surface: 'evidence', icon: IconEvidence,  badge: 'new', visible: read },
+  { href: '/reports/monthly', labelKey: 'nav.reports',        surface: 'evidence', icon: IconEvidence,  visible: govern },
+  { href: '/projects',        labelKey: 'projects.title',     surface: 'overview', icon: IconFolder,    visible: read },
 ];
 
-// ── The L0–L8 agent taxonomy: each layer's primary screen, in order. ──
-const AGENT_LAYERS: NavLink[] = [
-  { href: '/knowledge', labelKey: 'nav.knowledge', surface: 'admin',    icon: IconBook,     tag: 'L0', visible: read },
-  { href: '/input',     labelKey: 'nav.input',     surface: 'input',    icon: IconUpload,   tag: 'L1', visible: cap('canIngestSchedule') },
-  { href: '/review',    labelKey: 'nav.review',    surface: 'review',   icon: IconReview,   tag: 'L2', visible: cap('canEvaluateRules') },
-  { href: '/decisions', labelKey: 'decisions.title', surface: 'insights', icon: IconList,   tag: 'L3', visible: govern },
-  { href: '/analytics', labelKey: 'nav.analytics', surface: 'insights', icon: IconActivity, tag: 'L4', visible: govern },
-  { href: '/risk',      labelKey: 'nav.risk',      surface: 'approval', icon: IconShield,   tag: 'L5', visible: govern },
-  { href: '/claims',    labelKey: 'nav.claims',    surface: 'admin',    icon: IconEvidence, tag: 'L6', visible: govern },
-  { href: '/executive', labelKey: 'nav.executive', surface: 'evidence', icon: IconDashboard, tag: 'L7', visible: govern },
-  { href: '/governance-command', labelKey: 'nav.command', surface: 'insights', icon: IconShield, tag: 'L8', visible: govern },
+// ── Intelligence — executive, analytics, governance command, agents. ──
+const INTELLIGENCE: NavLink[] = [
+  { href: '/executive',          labelKey: 'nav.executive',  surface: 'evidence', icon: IconDashboard, visible: govern },
+  { href: '/governance-command', labelKey: 'nav.command',    surface: 'insights', icon: IconShield,    visible: govern },
+  { href: '/analytics',          labelKey: 'nav.analytics',  surface: 'insights', icon: IconActivity,  visible: govern },
+  { href: '/decisions',          labelKey: 'decisions.title', surface: 'insights', icon: IconList,     visible: govern },
+  { href: '/agents',             labelKey: 'nav.agents',     surface: 'insights', icon: IconSparkles,  visible: govern },
+  { href: '/predictive',         labelKey: 'nav.predictive', surface: 'insights', icon: IconActivity,  visible: cap('canRunPredictive') },
 ];
 
-// ── Tools & evidence surfaces (operational depth behind the layers) ──
-const TOOLS: NavLink[] = [
-  { href: '/repository', labelKey: 'nav.repository', surface: 'input', icon: IconDatabase, badge: 'new', visible: read },
-  { href: '/evidence', labelKey: 'nav.evidence', surface: 'evidence', icon: IconEvidence,  visible: read },
-  { href: '/approval', labelKey: 'nav.approval', surface: 'approval', icon: IconApproval,  visible: cap('canEvaluateRules') },
-  { href: '/baselines', labelKey: 'nav.baselines', surface: 'planning', icon: IconActivity, visible: read },
-  { href: '/simulation', labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles, visible: cap('canSimulate') },
-  { href: '/clashes', labelKey: 'nav.clashes', surface: 'review', icon: IconReview, visible: read },
-  { href: '/drawings', labelKey: 'nav.drawings', surface: 'input', icon: IconUpload, visible: read },
-  { href: '/letters', labelKey: 'nav.letters', surface: 'admin', icon: IconEvidence, visible: govern },
-  { href: '/sources', labelKey: 'nav.sources', surface: 'insights', icon: IconList, visible: read },
-  { href: '/reports/monthly', labelKey: 'nav.reports', surface: 'evidence', icon: IconEvidence, visible: govern },
-  { href: '/comparison', labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles, visible: govern },
+// ── Commercial & investment. ──
+const COMMERCIAL: NavLink[] = [
+  { href: '/quantity-survey', labelKey: 'nav.quantitySurvey', surface: 'planning', icon: IconList,     visible: cap('canRunQuantitySurvey') },
+  { href: '/procurement',     labelKey: 'nav.procurement',    surface: 'input',    icon: IconDatabase, visible: cap('canRunProcurement') },
+  { href: '/revenue',         labelKey: 'nav.revenue',        surface: 'evidence', icon: IconActivity, visible: cap('canRunRevenueGovernance') },
+  { href: '/opportunity',     labelKey: 'nav.opportunity',    surface: 'insights', icon: IconSparkles, visible: cap('canRunOpportunity') },
+  { href: '/feasibility',     labelKey: 'nav.feasibility',    surface: 'approval', icon: IconActivity, visible: cap('canRunFeasibility') },
+  { href: '/funding',         labelKey: 'nav.funding',        surface: 'approval', icon: IconShield,   visible: cap('canRunFunding') },
+  { href: '/bankability',     labelKey: 'nav.bankability',    surface: 'approval', icon: IconShield,   visible: cap('canRunBankability') },
+];
+
+// ── Risk, claims & the site-governance lifecycle. ──
+const RISK_COMPLIANCE: NavLink[] = [
+  { href: '/risk',                   labelKey: 'nav.risk',                 surface: 'approval', icon: IconShield,   visible: govern },
+  { href: '/claims',                 labelKey: 'nav.claims',               surface: 'admin',    icon: IconEvidence, visible: govern },
+  { href: '/safety',                 labelKey: 'nav.safety',               surface: 'review',   icon: IconShield,   visible: cap('canRunSafety') },
+  { href: '/fire-safety',            labelKey: 'nav.fireSafety',           surface: 'review',   icon: IconShield,   visible: cap('canRunFireLifeSafety') },
+  { href: '/authority',              labelKey: 'nav.authority',            surface: 'approval', icon: IconEvidence, visible: cap('canRunAuthority') },
+  { href: '/utility',                labelKey: 'nav.utility',              surface: 'planning', icon: IconActivity, visible: cap('canRunUtility') },
+  { href: '/operational-readiness',  labelKey: 'nav.operationalReadiness', surface: 'evidence', icon: IconList,     visible: cap('canRunOperationalReadiness') },
+];
+
+// ── Documents, drawings & evidence surfaces. ──
+const DOCS: NavLink[] = [
+  { href: '/repository',  labelKey: 'nav.repository', surface: 'input',    icon: IconDatabase,  visible: read },
+  { href: '/drawings',    labelKey: 'nav.drawings',   surface: 'input',    icon: IconUpload,    visible: read },
+  { href: '/clashes',     labelKey: 'nav.clashes',    surface: 'review',   icon: IconReview,    visible: read },
+  { href: '/letters',     labelKey: 'nav.letters',    surface: 'admin',    icon: IconEvidence,  visible: govern },
+  { href: '/evidence',    labelKey: 'nav.evidence',   surface: 'evidence', icon: IconEvidence,  visible: read },
+  { href: '/baselines',   labelKey: 'nav.baselines',  surface: 'planning', icon: IconActivity,  visible: read },
+  { href: '/simulation',  labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles,  visible: cap('canSimulate') },
+  { href: '/approval',    labelKey: 'nav.approval',   surface: 'approval', icon: IconApproval,  visible: cap('canEvaluateRules') },
+  { href: '/hierarchy',   labelKey: 'nav.hierarchy',  surface: 'overview', icon: IconFolder,    visible: govern },
+  { href: '/knowledge',   labelKey: 'nav.knowledge',  surface: 'admin',    icon: IconBook,      visible: read },
+  { href: '/sources',     labelKey: 'nav.sources',    surface: 'insights', icon: IconList,      visible: read },
+  { href: '/comparison',  labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles,  visible: govern },
 ];
 
 // ── Platform — SUPER_ADMIN only (multi-tenant control surface). ──
 const PLATFORM: NavLink[] = [
-  { href: '/super-admin',                    labelKey: 'nav.superAdmin',         surface: 'admin', icon: IconShield,    badge: 'new', visible: cap('canManagePlatform') },
+  { href: '/super-admin',                    labelKey: 'nav.superAdmin',         surface: 'admin', icon: IconShield, visible: cap('canManagePlatform') },
   { href: '/super-admin?tab=companies',      labelKey: 'nav.superCompanies',     surface: 'admin', icon: IconFolder,    visible: cap('canManagePlatform') },
-  { href: '/super-admin?tab=subscriptions',  labelKey: 'nav.superSubscriptions', surface: 'admin', icon: IconActivity,  badge: 'new', visible: cap('canManagePlatform') },
+  { href: '/super-admin?tab=subscriptions',  labelKey: 'nav.superSubscriptions', surface: 'admin', icon: IconActivity, visible: cap('canManagePlatform') },
   { href: '/super-admin?tab=requests',       labelKey: 'nav.superRequests',      surface: 'admin', icon: IconApproval,  visible: cap('canManagePlatform') },
 ];
 
 // ── Admin — privileged operations only. ──
 const ADMIN: NavLink[] = [
-  { href: '/admin/roles',    labelKey: 'nav.roles',            surface: 'admin', icon: IconUsers, badge: 'new', visible: cap('canManageRoles') },
-  { href: '/admin/governance', labelKey: 'nav.governanceConfig',  surface: 'admin', icon: IconShield, badge: 'new', visible: cap('canEditPolicy') },
+  { href: '/admin/roles',    labelKey: 'nav.roles',            surface: 'admin', icon: IconUsers, visible: cap('canManageRoles') },
+  { href: '/admin/governance', labelKey: 'nav.governanceConfig',  surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
   { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
   { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: cap('canEditPersonas') },
   { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: cap('canReadAll') },
-  { href: '/admin/settings', labelKey: 'nav.settings',         surface: 'admin', icon: IconShield, badge: 'new', visible: cap('canEditPolicy') },
+  { href: '/admin/settings', labelKey: 'nav.settings',         surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
   { href: '/audit',          labelKey: 'audit.title',          surface: 'admin', icon: IconHistory, visible: cap('canReadAll') },
 ];
 
@@ -239,9 +245,11 @@ function SidebarBody({
   const pathname = usePathname();
   const search = useSearchParams();
   const { t } = useI18n();
-  const portfolio = PORTFOLIO.filter((n) => n.visible(me));
-  const layers = AGENT_LAYERS.filter((n) => n.visible(me));
-  const tools = TOOLS.filter((n) => n.visible(me));
+  const workspace = WORKSPACE.filter((n) => n.visible(me));
+  const intelligence = INTELLIGENCE.filter((n) => n.visible(me));
+  const commercial = COMMERCIAL.filter((n) => n.visible(me));
+  const riskCompliance = RISK_COMPLIANCE.filter((n) => n.visible(me));
+  const docs = DOCS.filter((n) => n.visible(me));
   const platform = PLATFORM.filter((n) => n.visible(me));
   const adm = ADMIN.filter((n) => n.visible(me));
 
@@ -288,9 +296,11 @@ function SidebarBody({
       </div>
 
       <nav className={`relative flex-1 overflow-y-auto py-3 scrollbar-thin ${collapsed ? 'px-2' : 'px-2'}`}>
-        <NavGroup title={t('nav.commandGroup')} links={portfolio} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
-        <NavGroup title={t('nav.agentLayers')} links={layers} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
-        <NavGroup title={t('nav.tools')} links={tools} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.groupWorkspace')} links={workspace} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.groupIntelligence')} links={intelligence} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.groupCommercial')} links={commercial} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.groupRisk')} links={riskCompliance} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
+        <NavGroup title={t('nav.groupDocs')} links={docs} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
         <NavGroup title={t('nav.platform')} links={platform} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
         <NavGroup title={t('nav.admin')} links={adm} pathname={pathname} search={search} onNavigate={onNavigate} collapsed={collapsed} />
       </nav>

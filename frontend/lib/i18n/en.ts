@@ -70,6 +70,12 @@ export const en: Dictionary = {
     expandMenu: 'Expand sidebar',
     project: 'Project',
     bootstrapMode: 'Bootstrap mode',
+    communications: 'Communications',
+    groupWorkspace: 'Workspace',
+    groupIntelligence: 'Intelligence',
+    groupCommercial: 'Commercial & Investment',
+    groupRisk: 'Risk & Compliance',
+    groupDocs: 'Documents & Evidence',
   },
   roles: {
     sigma_admin: 'Sigma Admin',
@@ -512,6 +518,9 @@ export interface Dictionary {
   brand: { name: string; tagline: string };
   nav: {
     operations: string; admin: string;
+    communications: string;
+    groupWorkspace: string; groupIntelligence: string; groupCommercial: string;
+    groupRisk: string; groupDocs: string;
     overview: string; input: string; review: string; evidence: string; approval: string;
     baselines: string; planning: string;
     reports: string; reporting: string;
