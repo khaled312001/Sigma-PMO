@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
   // Hide the Next.js dev on-screen indicator (the floating "N" badge). Build
   // and runtime errors are still surfaced. (devIndicators.md, Next 16.)
   devIndicators: false,
+  // Skip the in-build type-check + lint passes — they are the most memory-heavy
+  // step of `next build` and were OOM-ing the small single-server Docker build.
+  // Type safety is enforced separately (CI/local `tsc --noEmit`), so the
+  // production image build stays lean and reliable.
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   // Emit a self-contained server bundle for a lean production Docker image
   // (.next/standalone → `node server.js`). See frontend/Dockerfile.
   output: 'standalone',
