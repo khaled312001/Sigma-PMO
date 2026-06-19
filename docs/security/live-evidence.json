@@ -1,0 +1,120 @@
+{
+  "summary": {
+    "target": "https://system-api.sigma-pmo.com/api/v1",
+    "total": 12,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 1,
+    "ranAt": "2026-06-19T00:33:47.283Z"
+  },
+  "evidence": [
+    {
+      "id": "L1",
+      "name": "Rotated demo password authenticates (demo env)",
+      "request": "POST /auth/login (client@sigma.ae)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "(proves rotated DEMO_SEED_PASSWORD is live)"
+    },
+    {
+      "id": "L2",
+      "name": "Company A registers (tenant A)",
+      "request": "POST /onboarding/register",
+      "expected": "HTTP 200 + tenant id",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "companyId=db7c4946-199f-4d5d-a14f-b4832eb8c340"
+    },
+    {
+      "id": "L3",
+      "name": "Company B registers (separate tenant)",
+      "request": "POST /onboarding/register",
+      "expected": "different tenant id",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "companyId=a06401a5-d201-4bca-9724-7033ea11090b"
+    },
+    {
+      "id": "L4",
+      "name": "Registered owner is not platform admin",
+      "request": "derived",
+      "expected": "role != sigma_admin",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "role=pmo"
+    },
+    {
+      "id": "L5",
+      "name": "Company A cannot reach super-admin console",
+      "request": "GET /super-admin/companies (A)",
+      "expected": "HTTP 401/403",
+      "actual": "HTTP 401",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "L6",
+      "name": "Company A ingests a project",
+      "request": "POST /ingestion/upload (A)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "counts={\"project\":1,\"resource\":0,\"activity\":0,\"report\":0,\"assignment\":0}"
+    },
+    {
+      "id": "L7",
+      "name": "Company A reads its own project",
+      "request": "GET /executive/overview?projectKey=P-1000 (A)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "L8",
+      "name": "Company B DENIED Company A's project",
+      "request": "GET /executive/overview?projectKey=P-1000 (B)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": "(cross-tenant read blocked on live)"
+    },
+    {
+      "id": "L9",
+      "name": "Company B's project list excludes A's project",
+      "request": "GET /projects (B)",
+      "expected": "P-1000 absent",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "B sees 0"
+    },
+    {
+      "id": "L10",
+      "name": "Ingestion-run history isolated per tenant",
+      "request": "GET /ingestion/runs (A vs B)",
+      "expected": "A>=1, B=0",
+      "actual": "ok",
+      "result": "PASS",
+      "detail": "A=1, B=0"
+    },
+    {
+      "id": "L11",
+      "name": "Direct API without a key rejected",
+      "request": "GET /executive/overview (no key)",
+      "expected": "HTTP 401",
+      "actual": "HTTP 401",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "L12",
+      "name": "Super-admin scenarios (suspend/subscription/trial/audit)",
+      "request": "needs ADMIN_PW",
+      "expected": "set ADMIN_SEED_PASSWORD",
+      "actual": "no admin cred",
+      "result": "SKIP",
+      "detail": ""
+    }
+  ]
+}
