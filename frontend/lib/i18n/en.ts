@@ -72,6 +72,7 @@ export const en: Dictionary = {
     bootstrapMode: 'Bootstrap mode',
     communications: 'Communications',
     communicationRules: 'Communication Rules',
+    disputeRooms: 'Dispute Data Rooms',
     groupWorkspace: 'Workspace',
     groupIntelligence: 'Intelligence',
     groupCommercial: 'Commercial & Investment',
@@ -519,7 +520,7 @@ export interface Dictionary {
   brand: { name: string; tagline: string };
   nav: {
     operations: string; admin: string;
-    communications: string; communicationRules: string;
+    communications: string; communicationRules: string; disputeRooms: string;
     groupWorkspace: string; groupIntelligence: string; groupCommercial: string;
     groupRisk: string; groupDocs: string;
     overview: string; input: string; review: string; evidence: string; approval: string;

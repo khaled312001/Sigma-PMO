@@ -87,6 +87,7 @@ const COMMERCIAL: NavLink[] = [
 const RISK_COMPLIANCE: NavLink[] = [
   { href: '/risk',                   labelKey: 'nav.risk',                 surface: 'approval', icon: IconShield,   visible: govern },
   { href: '/claims',                 labelKey: 'nav.claims',               surface: 'admin',    icon: IconEvidence, visible: govern },
+  { href: '/dispute-rooms',          labelKey: 'nav.disputeRooms',         surface: 'evidence', icon: IconDatabase, badge: 'new', visible: read },
   { href: '/safety',                 labelKey: 'nav.safety',               surface: 'review',   icon: IconShield,   visible: cap('canRunSafety') },
   { href: '/fire-safety',            labelKey: 'nav.fireSafety',           surface: 'review',   icon: IconShield,   visible: cap('canRunFireLifeSafety') },
   { href: '/authority',              labelKey: 'nav.authority',            surface: 'approval', icon: IconEvidence, visible: cap('canRunAuthority') },
