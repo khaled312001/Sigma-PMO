@@ -311,7 +311,7 @@ export default (): AppConfiguration => {
     seedDemo,
     // Allowed on a demo box by default; denied on UAT/production by default.
     demoLoginPublic: toBool(process.env.DEMO_LOGIN_PUBLIC, seedDemo),
-    demoPassword: process.env.DEMO_SEED_PASSWORD ?? 'Sigma$Demo2026',
+    demoPassword: process.env.DEMO_SEED_PASSWORD ?? 'SigmaDemo2026',
     adminSeedPassword: process.env.ADMIN_SEED_PASSWORD ?? '',
   },
   };

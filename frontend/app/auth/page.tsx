@@ -36,7 +36,7 @@ const LAYERS = [
 /** Shared password for the non-privileged sample accounts (demo only). Sourced
  *  from the build-time env so it can be rotated per deploy; matches the backend
  *  `DEMO_SEED_PASSWORD`. NOT a real secret — these are throwaway demo logins. */
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'Sigma$Demo2026';
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'SigmaDemo2026';
 
 /** The NON-privileged sample accounts — pick one to sign in instantly (no
  *  typing). The privileged Sigma Admin / Reviewer are deliberately NOT here:

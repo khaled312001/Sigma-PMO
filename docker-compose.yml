@@ -57,7 +57,8 @@ services:
       # to SEED_DEMO; force "false" on every uat/production environment.
       DEMO_LOGIN_PUBLIC: ${DEMO_LOGIN_PUBLIC:-${SEED_DEMO:-true}}
       # Rotated shared password for the non-privileged sample accounts.
-      DEMO_SEED_PASSWORD: ${DEMO_SEED_PASSWORD:-Sigma$$Demo2026}
+      # Keep it ALPHANUMERIC — a "$" breaks Docker/compose/.env interpolation.
+      DEMO_SEED_PASSWORD: ${DEMO_SEED_PASSWORD:-SigmaDemo2026}
       # Private password for the sample admin/reviewer — set this for a stable,
       # non-public platform-admin login (else a random one is generated + logged).
       ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:-}
@@ -92,7 +93,7 @@ services:
         # the browser will call, and the demo-login toggle.
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://system-api.sigma-pmo.com/api/v1}
         NEXT_PUBLIC_DEMO_LOGIN: ${NEXT_PUBLIC_DEMO_LOGIN:-true}
-        NEXT_PUBLIC_DEMO_PASSWORD: ${NEXT_PUBLIC_DEMO_PASSWORD:-Sigma$$Demo2026}
+        NEXT_PUBLIC_DEMO_PASSWORD: ${NEXT_PUBLIC_DEMO_PASSWORD:-SigmaDemo2026}
     restart: unless-stopped
     # Force Next's standalone server to bind to all interfaces on 3000 so the
     # reverse proxy can reach it (runtime env beats any Docker-assigned hostname).
