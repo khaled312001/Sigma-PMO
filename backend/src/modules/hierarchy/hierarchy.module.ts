@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CanonicalModule } from '../canonical/canonical.module';
+import { DeleteProjectService } from './delete-project.service';
 import { GovernanceStatusService } from './governance-status.service';
 import { HierarchyController } from './hierarchy.controller';
 import { HierarchyService } from './hierarchy.service';

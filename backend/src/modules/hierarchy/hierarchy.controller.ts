@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -12,6 +13,7 @@ import {
 import { HierarchyLevel } from '../../common/enums';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Enterprise, Portfolio, Program, Project } from '../canonical/entities';
+import { DeleteProjectResult, DeleteProjectService } from './delete-project.service';
 import { GovernanceStatusService } from './governance-status.service';
 import { GovernanceTree, HierarchyService } from './hierarchy.service';
 import { RollupService, RollupsResponse } from './rollup.service';
@@ -40,7 +42,29 @@ export class HierarchyController {
     private readonly hierarchy: HierarchyService,
     private readonly status: GovernanceStatusService,
     private readonly rollup: RollupService,
+    private readonly deleteProject: DeleteProjectService,
   ) {}
+
+  /**
+   * READ-ONLY footprint preview — how many rows in each table reference this
+   * project (exactly what a delete would remove). Use before confirming a delete.
+   */
+  @Get('projects/:businessKey/footprint')
+  @RequiresCapability('canManageHierarchy')
+  projectFootprint(@Param('businessKey') businessKey: string): Promise<DeleteProjectResult> {
+    return this.deleteProject.previewProject(businessKey);
+  }
+
+  /**
+   * Delete a project node and ALL of its results across every project-keyed
+   * table (records, schedule, BoQ, risks, claims, communications, reports,
+   * input proposals, …). Tenant-safe; an admin-tier governance action.
+   */
+  @Delete('projects/:businessKey')
+  @RequiresCapability('canManageHierarchy')
+  removeProject(@Param('businessKey') businessKey: string): Promise<DeleteProjectResult> {
+    return this.deleteProject.deleteProject(businessKey);
+  }
 
   @Get('tree')
   @RequiresCapability('canRead')
