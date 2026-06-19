@@ -46,6 +46,7 @@ import { ComparisonModule } from './modules/comparison/comparison.module';
 import { DataCollectionModule } from './modules/data-collection/data-collection.module';
 import { GovernanceModule } from './modules/governance/governance.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { UniversalInputModule } from './modules/universal-input/universal-input.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { LettersModule } from './modules/letters/letters.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -94,6 +95,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     SeedModule,
     GovernanceModule,
     IngestionModule,
+    // Universal AI Input (Mr. Ayham, 2026-06-19) — one general entry point:
+    // upload/paste any project info -> Claude maps it to the Sigma layers ->
+    // staged human review -> confirm -> commit to official records + audit.
+    UniversalInputModule,
     NotificationsModule,
     IntegrationsModule,
     RulesModule,
