@@ -1,0 +1,110 @@
+{
+  "target": "http://127.0.0.1:3009/api/v1",
+  "totalOps": 19000,
+  "totalOk": 3600,
+  "totalErr": 84,
+  "scenarios": [
+    {
+      "scenario": "bulk-create-users",
+      "total": 1000,
+      "concurrency": 60,
+      "wallMs": 27210,
+      "throughputRps": 36.8,
+      "ok": 600,
+      "errors": 0,
+      "statuses": {
+        "200": 600,
+        "429": 400
+      },
+      "latencyMs": {
+        "avg": 1628,
+        "p50": 2638,
+        "p95": 2787,
+        "p99": 3191,
+        "max": 3775
+      }
+    },
+    {
+      "scenario": "read-projects",
+      "total": 6000,
+      "concurrency": 400,
+      "wallMs": 4966,
+      "throughputRps": 1208.3,
+      "ok": 600,
+      "errors": 0,
+      "statuses": {
+        "200": 600,
+        "429": 5400
+      },
+      "latencyMs": {
+        "avg": 309,
+        "p50": 95,
+        "p95": 1854,
+        "p99": 3574,
+        "max": 3720
+      }
+    },
+    {
+      "scenario": "read-executive-overview",
+      "total": 4000,
+      "concurrency": 250,
+      "wallMs": 5554,
+      "throughputRps": 720.2,
+      "ok": 600,
+      "errors": 0,
+      "statuses": {
+        "200": 600,
+        "429": 3400
+      },
+      "latencyMs": {
+        "avg": 325,
+        "p50": 87,
+        "p95": 1540,
+        "p99": 2729,
+        "max": 2796
+      }
+    },
+    {
+      "scenario": "write-support-tickets",
+      "total": 3000,
+      "concurrency": 200,
+      "wallMs": 3491,
+      "throughputRps": 859.4,
+      "ok": 600,
+      "errors": 0,
+      "statuses": {
+        "200": 600,
+        "429": 2400
+      },
+      "latencyMs": {
+        "avg": 226,
+        "p50": 52,
+        "p95": 1058,
+        "p99": 2137,
+        "max": 2147
+      }
+    },
+    {
+      "scenario": "mixed-burst",
+      "total": 5000,
+      "concurrency": 500,
+      "wallMs": 5349,
+      "throughputRps": 934.8,
+      "ok": 1200,
+      "errors": 84,
+      "statuses": {
+        "200": 1200,
+        "429": 3716,
+        "ERR": 84
+      },
+      "latencyMs": {
+        "avg": 502,
+        "p50": 68,
+        "p95": 2147,
+        "p99": 2780,
+        "max": 2944
+      }
+    }
+  ],
+  "ranAt": "2026-06-19T07:58:53.008Z"
+}

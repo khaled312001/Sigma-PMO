@@ -1,0 +1,211 @@
+{
+  "summary": {
+    "qa": "http://127.0.0.1:3009/api/v1",
+    "live": "https://system-api.sigma-pmo.com/api/v1",
+    "total": 33,
+    "pass": 32,
+    "warn": 0,
+    "fail": 1,
+    "ranAt": "2026-06-19T07:57:00.695Z"
+  },
+  "checks": [
+    {
+      "id": "A1",
+      "name": "Protected endpoint without key is rejected",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A2",
+      "name": "Invalid API key is rejected",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A3",
+      "name": "Empty key header is rejected",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A4",
+      "name": "Login with wrong password fails (401, not 200/500)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "A5",
+      "name": "Login with unknown user fails (401)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B1",
+      "name": "Tenant A cannot read tenant B's project by key",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B2",
+      "name": "Ingestion runs are tenant-scoped (B cannot see A's)",
+      "result": "PASS",
+      "detail": "A=1, B=0"
+    },
+    {
+      "id": "B3",
+      "name": "Company owner cannot reach super-admin console",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B4",
+      "name": "Company owner cannot list platform users (/auth/users)",
+      "result": "FAIL",
+      "detail": ""
+    },
+    {
+      "id": "B5",
+      "name": "Company owner cannot PATCH another company status",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "B6",
+      "name": "Cross-tenant rules workflow (body projectKey) is scoped",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "C1",
+      "name": "Registration ignores injected role/companyId/isDemo (no escalation)",
+      "result": "PASS",
+      "detail": "role=contractor"
+    },
+    {
+      "id": "C2",
+      "name": "Self-registered owner cannot reach platform admin",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "C3",
+      "name": "Cannot add a user with a role outside the company preset",
+      "result": "PASS",
+      "detail": "status=400"
+    },
+    {
+      "id": "D1",
+      "name": "SQL injection in projectKey does not 500 / leak",
+      "result": "PASS",
+      "detail": "status=403"
+    },
+    {
+      "id": "D2",
+      "name": "SQL injection in login is rejected (401/400, not 500)",
+      "result": "PASS",
+      "detail": "status=400"
+    },
+    {
+      "id": "D3",
+      "name": "SQLi attempt in query param is harmless",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "E1",
+      "name": "Path traversal in ingest-path is blocked",
+      "result": "PASS",
+      "detail": "status=403"
+    },
+    {
+      "id": "E2",
+      "name": "Absolute path outside archive is blocked",
+      "result": "PASS",
+      "detail": "status=403"
+    },
+    {
+      "id": "F1",
+      "name": "Unknown/extra body fields are stripped (whitelist) or rejected",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "F2",
+      "name": "Short password on register is rejected",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "G1",
+      "name": "Auth/me does not leak password/hash/apiKey",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "G2",
+      "name": "User list does not leak password hashes / api keys",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "G3",
+      "name": "Settings endpoint does not return plaintext secrets",
+      "result": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "id": "H1",
+      "name": "HSTS header present (live)",
+      "result": "PASS",
+      "detail": "max-age=63072000; includeSubDomains; preload"
+    },
+    {
+      "id": "H2",
+      "name": "CSP header present (live)",
+      "result": "PASS",
+      "detail": "default-src 'self'; base-uri 'self'; for"
+    },
+    {
+      "id": "H3",
+      "name": "X-Content-Type-Options=nosniff (live)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "H4",
+      "name": "X-Frame-Options present (live)",
+      "result": "PASS",
+      "detail": "DENY"
+    },
+    {
+      "id": "H5",
+      "name": "Referrer-Policy present (live)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "H6",
+      "name": "Permissions-Policy present (live)",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "H7",
+      "name": "Live 404 does not leak a stack trace",
+      "result": "PASS",
+      "detail": "status=404"
+    },
+    {
+      "id": "H8",
+      "name": "Login is rate-limited on live (429 after burst)",
+      "result": "PASS",
+      "detail": "got 429"
+    },
+    {
+      "id": "H9",
+      "name": "CORS does not allow arbitrary origins",
+      "result": "PASS",
+      "detail": "acao=none"
+    }
+  ]
+}
