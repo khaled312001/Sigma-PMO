@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { buildLoggerModule } from './common/logger';
 import { RequestIdMiddleware } from './common/request-id.middleware';
@@ -76,6 +77,8 @@ import { SummaryModule } from './modules/summary/summary.module';
     }),
     buildLoggerModule(),
     AppThrottlerModule,
+    // Cron host (communication unread-alert + escalation sweep, ADR Ayham 2026-06-19).
+    ScheduleModule.forRoot(),
     DatabaseModule,
     CanonicalModule,
     AuthModule,

@@ -122,6 +122,7 @@ const PLATFORM: NavLink[] = [
 const ADMIN: NavLink[] = [
   { href: '/admin/roles',    labelKey: 'nav.roles',            surface: 'admin', icon: IconUsers, visible: cap('canManageRoles') },
   { href: '/admin/governance', labelKey: 'nav.governanceConfig',  surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
+  { href: '/admin/communications-rules', labelKey: 'nav.communicationRules', surface: 'admin', icon: IconEvidence, visible: cap('canEditPolicy') },
   { href: '/admin/policy',   labelKey: 'nav.policy',           surface: 'admin', icon: IconShield, visible: cap('canEditPolicy') },
   { href: '/admin/personas', labelKey: 'admin.personas.title', surface: 'admin', icon: IconSparkles, visible: cap('canEditPersonas') },
   { href: '/admin/users',    labelKey: 'nav.users',            surface: 'admin', icon: IconUsers,  visible: cap('canReadAll') },

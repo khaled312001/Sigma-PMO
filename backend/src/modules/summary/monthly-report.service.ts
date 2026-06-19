@@ -15,6 +15,7 @@ import {
 } from '../canonical/entities';
 import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { ClaudeService } from '../claude/claude.service';
+import { Communication } from '../communications/communication.entity';
 import { SnapshotService } from '../rules/snapshot.service';
 import { ProjectSnapshot } from '../rules/types';
 import { SourcesService } from '../sources/sources.service';
@@ -130,6 +131,8 @@ export class MonthlyReportService {
     // Optional only so the existing positional unit specs construct without it;
     // NestJS DI always injects it at runtime (CanonicalModule exports it).
     private readonly ownership?: ProjectOwnershipService,
+    // Optional (positional-spec compat) — communication evidence for the report.
+    @InjectRepository(Communication) private readonly comms?: Repository<Communication>,
   ) {}
 
   /**
@@ -162,11 +165,12 @@ export class MonthlyReportService {
     const project = await this.resolveProject(req.projectKey);
     const snapshot = await this.snapshots.load(project.id);
 
-    const [alertsInWindow, decisionsInWindow, confidenceAverage, boq] = await Promise.all([
+    const [alertsInWindow, decisionsInWindow, confidenceAverage, boq, commsInWindow] = await Promise.all([
       this.loadAlertsInWindow(snapshot, window.startIso, window.endIso),
       this.loadDecisionsInWindow(snapshot, window.startIso, window.endIso),
       this.averageConfidenceFor(snapshot),
       this.loadCurrentBoq(project.businessKey),
+      this.loadCommunicationsInWindow(project.businessKey, window.startIso, window.endIso),
     ]);
 
     // Narrative-type-specific deterministic blocks (loaded only when needed).
@@ -185,6 +189,7 @@ export class MonthlyReportService {
       req.periodKey,
       narrativeType,
     );
+    Object.assign(metrics, buildCommunicationMetrics(commsInWindow));
     const facts =
       composeFacts(
         snapshot,
@@ -201,7 +206,8 @@ export class MonthlyReportService {
         alerts: alertsInWindow,
         investment: investmentRows,
         portfolio: portfolioRows,
-      });
+      }) +
+      composeCommunicationsSection(commsInWindow);
 
     let narrative = facts;
     let narrativeAr: string | null = facts;
@@ -440,6 +446,31 @@ export class MonthlyReportService {
   private async loadCurrentBoq(projectBusinessKey: string): Promise<BoQ | null> {
     return this.boqs.findOne({
       where: { businessKey: `boq:${projectBusinessKey}`, isCurrent: true },
+    });
+  }
+
+  /**
+   * Communication-evidence input — project communications registered in the
+   * period. Surfaced in the governance report so unread/escalated/disputed
+   * notices are reflected alongside schedule, alerts and decisions. Best-effort:
+   * returns [] when the repo isn't wired (positional unit specs).
+   */
+  private async loadCommunicationsInWindow(
+    projectBusinessKey: string,
+    startIso: string,
+    endIso: string,
+  ): Promise<Communication[]> {
+    if (!this.comms) return [];
+    const rows = await this.comms.find({
+      where: { projectBusinessKey },
+      order: { createdAt: 'DESC' },
+      take: 500,
+    });
+    const start = new Date(startIso).getTime();
+    const end = new Date(endIso).getTime();
+    return rows.filter((c) => {
+      const t = new Date(c.sentAt ?? c.createdAt).getTime();
+      return t >= start && t <= end;
     });
   }
 
@@ -713,6 +744,65 @@ function composeNarrativeTypeSection(
     }
   }
   return lines.length === 0 ? '' : '\n' + lines.join('\n');
+}
+
+/**
+ * Communication-evidence facts (Mr. Ayham, 2026-06-19). Reflects registered
+ * project communications in the period: totals by category, unopened/overdue,
+ * escalated, disputed and required-acknowledgement notices — the auditable
+ * communication trail linked to claims/approvals/delays in the governance report.
+ */
+function composeCommunicationsSection(comms: Communication[]): string {
+  if (!comms.length) return '';
+  const now = Date.now();
+  const byCategory = new Map<string, number>();
+  let unopened = 0, overdue = 0, escalated = 0, disputed = 0, ackRequired = 0, ackOutstanding = 0, deemed = 0;
+  for (const c of comms) {
+    byCategory.set(c.category, (byCategory.get(c.category) ?? 0) + 1);
+    const ageH = c.sentAt ? (now - new Date(c.sentAt).getTime()) / 3_600_000 : 0;
+    if (!c.openedAt) { unopened++; if (ageH > 24) overdue++; }
+    if (c.escalatedAt) escalated++;
+    if (c.disputedAt) disputed++;
+    if (c.deemedServedAt) deemed++;
+    if (c.requiresAck) { ackRequired++; if (!c.acknowledgedAt) ackOutstanding++; }
+  }
+  const cats = [...byCategory.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ');
+  const lines: string[] = [];
+  lines.push('');
+  lines.push('### Communications evidence');
+  lines.push(`- Registered in window: ${comms.length} (by category: ${cats}).`);
+  lines.push(`- Unopened in Sigma: ${unopened}; overdue (>24h): ${overdue}.`);
+  lines.push(`- Acknowledgement required: ${ackRequired}; outstanding: ${ackOutstanding}.`);
+  lines.push(`- Escalated: ${escalated}; deemed-served: ${deemed}; disputed: ${disputed}.`);
+  const critical = comms
+    .filter((c) => c.escalatedAt || c.disputedAt || (!c.openedAt && c.sentAt && (now - new Date(c.sentAt).getTime()) / 3_600_000 > 24))
+    .slice(0, 8);
+  for (const c of critical) {
+    const linked = c.linkedClaimKey || c.linkedRecordKey ? ` [linked: ${c.linkedClaimKey ?? c.linkedRecordKey}]` : '';
+    const state = c.disputedAt ? 'disputed' : c.escalatedAt ? `escalated L${c.escalationLevel ?? 1}` : 'overdue-unopened';
+    lines.push(`  - ${c.commId} (${c.category}, ${state})${linked}: ${c.subject.slice(0, 80)}.`);
+  }
+  return lines.join('\n');
+}
+
+function buildCommunicationMetrics(comms: Communication[]): Record<string, unknown> {
+  const byCategory: Record<string, number> = {};
+  let unopened = 0, escalated = 0, disputed = 0, ackOutstanding = 0;
+  for (const c of comms) {
+    byCategory[c.category] = (byCategory[c.category] ?? 0) + 1;
+    if (!c.openedAt) unopened++;
+    if (c.escalatedAt) escalated++;
+    if (c.disputedAt) disputed++;
+    if (c.requiresAck && !c.acknowledgedAt) ackOutstanding++;
+  }
+  return {
+    communicationCount: comms.length,
+    communicationsByCategory: byCategory,
+    communicationsUnopened: unopened,
+    communicationsEscalated: escalated,
+    communicationsDisputed: disputed,
+    communicationsAckOutstanding: ackOutstanding,
+  };
 }
 
 /**

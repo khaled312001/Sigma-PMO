@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { CanonicalModule } from '../canonical/canonical.module';
 import { ClaudeModule } from '../claude/claude.module';
+import { Communication } from '../communications/communication.entity';
 import { RulesModule } from '../rules/rules.module';
 import { SourcesModule } from '../sources/sources.module';
 import { LlmService } from './llm.service';
@@ -31,7 +33,7 @@ import { SummaryService } from './summary.service';
  * the persona-mediated, audit-trail-heavy artefact Al Ayham asked for.
  */
 @Module({
-  imports: [CanonicalModule, RulesModule, ClaudeModule, SourcesModule],
+  imports: [CanonicalModule, RulesModule, ClaudeModule, SourcesModule, TypeOrmModule.forFeature([Communication])],
   controllers: [SummaryController, MonthlyReportController],
   providers: [SummaryService, LlmService, MonthlyReportService, PdfRendererService],
   exports: [SummaryService, MonthlyReportService],

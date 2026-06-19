@@ -71,6 +71,7 @@ export const en: Dictionary = {
     project: 'Project',
     bootstrapMode: 'Bootstrap mode',
     communications: 'Communications',
+    communicationRules: 'Communication Rules',
     groupWorkspace: 'Workspace',
     groupIntelligence: 'Intelligence',
     groupCommercial: 'Commercial & Investment',
@@ -518,7 +519,7 @@ export interface Dictionary {
   brand: { name: string; tagline: string };
   nav: {
     operations: string; admin: string;
-    communications: string;
+    communications: string; communicationRules: string;
     groupWorkspace: string; groupIntelligence: string; groupCommercial: string;
     groupRisk: string; groupDocs: string;
     overview: string; input: string; review: string; evidence: string; approval: string;

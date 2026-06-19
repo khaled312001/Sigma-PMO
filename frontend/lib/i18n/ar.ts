@@ -73,6 +73,7 @@ export const ar: Dictionary = {
     project: 'المشروع',
     bootstrapMode: 'وضع التهيئة الأولى',
     communications: 'المراسلات',
+    communicationRules: 'قواعد المراسلات',
     groupWorkspace: 'مساحة العمل',
     groupIntelligence: 'الذكاء والتحليلات',
     groupCommercial: 'التجاري والاستثمار',
