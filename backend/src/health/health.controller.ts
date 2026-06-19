@@ -29,9 +29,18 @@ export class HealthController {
     return { status: 'ok', db: 'up', timestamp: new Date().toISOString() };
   }
 
-  // Backward-compat alias.
+  // Backward-compat alias — enriched with environment + uptime + version so the
+  // probe doubles as a lightweight build/runtime info endpoint (review 2026-06-19).
   @Get('health')
-  async health(): Promise<{ status: string; db: 'up' | 'down'; timestamp: string }> {
+  async health(): Promise<{
+    status: string;
+    db: 'up' | 'down';
+    env: string;
+    appEnv: string;
+    uptimeSeconds: number;
+    version: string;
+    timestamp: string;
+  }> {
     let db: 'up' | 'down' = 'down';
     try {
       await this.dataSource.query('SELECT 1');
@@ -39,6 +48,14 @@ export class HealthController {
     } catch {
       db = 'down';
     }
-    return { status: 'ok', db, timestamp: new Date().toISOString() };
+    return {
+      status: db === 'up' ? 'ok' : 'degraded',
+      db,
+      env: process.env.NODE_ENV ?? 'development',
+      appEnv: process.env.APP_ENV ?? (process.env.SEED_DEMO === 'true' ? 'demo' : 'production'),
+      uptimeSeconds: Math.round(process.uptime()),
+      version: process.env.npm_package_version ?? '0.0.1',
+      timestamp: new Date().toISOString(),
+    };
   }
 }

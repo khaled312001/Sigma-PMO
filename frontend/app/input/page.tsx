@@ -83,7 +83,19 @@ function InputPage() {
       });
       setOutcome(r);
       setFile(null);
-      toast.success(isAr ? 'تم الإدخال' : 'Ingested', `${r.parser} · ${Object.entries(r.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}`);
+      const total = Object.values(r.counts ?? {}).reduce((a, b) => a + (Number(b) || 0), 0);
+      if (total === 0) {
+        // Upload succeeded but nothing was saved — make the reason explicit
+        // instead of a misleading "success" with all-zero counts.
+        toast.warning(
+          isAr ? 'تم الرفع لكن لم تُحفظ أي صفوف' : 'Uploaded, but no rows were saved',
+          isAr
+            ? 'تأكّد أن عمود projectKey يطابق مشروعاً موجوداً (ارفع المشروع أولاً)، أو استخدم القالب الرسمي. لم يُعثر على صفوف صالحة.'
+            : 'Check that the projectKey column matches an existing project (upload the project first), or use the official template. No valid rows were found.',
+        );
+      } else {
+        toast.success(isAr ? 'تم الإدخال' : 'Ingested', `${r.parser} · ${Object.entries(r.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}`);
+      }
       await refresh();
     } catch (e) { toast.error(isAr ? 'فشل الإدخال' : 'Ingestion failed', (e as Error).message); }
     finally { setUploading(false); }
@@ -97,6 +109,15 @@ function InputPage() {
         description={t('input.description')}
         actions={<Button variant="ghost" size="sm" onClick={refresh}><IconRefresh className="h-3.5 w-3.5" /> {isAr ? 'تحديث' : 'Refresh'}</Button>}
       />
+
+      {/* Official import templates — upload the project first, then activities. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-slate-700/60 bg-slate-900/30 px-4 py-2.5 text-xs text-slate-300">
+        <span className="font-medium text-slate-200">{isAr ? 'قوالب الإدخال الرسمية:' : 'Official import templates:'}</span>
+        <a href="/templates/sigma-projects-template.csv" download className="text-sky-300 underline-offset-2 hover:underline">{isAr ? 'قالب المشاريع (CSV)' : 'Projects (CSV)'}</a>
+        <span className="text-slate-600">·</span>
+        <a href="/templates/sigma-activities-template.csv" download className="text-sky-300 underline-offset-2 hover:underline">{isAr ? 'قالب الأنشطة (CSV)' : 'Activities (CSV)'}</a>
+        <span className="text-slate-500">{isAr ? '— ارفع المشروع أولاً ثم الأنشطة (projectKey يطابق businessKey)' : '— upload the project first, then activities (projectKey matches businessKey)'}</span>
+      </div>
 
       <Card
         title={isAr ? 'رفع ملف' : 'Upload a file'}
@@ -148,19 +169,30 @@ function InputPage() {
           </div>
         </div>
 
-        {outcome && (
-          <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            <div className="flex flex-wrap items-center gap-2">
-              <span>{isAr ? 'تم الإدخال عبر' : 'Ingested via'}</span>
-              <Pill tone="emerald">{outcome.parser}</Pill>
-              <Pill tone="slate">{outcome.status}</Pill>
-              {outcome.confidence && <Pill tone="emerald">{(outcome.confidence.overall * 100).toFixed(1)}% {isAr ? 'ثقة' : 'confidence'}</Pill>}
+        {outcome && (() => {
+          const total = Object.values(outcome.counts ?? {}).reduce((a, b) => a + (Number(b) || 0), 0);
+          const zero = total === 0;
+          return (
+            <div className={`mt-4 rounded-lg border px-4 py-3 text-sm ${zero ? 'border-amber-400/50 bg-amber-400/10 text-amber-100' : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100'}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <span>{isAr ? 'تم الإدخال عبر' : 'Ingested via'}</span>
+                <Pill tone={zero ? 'amber' : 'emerald'}>{outcome.parser}</Pill>
+                <Pill tone="slate">{outcome.status}</Pill>
+                {outcome.confidence && <Pill tone="emerald">{(outcome.confidence.overall * 100).toFixed(1)}% {isAr ? 'ثقة' : 'confidence'}</Pill>}
+              </div>
+              <p className={`mt-2 text-xs ${zero ? 'text-amber-100/90' : 'text-emerald-100/80'}`}>
+                {isAr ? 'الصفوف:' : 'Rows:'} {Object.entries(outcome.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}
+              </p>
+              {zero && (
+                <p className="mt-2 text-xs text-amber-100/90">
+                  {isAr
+                    ? '⚠ تم قبول الملف لكن لم تُحفظ أي صفوف. غالباً لأن عمود projectKey لا يطابق مشروعاً موجوداً — ارفع ملف المشروع أولاً ثم الأنشطة، أو استخدم القالب الرسمي.'
+                    : '⚠ The file was accepted but no rows were saved — usually because the projectKey column does not match an existing project. Upload the project file first, then the activities, or use the official template.'}
+                </p>
+              )}
             </div>
-            <p className="mt-2 text-xs text-emerald-100/80">
-              {isAr ? 'الصفوف:' : 'Rows:'} {Object.entries(outcome.counts).map(([k, v]) => `${k}:${v}`).join(' · ')}
-            </p>
-          </div>
-        )}
+          );
+        })()}
       </Card>
 
       <Card

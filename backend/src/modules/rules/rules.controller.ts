@@ -31,8 +31,13 @@ export class RulesController {
   @RequiresCapability('canEvaluateRules')
   async evaluate(@Body() body: EvaluateDto): Promise<RuleEvaluationOutcome> {
     if (body.projectKey) {
+      // Scope by company — the projectKey is in the body, so the global
+      // ProjectScopeGuard (query/params only) does not cover this path.
+      const cid = currentCompanyId();
       const project = await this.projects.findOne({
-        where: { businessKey: body.projectKey, isCurrent: true },
+        where: cid
+          ? { businessKey: body.projectKey, isCurrent: true, companyId: cid }
+          : { businessKey: body.projectKey, isCurrent: true },
       });
       if (!project) throw new NotFoundException(`No current project with key "${body.projectKey}"`);
       return this.engine.evaluateProject(project.id);

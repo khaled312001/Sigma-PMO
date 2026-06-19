@@ -5,6 +5,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 
@@ -41,6 +42,26 @@ async function bootstrap(): Promise<void> {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
+
+  // OpenAPI / Swagger — live, auto-generated API reference for developers and
+  // integrations. UI at /api/v1/docs, machine-readable spec at /api/v1/docs-json.
+  // AI features are powered by Anthropic Claude (no OpenAI).
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Sigma PMO API')
+    .setDescription(
+      'Multi-tenant construction governance OS — REST API (v1). ' +
+        'Authenticate with the `x-api-key` header (obtained from POST /auth/login). ' +
+        'All data is isolated per company (tenant). AI features use Anthropic Claude.',
+    )
+    .setVersion('1.0')
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
+    .addServer('/api/v1')
+    .build();
+  const openApiDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/v1/docs', app, openApiDocument, {
+    jsonDocumentUrl: 'api/v1/docs-json',
+    customSiteTitle: 'Sigma PMO API',
+  });
 
   // CORS for the front-end. Set CORS_ORIGINS to a comma-separated list in prod.
   const corsOrigins = (config.get<string>('corsOrigins') ?? '')

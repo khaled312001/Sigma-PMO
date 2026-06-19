@@ -27,6 +27,8 @@ interface WorkflowResult {
   totalAlertCount: number;
   totalDecisionCount: number;
   projects: { projectKey: string; alertCount: number; decisionCount: number }[];
+  failures?: { projectKey: string; projectName: string; error: string }[];
+  empty?: boolean;
 }
 
 export default function ReviewPageRoute() {
@@ -102,14 +104,33 @@ function ReviewPage() {
         method: 'POST', body: JSON.stringify(body),
       });
       await refresh();
-      toast.success(
-        lang === 'ar'
-          ? (scope === 'all' ? 'اكتمل سير عمل الحوكمة (كل المشاريع)' : 'اكتمل سير عمل الحوكمة')
-          : (scope === 'all' ? 'Governance workflow complete (all projects)' : 'Governance workflow complete'),
-        lang === 'ar'
-          ? `${result.projectCount} مشروع · ${result.totalAlertCount} تنبيه · ${result.totalDecisionCount} قرار`
-          : `${result.projectCount} project(s) · ${result.totalAlertCount} alerts · ${result.totalDecisionCount} decisions`,
-      );
+      const failures = result.failures ?? [];
+      if (result.empty) {
+        // Nothing to act on — tell the user plainly instead of a hollow success.
+        toast.warning(
+          lang === 'ar' ? 'لا يوجد ما يُعالَج' : 'Nothing to run',
+          lang === 'ar'
+            ? 'لا توجد مشاريع بأنشطة في نطاقك. ارفع مشروعاً وأنشطته من صفحة الإدخال أولاً.'
+            : 'No projects with data in your scope. Upload a project and its activities from the Input page first.',
+        );
+      } else if (failures.length > 0) {
+        // Partial / full failure — surface the actual reason for the first one.
+        toast.warning(
+          lang === 'ar' ? `اكتمل مع ${failures.length} إخفاق` : `Completed with ${failures.length} failure(s)`,
+          lang === 'ar'
+            ? `${result.projectCount} نجح · ${failures.length} فشل — ${failures[0].projectKey}: ${failures[0].error}`
+            : `${result.projectCount} ok · ${failures.length} failed — ${failures[0].projectKey}: ${failures[0].error}`,
+        );
+      } else {
+        toast.success(
+          lang === 'ar'
+            ? (scope === 'all' ? 'اكتمل سير عمل الحوكمة (كل المشاريع)' : 'اكتمل سير عمل الحوكمة')
+            : (scope === 'all' ? 'Governance workflow complete (all projects)' : 'Governance workflow complete'),
+          lang === 'ar'
+            ? `${result.projectCount} مشروع · ${result.totalAlertCount} تنبيه · ${result.totalDecisionCount} قرار`
+            : `${result.projectCount} project(s) · ${result.totalAlertCount} alerts · ${result.totalDecisionCount} decisions`,
+        );
+      }
     } catch (e) { toast.error(lang === 'ar' ? 'فشل سير العمل' : 'Workflow failed', (e as Error).message); }
     finally { setWorkflowBusy(null); }
   };

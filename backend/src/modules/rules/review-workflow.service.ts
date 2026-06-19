@@ -1,7 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { Alert, Project } from '../canonical/entities';
 import { GovernanceDecisionService } from '../governance/governance-decision.service';
 import { RuleEngineService } from './rule-engine.service';
@@ -16,6 +17,13 @@ export interface ReviewWorkflowProjectResult {
   decisionCount: number;
 }
 
+/** A project that could not be processed — surfaced so the UI shows WHY. */
+export interface ReviewWorkflowFailure {
+  projectKey: string;
+  projectName: string;
+  error: string;
+}
+
 /** Aggregate result of a (possibly multi-project) workflow run. */
 export interface ReviewWorkflowResult {
   scope: 'project' | 'all';
@@ -23,6 +31,10 @@ export interface ReviewWorkflowResult {
   totalAlertCount: number;
   totalDecisionCount: number;
   projects: ReviewWorkflowProjectResult[];
+  /** Per-project failures (empty on a fully successful run). */
+  failures: ReviewWorkflowFailure[];
+  /** True when there were no projects to act on (clear "nothing to do" signal). */
+  empty: boolean;
 }
 
 /**
@@ -58,30 +70,38 @@ export class ReviewWorkflowService {
   async run(projectKey: string | null): Promise<ReviewWorkflowResult> {
     const targets = await this.resolveTargets(projectKey);
     const results: ReviewWorkflowProjectResult[] = [];
+    const failures: ReviewWorkflowFailure[] = [];
 
     for (const project of targets) {
-      const evaluation = await this.engine.evaluateProject(project.id);
-      const alerts = await this.alerts.find({
-        where: { ruleEvaluationId: evaluation.evaluationId },
-      });
-      const decisionOutcome = await this.decisions.decideForAlerts(
-        alerts,
-        project.businessKey,
-      );
-      results.push({
-        projectKey: project.businessKey,
-        projectId: project.id,
-        projectName: project.name,
-        evaluationId: evaluation.evaluationId,
-        alertCount: evaluation.alertCount,
-        decisionCount: decisionOutcome.decisionCount,
-      });
+      // Resilient per project: one project failing (e.g. no activities yet)
+      // must not fail the whole run — capture the reason and carry on so the
+      // UI can show exactly which project failed and why.
+      try {
+        const evaluation = await this.engine.evaluateProject(project.id);
+        const alerts = await this.alerts.find({
+          where: { ruleEvaluationId: evaluation.evaluationId },
+        });
+        const decisionOutcome = await this.decisions.decideForAlerts(alerts, project.businessKey);
+        results.push({
+          projectKey: project.businessKey,
+          projectId: project.id,
+          projectName: project.name,
+          evaluationId: evaluation.evaluationId,
+          alertCount: evaluation.alertCount,
+          decisionCount: decisionOutcome.decisionCount,
+        });
+      } catch (err) {
+        const message = (err as Error).message ?? 'Unknown error';
+        this.logger.warn(`Governance workflow: project "${project.businessKey}" failed: ${message}`);
+        failures.push({ projectKey: project.businessKey, projectName: project.name, error: message });
+      }
     }
 
     const totalAlertCount = results.reduce((acc, r) => acc + r.alertCount, 0);
     const totalDecisionCount = results.reduce((acc, r) => acc + r.decisionCount, 0);
     this.logger.log(
-      `Governance workflow run over ${results.length} project(s): ` +
+      `Governance workflow run over ${targets.length} project(s): ` +
+        `${results.length} ok, ${failures.length} failed, ` +
         `${totalAlertCount} alert(s), ${totalDecisionCount} decision(s).`,
     );
 
@@ -91,17 +111,25 @@ export class ReviewWorkflowService {
       totalAlertCount,
       totalDecisionCount,
       projects: results,
+      failures,
+      empty: targets.length === 0,
     };
   }
 
   private async resolveTargets(projectKey: string | null): Promise<Project[]> {
+    // Multi-tenant: only ever act on the caller's own company's projects. The
+    // projectKey arrives in the request body (not the query/params), so the
+    // global ProjectScopeGuard does not cover it — scope it here.
+    const cid = currentCompanyId();
     if (projectKey) {
-      const project = await this.projects.findOne({
-        where: { businessKey: projectKey, isCurrent: true },
-      });
-      if (!project) throw new NotFoundException(`No current project with key "${projectKey}"`);
+      const where = { businessKey: projectKey, isCurrent: true } as FindOptionsWhere<Project>;
+      if (cid) (where as FindOptionsWhere<Project> & { companyId: string }).companyId = cid;
+      const project = await this.projects.findOne({ where });
+      if (!project) throw new NotFoundException(`No current project with key "${projectKey}" in your company`);
       return [project];
     }
-    return this.projects.find({ where: { isCurrent: true } });
+    const where = { isCurrent: true } as FindOptionsWhere<Project>;
+    if (cid) (where as FindOptionsWhere<Project> & { companyId: string }).companyId = cid;
+    return this.projects.find({ where });
   }
 }

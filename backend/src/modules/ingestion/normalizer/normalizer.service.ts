@@ -76,7 +76,7 @@ export class NormalizerService {
       if (!key) continue;
       const entity = await this.startVersion(manager, Resource, key, run, source, raw);
       const projectKey = asString(raw.projectKey);
-      entity.projectId = projectKey ? (projectIdByKey.get(projectKey) ?? null) : null;
+      entity.projectId = (await this.resolveProjectId(manager, projectKey, projectIdByKey)) ?? null;
       entity.name = asString(raw.name) ?? key;
       entity.resourceType = mapResourceType(raw.resourceType);
       entity.unitOfMeasure = asString(raw.unitOfMeasure);
@@ -92,8 +92,10 @@ export class NormalizerService {
       const key = asString(raw.businessKey);
       if (!key) continue;
       const projectKey = asString(raw.projectKey);
-      const projectId = projectKey ? projectIdByKey.get(projectKey) : undefined;
-      if (!projectId) continue; // orphan already flagged by validation
+      // Resolve the parent project from THIS dataset or, failing that, from a
+      // project the same company ingested earlier (cross-dataset upload).
+      const projectId = await this.resolveProjectId(manager, projectKey, projectIdByKey);
+      if (!projectId) continue; // genuine orphan (no such project anywhere)
       const entity = await this.startVersion(manager, Activity, key, run, source, raw);
       entity.projectId = projectId;
       entity.wbsCode = asString(raw.wbsCode);
@@ -120,7 +122,7 @@ export class NormalizerService {
       const key = asString(raw.businessKey);
       if (!key) continue;
       const projectKey = asString(raw.projectKey);
-      const projectId = projectKey ? projectIdByKey.get(projectKey) : undefined;
+      const projectId = await this.resolveProjectId(manager, projectKey, projectIdByKey);
       if (!projectId) continue;
       const entity = await this.startVersion(manager, Report, key, run, source, raw);
       entity.projectId = projectId;
@@ -162,6 +164,33 @@ export class NormalizerService {
   }
 
   /**
+   * Resolve a child row's parent project id. Checks the projects ingested in
+   * THIS dataset first; if not present (the common "upload activities after the
+   * project" case), falls back to the current Project row with that businessKey
+   * owned by the ingesting company. Resolved ids are cached so a cross-dataset
+   * lookup runs at most once per project key. Returns undefined for a genuine
+   * orphan (no such project in the dataset or the company's data).
+   */
+  private async resolveProjectId(
+    manager: EntityManager,
+    projectKey: string | null | undefined,
+    cache: Map<string, string>,
+  ): Promise<string | undefined> {
+    if (!projectKey) return undefined;
+    const cached = cache.get(projectKey);
+    if (cached) return cached;
+    const where: FindOptionsWhere<Project> = { businessKey: projectKey, isCurrent: true };
+    const cid = currentCompanyId();
+    if (cid) (where as FindOptionsWhere<Project> & { companyId: string }).companyId = cid;
+    const existing = await manager.getRepository(Project).findOne({ where });
+    if (existing) {
+      cache.set(projectKey, existing.id);
+      return existing.id;
+    }
+    return undefined;
+  }
+
+  /**
    * Build a new current-version entity for `businessKey`, retiring any existing
    * current version. Common traceability fields are populated; the caller fills
    * the entity-specific columns and saves.
@@ -175,9 +204,12 @@ export class NormalizerService {
     raw: RawRecord,
   ): Promise<T> {
     const repo = manager.getRepository<T>(ctor);
-    const prior = await repo.findOne({
-      where: { businessKey, isCurrent: true } as FindOptionsWhere<T>,
-    });
+    // Scope the prior-version lookup to the ingesting company so one tenant can
+    // never retire another tenant's row that happens to share a business key.
+    const priorWhere: Record<string, unknown> = { businessKey, isCurrent: true };
+    const cid = currentCompanyId();
+    if (cid) priorWhere.companyId = cid;
+    const prior = await repo.findOne({ where: priorWhere as FindOptionsWhere<T> });
 
     let version = 1;
     if (prior) {
