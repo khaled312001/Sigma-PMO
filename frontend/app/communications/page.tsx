@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '../../components/ToastProvider';
 import { api } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
+import { RecordActions } from '../../components/RecordActions';
 import { CAPABILITIES } from '../../lib/capabilities';
 import { useMe } from '../../lib/me-context';
 import { useI18n } from '../../lib/i18n';
@@ -217,11 +218,12 @@ function Communications() {
               <button onClick={() => setOpen(null)} className="text-slate-400 hover:text-slate-100">✕</button>
             </div>
             <h3 className="mt-2 text-lg font-semibold text-slate-100">{open.subject}</h3>
-            <div className="mt-1 flex flex-wrap gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <Pill tone="slate">{open.category}</Pill>
               {open.criticality && <Pill tone={CRIT_TONE[open.criticality]}>{open.criticality}</Pill>}
               <Pill tone={STATUS_TONE[open.status]}>{open.status}</Pill>
               {open.channel && <Pill tone="sky">{open.channel}</Pill>}
+              <RecordActions table="communication" id={open.id} record={open as unknown as Record<string, unknown>} fields={['subject', 'body', 'status', 'criticality']} onChanged={() => { setOpen(null); void refresh(); }} />
             </div>
             {open.body && <p className="mt-3 whitespace-pre-wrap text-[13px] text-slate-300">{open.body}</p>}
 

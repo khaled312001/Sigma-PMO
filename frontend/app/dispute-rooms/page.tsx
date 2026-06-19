@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
+import { RecordActions } from '../../components/RecordActions';
 import { Button, Card, EmptyState, PageHeader, Pill } from '../../components/ui';
 import { IconRefresh, IconUpload } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
@@ -251,12 +252,13 @@ function Evidence() {
                         {it.sourceRefs && it.sourceRefs.length > 0 && (
                           <p className="mt-0.5 text-[10px] text-sky-400/80">{isAr ? 'المصدر:' : 'source:'} {it.sourceRefs.map((s) => `${s.fileName}${s.page ? ` p${s.page}` : ''}${s.paragraph ? ` ¶${s.paragraph}` : ''}`).join(' · ')}</p>
                         )}
-                        {canEvaluate && it.status === 'proposed' && (
-                          <div className="mt-1 flex gap-1.5">
+                        <div className="mt-1 flex items-center gap-1.5">
+                          {canEvaluate && it.status === 'proposed' && (<>
                             <Button variant="success" size="sm" onClick={() => act('decide', { decisions: [{ id: it.id, decision: 'confirm' }] })}>{isAr ? 'تأكيد' : 'Confirm'}</Button>
                             <Button variant="ghost" size="sm" onClick={() => act('decide', { decisions: [{ id: it.id, decision: 'exclude' }] })}>{isAr ? 'استبعاد' : 'Exclude'}</Button>
-                          </div>
-                        )}
+                          </>)}
+                          <RecordActions table="evidence_item" id={it.id} record={it as unknown as Record<string, unknown>} fields={['label', 'value', 'status']} onChanged={() => open && loadRoom(open.id)} />
+                        </div>
                       </div>
                     ))}
                   </div>
