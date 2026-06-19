@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Query } from '@nestjs/common';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import type { CompanyStatus } from '../canonical/entities/company.entity';
@@ -33,6 +33,14 @@ export class SuperAdminController {
   @RequiresCapability('canManagePlatform')
   setCompanyStatus(@Param('id') id: string, @Body() body: { status: CompanyStatus }) {
     return this.svc.setCompanyStatus(id, body.status);
+  }
+
+  /** Hard-delete a company (tenant) + its users, subscription and tickets. */
+  @Delete('companies/:id')
+  @HttpCode(200)
+  @RequiresCapability('canManagePlatform')
+  deleteCompany(@Param('id') id: string) {
+    return this.svc.deleteCompany(id);
   }
 
   @Get('subscriptions')

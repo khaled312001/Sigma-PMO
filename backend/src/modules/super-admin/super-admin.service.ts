@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -43,6 +43,26 @@ export class SuperAdminService {
         subscription: await this.subs.findOne({ where: { companyId: c.id } }),
       })),
     );
+  }
+
+  /** Default tenant id (seeded) — must never be deleted. */
+  private static readonly DEFAULT_COMPANY_ID = '00000000-0000-0000-0000-000000000001';
+
+  /**
+   * Hard-delete a company and the tenant identity scoped to it: its users,
+   * subscription and support tickets. Refuses the seeded default company.
+   */
+  async deleteCompany(id: string) {
+    if (id === SuperAdminService.DEFAULT_COMPANY_ID) {
+      throw new BadRequestException('The default company cannot be deleted.');
+    }
+    const c = await this.companies.findOne({ where: { id } });
+    if (!c) throw new NotFoundException('Company not found');
+    await this.users.delete({ companyId: id });
+    await this.subs.delete({ companyId: id });
+    await this.requests.delete({ companyId: id });
+    await this.companies.delete({ id });
+    return { deleted: true as const, name: c.name };
   }
 
   async setCompanyStatus(id: string, status: CompanyStatus) {
