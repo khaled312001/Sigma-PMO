@@ -1,11 +1,11 @@
 {
   "summary": {
     "target": "https://system-api.sigma-pmo.com/api/v1",
-    "total": 12,
-    "passed": 11,
+    "total": 16,
+    "passed": 16,
     "failed": 0,
-    "skipped": 1,
-    "ranAt": "2026-06-19T00:33:47.283Z"
+    "skipped": 0,
+    "ranAt": "2026-06-19T01:10:16.269Z"
   },
   "evidence": [
     {
@@ -24,7 +24,7 @@
       "expected": "HTTP 200 + tenant id",
       "actual": "HTTP 200",
       "result": "PASS",
-      "detail": "companyId=db7c4946-199f-4d5d-a14f-b4832eb8c340"
+      "detail": "companyId=c83365ad-a81d-4191-87a6-a440784fdd2d"
     },
     {
       "id": "L3",
@@ -33,7 +33,7 @@
       "expected": "different tenant id",
       "actual": "HTTP 200",
       "result": "PASS",
-      "detail": "companyId=a06401a5-d201-4bca-9724-7033ea11090b"
+      "detail": "companyId=b458bd50-9ead-480b-9ddd-8bb27f24cd93"
     },
     {
       "id": "L4",
@@ -109,12 +109,48 @@
     },
     {
       "id": "L12",
-      "name": "Super-admin scenarios (suspend/subscription/trial/audit)",
-      "request": "needs ADMIN_PW",
-      "expected": "set ADMIN_SEED_PASSWORD",
-      "actual": "no admin cred",
-      "result": "SKIP",
+      "name": "Super-admin authenticates",
+      "request": "POST /auth/login (admin)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
       "detail": ""
+    },
+    {
+      "id": "L13",
+      "name": "Suspend company A blocks its access",
+      "request": "PATCH status=suspended then GET /projects (A)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": "suspend=200"
+    },
+    {
+      "id": "L14",
+      "name": "Reactivation restores access",
+      "request": "GET /projects (A)",
+      "expected": "HTTP 200",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "L15",
+      "name": "Expired trial blocks access",
+      "request": "GET /projects (A, trial expired)",
+      "expected": "HTTP 403",
+      "actual": "HTTP 403",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "id": "L16",
+      "name": "Audit log active — captured mutations",
+      "request": "GET /audit (admin)",
+      "expected": "rows with mutations",
+      "actual": "HTTP 200",
+      "result": "PASS",
+      "detail": "15 entries"
     }
   ]
 }

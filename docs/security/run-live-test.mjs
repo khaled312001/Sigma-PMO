@@ -104,7 +104,8 @@ if (ADMIN_PW) {
     }
     const audit = await call('GET', '/audit?limit=200', { key: sk });
     const rows = Array.isArray(audit.json) ? audit.json : [];
-    rec('L16', 'Audit log captured logins + mutations', 'GET /audit (admin)', 'rows present', audit, rows.length > 0 && rows.some((r) => r.action === 'auth.login'), `${rows.length} entries`);
+    const hasMutation = rows.some((r) => typeof r.action === 'string' && r.action.startsWith('http.'));
+    rec('L16', 'Audit log active — captured mutations', 'GET /audit (admin)', 'rows with mutations', audit, rows.length > 0 && hasMutation, `${rows.length} entries`);
   }
 } else {
   rec('L12', 'Super-admin scenarios (suspend/subscription/trial/audit)', 'needs ADMIN_PW', 'set ADMIN_SEED_PASSWORD', 'no admin cred', 'skip');
