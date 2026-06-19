@@ -78,7 +78,6 @@ export default function AuthPage() {
   // When the picker is on, the manual email/password form stays hidden behind a
   // toggle (for real admins + registered company users).
   const [manual, setManual] = useState(!SHOW_PICKER);
-  const [autoBusy, setAutoBusy] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
 
@@ -113,15 +112,14 @@ export default function AuthPage() {
     return /401|unauthor/i.test(message) ? t('auth.loginFailed') : message;
   };
 
-  /** One-click: sign in as the picked seeded user (no typing). */
-  const autoLogin = async (account: (typeof ROLE_ACCOUNTS)[number]): Promise<void> => {
-    setAutoBusy(account.email); setError(null);
-    try {
-      await loginWith(account.email, DEMO_PASSWORD);
-    } catch (err) {
-      setError(friendlyError(err));
-      setAutoBusy(null);
-    }
+  /** Pick a sample user: fill its email + password into the form (no instant
+   *  one-click login). The user then reviews the credentials and clicks Sign in. */
+  const pickAccount = (account: (typeof ROLE_ACCOUNTS)[number]): void => {
+    setEmail(account.email);
+    setPassword(DEMO_PASSWORD);
+    setReveal(true);
+    setManual(true);
+    setError(null);
   };
 
   const submit = async (e: React.FormEvent): Promise<void> => {
@@ -255,39 +253,31 @@ export default function AuthPage() {
               <h2 className="text-2xl font-semibold tracking-tight">{t('auth.title')}</h2>
               <p className="mt-2 text-sm text-slate-400">
                 {showPicker
-                  ? ar ? 'اختر مستخدماً للدخول الفوري — بدون كتابة بريد أو كلمة مرور.' : 'Pick a user to sign in instantly — no email or password to type.'
+                  ? ar ? 'اختر نوع المستخدم — يُملأ البريد وكلمة المرور، ثم اضغط تسجيل الدخول.' : 'Pick a user type — its email & password are filled in, then click sign in.'
                   : t('auth.subtitle')}
               </p>
 
-              {/* ===== One-click user picker (demo) ===== */}
+              {/* ===== User-type picker — fills the form (no instant login) ===== */}
               {showPicker && (
                 <div className="mt-6">
                   <div className="grid max-h-[48vh] grid-cols-1 gap-1.5 overflow-y-auto pe-1 sm:grid-cols-2 scrollbar-thin">
-                    {ROLE_ACCOUNTS.map((account) => {
-                      const loading = autoBusy === account.email;
-                      return (
-                        <button
-                          key={account.role}
-                          type="button"
-                          onClick={() => void autoLogin(account)}
-                          disabled={autoBusy !== null}
-                          className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-start transition hover:border-sky-400/60 hover:bg-sky-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-500/40 to-violet-500/30 text-[12px] font-bold text-white ring-1 ring-white/10" dir="ltr">
-                            {ROLE_LABEL[account.role].slice(0, 1)}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13px] font-medium text-slate-100">{ROLE_LABEL[account.role]}</span>
-                            <span className="block truncate text-[10px] text-slate-400" dir="ltr">{account.email}</span>
-                          </span>
-                          {loading ? (
-                            <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-sky-300/40 border-t-sky-300" />
-                          ) : (
-                            <IconLogIn className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-sky-300" />
-                          )}
-                        </button>
-                      );
-                    })}
+                    {ROLE_ACCOUNTS.map((account) => (
+                      <button
+                        key={account.role}
+                        type="button"
+                        onClick={() => pickAccount(account)}
+                        className="group relative flex items-center gap-2.5 overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-start transition hover:border-sky-400/60 hover:bg-sky-500/10"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-500/40 to-violet-500/30 text-[12px] font-bold text-white ring-1 ring-white/10" dir="ltr">
+                          {ROLE_LABEL[account.role].slice(0, 1)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-medium text-slate-100">{ROLE_LABEL[account.role]}</span>
+                          <span className="block truncate text-[10px] text-slate-400" dir="ltr">{account.email}</span>
+                        </span>
+                        <IconLogIn className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-sky-300" />
+                      </button>
+                    ))}
                   </div>
 
                   {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
@@ -297,7 +287,7 @@ export default function AuthPage() {
                     onClick={() => { setManual(true); setError(null); }}
                     className="mt-4 text-[11px] text-slate-400 underline-offset-2 transition hover:text-slate-200 hover:underline"
                   >
-                    {ar ? 'أو سجّل الدخول يدوياً بالبريد وكلمة المرور ←' : '→ Or sign in manually with email & password'}
+                    {ar ? 'أو اكتب البريد وكلمة المرور يدوياً ←' : '→ Or type email & password manually'}
                   </button>
                 </div>
               )}
