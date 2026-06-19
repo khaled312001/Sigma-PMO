@@ -28,6 +28,9 @@ FROM node:20-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# UTC on the SSR server too, so server-rendered timestamps match the UTC store;
+# the browser localises to each user's own timezone on display.
+ENV TZ=UTC
 ENV PORT=3000
 # Bind to all interfaces — without this, Next's standalone server binds to the
 # Docker-assigned HOSTNAME (the container id) and the reverse proxy can't reach

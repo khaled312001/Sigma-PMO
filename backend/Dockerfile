@@ -18,6 +18,9 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production
+# All server-side time is UTC; clients localise on display. The DB driver also
+# stores/reads datetimes in UTC (timezone: 'Z'). This keeps logs + new Date() UTC.
+ENV TZ=UTC
 # mysql-client is only needed by the DB backup/restore scripts (not the app);
 # add it here if you run those inside this image.
 # RUN apk add --no-cache mysql-client

@@ -9,6 +9,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 
+// UTC is the single source of truth for all server-side time. The DB driver
+// stores/reads datetimes in UTC (timezone: 'Z') and the API serialises Dates as
+// ISO 8601 with a trailing Z; clients (browser/app) convert to the viewer's own
+// timezone on display. Make the process timezone explicit as a final guard.
+process.env.TZ = process.env.TZ || 'UTC';
+
 async function bootstrap(): Promise<void> {
   // bufferLogs: true so any logs before the pino logger is wired up are buffered.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
