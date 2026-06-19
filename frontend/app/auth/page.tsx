@@ -78,8 +78,15 @@ export default function AuthPage() {
   // When the picker is on, the manual email/password form stays hidden behind a
   // toggle (for real admins + registered company users).
   const [manual, setManual] = useState(!SHOW_PICKER);
+  // The sample account picked from the type grid (email filled, password typed).
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const emailRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
+
+  // When a user type is picked, move focus to the password so it's typed manually.
+  useEffect(() => {
+    if (manual && selectedRole) passwordRef.current?.focus();
+  }, [manual, selectedRole]);
 
   useEffect(() => {
     (async () => {
@@ -112,12 +119,12 @@ export default function AuthPage() {
     return /401|unauthor/i.test(message) ? t('auth.loginFailed') : message;
   };
 
-  /** Pick a sample user: fill its email + password into the form (no instant
-   *  one-click login). The user then reviews the credentials and clicks Sign in. */
+  /** Pick a sample user: fill ONLY its email into the form. The password is left
+   *  empty for the user to type manually (no saved/prefilled passwords). */
   const pickAccount = (account: (typeof ROLE_ACCOUNTS)[number]): void => {
     setEmail(account.email);
-    setPassword(DEMO_PASSWORD);
-    setReveal(true);
+    setPassword('');
+    setSelectedRole(account.role);
     setManual(true);
     setError(null);
   };
@@ -253,7 +260,7 @@ export default function AuthPage() {
               <h2 className="text-2xl font-semibold tracking-tight">{t('auth.title')}</h2>
               <p className="mt-2 text-sm text-slate-400">
                 {showPicker
-                  ? ar ? 'اختر نوع المستخدم — يُملأ البريد وكلمة المرور، ثم اضغط تسجيل الدخول.' : 'Pick a user type — its email & password are filled in, then click sign in.'
+                  ? ar ? 'اختر نوع المستخدم — يُملأ البريد فقط، ثم اكتب كلمة المرور يدوياً وسجّل الدخول.' : 'Pick a user type — only the email is filled; type the password yourself, then sign in.'
                   : t('auth.subtitle')}
               </p>
 
@@ -304,7 +311,22 @@ export default function AuthPage() {
                     </div>
                   )}
 
-                  <form onSubmit={submit} className="mt-7 space-y-5" autoComplete="on">
+                  {selectedRole && (
+                    <div className="mt-6 flex items-center justify-between gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-sky-500/40 to-violet-500/30 text-[11px] font-bold text-white ring-1 ring-white/10" dir="ltr">{ROLE_LABEL[selectedRole].slice(0, 1)}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-[12px] font-medium text-slate-100">{ROLE_LABEL[selectedRole]}</span>
+                          <span className="block truncate text-[10px] text-slate-400" dir="ltr">{email}</span>
+                        </span>
+                      </span>
+                      <button type="button" onClick={() => { setManual(false); setSelectedRole(null); setPassword(''); setError(null); }} className="shrink-0 text-[11px] font-medium text-sky-300 transition hover:text-sky-200 hover:underline">
+                        {ar ? 'تغيير' : 'Change'}
+                      </button>
+                    </div>
+                  )}
+
+                  <form onSubmit={submit} className="mt-6 space-y-5" autoComplete="on">
                     <div>
                       <label htmlFor="email" className="block text-xs font-medium text-slate-300">{t('auth.emailLabel')}</label>
                       <input
@@ -356,6 +378,13 @@ export default function AuthPage() {
                       {capsLock && (
                         <p id="caps-warning" className="mt-1.5 flex items-center gap-1 text-[11px] text-amber-300">
                           <span aria-hidden>⇧</span> {t('auth.capsLock')}
+                        </p>
+                      )}
+                      {SHOW_PICKER && selectedRole && (
+                        <p className="mt-2 text-[11px] text-slate-400">
+                          {ar ? 'كلمة المرور التجريبية:' : 'Demo password:'}{' '}
+                          <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-slate-200" dir="ltr">{DEMO_PASSWORD}</code>{' '}
+                          — {ar ? 'اكتبها يدوياً' : 'type it manually'}
                         </p>
                       )}
                     </div>
