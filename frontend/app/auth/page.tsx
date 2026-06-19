@@ -33,11 +33,6 @@ const LAYERS = [
   { tag: 'L8', label: 'Sigma Governance AI', labelAr: 'ذكاء سيجما للحوكمة', accent: 'from-fuchsia-400/70 to-rose-500/50' },
 ];
 
-/** Shared password for the non-privileged sample accounts (demo only). Sourced
- *  from the build-time env so it can be rotated per deploy; matches the backend
- *  `DEMO_SEED_PASSWORD`. NOT a real secret — these are throwaway demo logins. */
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'SigmaDemo2026';
-
 /** The sample accounts shown in the picker. Picking one fills ONLY the email;
  *  the password is always typed manually. The privileged accounts (`privileged`)
  *  use a PRIVATE admin password (never the demo password, never hinted). Hide
@@ -400,16 +395,9 @@ export default function AuthPage() {
                           <span aria-hidden>⇧</span> {t('auth.capsLock')}
                         </p>
                       )}
-                      {SHOW_PICKER && selectedRole && !isPrivileged(selectedRole) && (
-                        <p className="mt-2 text-[11px] text-slate-400">
-                          {ar ? 'كلمة المرور التجريبية:' : 'Demo password:'}{' '}
-                          <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-slate-200" dir="ltr">{DEMO_PASSWORD}</code>{' '}
-                          — {ar ? 'اكتبها يدوياً' : 'type it manually'}
-                        </p>
-                      )}
                       {SHOW_PICKER && selectedRole && isPrivileged(selectedRole) && (
                         <p className="mt-2 text-[11px] text-amber-300/80">
-                          {ar ? 'حساب مسؤول — اكتب كلمة مرور المسؤول الخاصة (ليست كلمة المرور التجريبية).' : 'Admin account — type your private admin password (not the demo password).'}
+                          {ar ? 'حساب مسؤول — اكتب كلمة مرور المسؤول الخاصة.' : 'Admin account — type your private admin password.'}
                         </p>
                       )}
                     </div>
