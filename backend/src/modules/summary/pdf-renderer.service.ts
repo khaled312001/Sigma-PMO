@@ -327,8 +327,7 @@ export class PdfRendererService {
       { label: 'Variance (Actual − Planned)', value: delta !== null ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp` : 'n/a', accent: delta !== null && delta >= 0 ? this.successAccent : this.criticalAccent },
       { label: 'Activities tracked', value: String(activityCount), accent: this.crimson },
     ];
-    this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
-    y -= 80;
+    y = this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
 
     // Planned vs actual bar chart (simple horizontal bars).
     page.drawRectangle({ x: 40, y: y - 4, width: 4, height: 16, color: this.crimson });
@@ -378,8 +377,7 @@ export class PdfRendererService {
       { label: 'Warning', value: String(warning), accent: warning > 0 ? this.warningAccent : this.successAccent },
       { label: 'Info', value: String(info), accent: this.crimson },
     ];
-    this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
-    y -= 80;
+    y = this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
 
     // By-rule-code table.
     page.drawRectangle({ x: 40, y: y - 4, width: 4, height: 16, color: this.crimson });
@@ -443,8 +441,7 @@ export class PdfRendererService {
       { label: 'L2 (managed)', value: String(byLevelRaw.L2 ?? 0), accent: this.warningAccent },
       { label: 'L3 (informational)', value: String(byLevelRaw.L3 ?? 0), accent: this.successAccent },
     ];
-    this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
-    y -= 80;
+    y = this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
 
     page.drawRectangle({ x: 40, y: y - 4, width: 4, height: 16, color: this.crimson });
     page.drawText('LEVEL BREAKDOWN', { x: 52, y: y, font: helvBold, size: 11, color: this.inkDark });
@@ -510,8 +507,7 @@ export class PdfRendererService {
         { label: 'BoQ version', value: boqVersion !== null ? `v${boqVersion}` : 'n/a', accent: this.crimson },
         { label: 'Activities priced', value: String(num(full.activityCount) ?? 0), accent: this.crimson },
       ];
-      this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
-      y -= 80;
+      y = this.drawKpiStrip(page, helv, helvBold, cards, y - 60);
 
       page.drawRectangle({ x: 40, y: y - 4, width: 4, height: 16, color: this.crimson });
       page.drawText('FINANCIAL INTERPRETATION', { x: 52, y: y, font: helvBold, size: 11, color: this.inkDark });
@@ -691,7 +687,7 @@ export class PdfRendererService {
     helvBold: import('pdf-lib').PDFFont,
     cards: Array<{ label: string; value: string; accent: import('pdf-lib').RGB }>,
     topY: number,
-  ): void {
+  ): number {
     const cardW = 122;
     const cardH = 58;
     const gap = 8;
@@ -711,6 +707,9 @@ export class PdfRendererService {
         x: x + 10, y: topY - cardH + 12, font: helvBold, size: valueSize, color: this.inkDark,
       });
     }
+    // Return the baseline BELOW the strip (card bottom + 16pt padding) so callers
+    // never overlap the next section onto the cards.
+    return topY - cardH - 16;
   }
 
   private drawProgressBar(
