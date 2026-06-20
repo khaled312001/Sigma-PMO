@@ -7,6 +7,7 @@ import { AuditLog } from '../audit/audit-log.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../canonical/entities';
+import { LegalHoldService } from '../legal-hold/legal-hold.service';
 
 /**
  * Generic, tenant-safe delete/edit of ANY result row across the platform
@@ -34,10 +35,13 @@ export const RESULT_TABLES: Record<string, string> = {
   investment_opportunity: 'Investment opportunity',
   funding_facility: 'Funding facility',
   safety_record: 'Safety record',
+  quality_record: 'Quality / NCR record',
   fire_safety_record: 'Fire-safety record',
   authority_submission: 'Authority submission',
   utility_connection: 'Utility connection',
   operational_readiness_item: 'Operational-readiness item',
+  authority_matrix_entry: 'Authority matrix entry',
+  contract_clause_rule: 'Contract clause rule',
   lessons_learned: 'Lesson learned',
   letter: 'Letter',
   clash_item: 'Clash',
@@ -62,6 +66,7 @@ export class RecordsService {
   constructor(
     @InjectDataSource() private readonly ds: DataSource,
     @InjectRepository(AuditLog) private readonly audit: Repository<AuditLog>,
+    private readonly legalHold: LegalHoldService,
   ) {}
 
   listTables(): Array<{ table: string; label: string }> {
@@ -95,8 +100,28 @@ export class RecordsService {
     this.assertTable(table);
     const cols = await this.columns(table);
     const row = await this.loadRow(table, id, cols);
+    const label = (row.label ?? row.title ?? row.subject ?? null) as string | null;
+    const projectKey = (row.projectBusinessKey ?? row.projectKey ?? null) as string | null;
+
+    // Legal hold: refuse to hard-delete a row preserved for a dispute/claim
+    // (Mr. Ayham acceptance #6/#12). The hold must be released by a privileged
+    // user first; the attempt is recorded in the custody ledger.
+    if (await this.legalHold.isHeld(table, id)) {
+      await this.legalHold.logCustody({
+        targetTable: table, targetId: id, event: 'delete_blocked', projectBusinessKey: projectKey,
+        actorEmail: caller.email, actorRole: caller.role, detail: { label },
+      });
+      throw new ForbiddenException(
+        'This record is under an active legal hold and cannot be deleted. Release the hold (a high-privilege, audited action) before deleting.',
+      );
+    }
+
     await this.ds.query(`DELETE FROM \`${table}\` WHERE \`id\` = ?`, [id]);
-    await this.writeAudit(caller, table, id, 'record.deleted', { label: row.label ?? row.title ?? row.subject ?? null });
+    await this.writeAudit(caller, table, id, 'record.deleted', { label });
+    await this.legalHold.logCustody({
+      targetTable: table, targetId: id, event: 'deleted', projectBusinessKey: projectKey,
+      actorEmail: caller.email, actorRole: caller.role, detail: { label },
+    });
     return { deleted: true, table, id };
   }
 

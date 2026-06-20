@@ -86,6 +86,21 @@ export class EvidenceController {
     return this.svc.fileChunks(id, fileId, await this.caller(rawKey));
   }
 
+  /** Re-hash a file and prove it has not been modified (acceptance #6). */
+  @Get('rooms/:id/files/:fileId/verify')
+  @RequiresCapability('canRead')
+  async verify(@Param('id') id: string, @Param('fileId') fileId: string, @Headers('x-api-key') rawKey?: string) {
+    return this.svc.verifyFile(id, fileId, await this.caller(rawKey));
+  }
+
+  /** Deliverable evidence bundle (index + SHA-256 integrity + findings +
+   *  timeline + legal hold + chain of custody) for a lawyer / claims expert. */
+  @Get('rooms/:id/export')
+  @RequiresCapability('canRead')
+  async exportBundle(@Param('id') id: string, @Headers('x-api-key') rawKey?: string) {
+    return this.svc.exportBundle(id, await this.caller(rawKey));
+  }
+
   /** Human review — decide on findings before commit. */
   @Post('rooms/:id/decide')
   @HttpCode(200)

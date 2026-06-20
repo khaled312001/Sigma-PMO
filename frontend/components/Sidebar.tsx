@@ -87,6 +87,11 @@ const COMMERCIAL: NavLink[] = [
 const RISK_COMPLIANCE: NavLink[] = [
   { href: '/risk',                   labelKey: 'nav.risk',                 surface: 'approval', icon: IconShield,   visible: govern },
   { href: '/claims',                 labelKey: 'nav.claims',               surface: 'admin',    icon: IconEvidence, visible: govern },
+  { href: '/forensic-delay',         labelKey: 'nav.forensicDelay',        surface: 'insights', icon: IconActivity, badge: 'new', visible: govern },
+  { href: '/contract-rules',         labelKey: 'nav.contractRules',        surface: 'approval', icon: IconShield,   badge: 'new', visible: govern },
+  { href: '/authority-matrix',       labelKey: 'nav.authorityMatrix',      surface: 'admin',    icon: IconUsers,    badge: 'new', visible: govern },
+  { href: '/quality',                labelKey: 'nav.quality',              surface: 'review',   icon: IconReview,   badge: 'new', visible: cap('canRunQuality') },
+  { href: '/legal-holds',            labelKey: 'nav.legalHolds',           surface: 'evidence', icon: IconShield,   badge: 'new', visible: govern },
   { href: '/dispute-rooms',          labelKey: 'nav.disputeRooms',         surface: 'evidence', icon: IconDatabase, badge: 'new', visible: read },
   { href: '/safety',                 labelKey: 'nav.safety',               surface: 'review',   icon: IconShield,   visible: cap('canRunSafety') },
   { href: '/fire-safety',            labelKey: 'nav.fireSafety',           surface: 'review',   icon: IconShield,   visible: cap('canRunFireLifeSafety') },

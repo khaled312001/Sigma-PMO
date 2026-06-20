@@ -4,6 +4,7 @@ import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Claim } from '../canonical/entities';
 import { ClaimsAgentService } from './claims-agent.service';
 import { ClaimsExtrasService } from './claims-extras.service';
+import { ForensicDelayService } from './forensic-delay.service';
 
 /**
  * `/claims` — the L6 claims register surface (read). Identification happens by
@@ -15,6 +16,7 @@ export class ClaimsController {
   constructor(
     private readonly claimsAgent: ClaimsAgentService,
     private readonly extras: ClaimsExtrasService,
+    private readonly forensic: ForensicDelayService,
   ) {}
 
   @Get()
@@ -30,6 +32,18 @@ export class ClaimsController {
   entitlement(@Query('projectKey') projectKey?: string) {
     if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
     return this.extras.entitlementList(projectKey);
+  }
+
+  /**
+   * Forensic delay analysis (Mr. Ayham acceptance #1) — as-planned vs as-built
+   * overlay, float-to-completion driving-path isolation, windowing, concurrency
+   * netting and a net time-supported EOT with an entitlement strength + WHY.
+   */
+  @Get('forensic-delay')
+  @RequiresCapability('canRead')
+  forensicDelay(@Query('projectKey') projectKey?: string) {
+    if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
+    return this.forensic.analyse(projectKey);
   }
 
   /** Readiness score (0–100) for one claim with a named breakdown. */

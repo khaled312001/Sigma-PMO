@@ -73,6 +73,11 @@ export const en: Dictionary = {
     communications: 'Communications',
     communicationRules: 'Communication Rules',
     disputeRooms: 'Dispute Data Rooms',
+    forensicDelay: 'Forensic Delay',
+    quality: 'QA/QC & NCRs',
+    authorityMatrix: 'Authority Matrix',
+    legalHolds: 'Legal Holds',
+    contractRules: 'Contract Rules',
     groupWorkspace: 'Workspace',
     groupIntelligence: 'Intelligence',
     groupCommercial: 'Commercial & Investment',
@@ -521,6 +526,7 @@ export interface Dictionary {
   nav: {
     operations: string; admin: string;
     communications: string; communicationRules: string; disputeRooms: string;
+    forensicDelay: string; quality: string; authorityMatrix: string; legalHolds: string; contractRules: string;
     groupWorkspace: string; groupIntelligence: string; groupCommercial: string;
     groupRisk: string; groupDocs: string;
     overview: string; input: string; review: string; evidence: string; approval: string;

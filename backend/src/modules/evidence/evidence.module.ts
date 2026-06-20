@@ -6,6 +6,7 @@ import { AuthModule } from '../auth/auth.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { ClaudeModule } from '../claude/claude.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
+import { LegalHoldModule } from '../legal-hold/legal-hold.module';
 import { EvidenceChunk } from './evidence-chunk.entity';
 import { EvidenceController } from './evidence.controller';
 import { EvidenceCron } from './evidence.cron';
@@ -27,6 +28,7 @@ import { EvidenceService } from './evidence.service';
     ClaudeModule,
     IngestionModule, // StorageService
     CanonicalModule, // ProjectRecord / SourceFile / IngestionRun repos
+    LegalHoldModule, // legal hold + chain-of-custody (acceptance #6)
     TypeOrmModule.forFeature([EvidenceRoom, EvidenceFile, EvidenceChunk, EvidenceItem, AuditLog]),
   ],
   controllers: [EvidenceController],

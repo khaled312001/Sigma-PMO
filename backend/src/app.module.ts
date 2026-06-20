@@ -51,6 +51,10 @@ import { UniversalInputModule } from './modules/universal-input/universal-input.
 import { CommunicationsModule } from './modules/communications/communications.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
 import { RecordsModule } from './modules/records/records.module';
+import { QualityModule } from './modules/quality/quality.module';
+import { AuthorityMatrixModule } from './modules/authority-matrix/authority-matrix.module';
+import { LegalHoldModule } from './modules/legal-hold/legal-hold.module';
+import { ContractRulesModule } from './modules/contract-rules/contract-rules.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { LettersModule } from './modules/letters/letters.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -110,6 +114,17 @@ import { SummaryModule } from './modules/summary/summary.module';
     CommunicationsModule,
     EvidenceModule,
     RecordsModule,
+    // QA/QC Governance (Mr. Ayham acceptance #4, 2026-06-20) — NCR/ITP/Inspection
+    // lifecycle with the NCR → delay/cost/claim chain.
+    QualityModule,
+    // Contractual Authority Matrix (Mr. Ayham acceptance #10, 2026-06-20).
+    AuthorityMatrixModule,
+    // Legal-grade Evidence Integrity (Mr. Ayham acceptance #6/#12) — legal holds
+    // (block hard-delete of dispute-linked rows) + chain-of-custody ledger.
+    LegalHoldModule,
+    // Contract Rules Engine (Mr. Ayham acceptance #2) — clause-rule register +
+    // FIDIC seed + procedural (preserved/weak/time-barred) evaluator.
+    ContractRulesModule,
     NotificationsModule,
     IntegrationsModule,
     RulesModule,

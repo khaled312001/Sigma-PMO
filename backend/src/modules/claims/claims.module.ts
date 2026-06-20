@@ -10,6 +10,7 @@ import { ClaimsExtrasService } from './claims-extras.service';
 import { ClaimsController } from './claims.controller';
 import { DelayAnalysisService } from './delay-analysis.service';
 import { EntitlementService } from './entitlement.service';
+import { ForensicDelayService } from './forensic-delay.service';
 
 /**
  * ClaimsModule — the L6 Claims & Disputes Agent (Phase 4). Deterministic delay
@@ -23,7 +24,7 @@ import { EntitlementService } from './entitlement.service';
 @Module({
   imports: [AgentsModule, CanonicalModule, OutboxModule, TypeOrmModule.forFeature([Letter])],
   controllers: [ClaimsController],
-  providers: [DelayAnalysisService, ClaimsAgentService, EntitlementService, ClaimsExtrasService],
-  exports: [ClaimsAgentService, DelayAnalysisService, EntitlementService, ClaimsExtrasService],
+  providers: [DelayAnalysisService, ClaimsAgentService, EntitlementService, ClaimsExtrasService, ForensicDelayService],
+  exports: [ClaimsAgentService, DelayAnalysisService, EntitlementService, ClaimsExtrasService, ForensicDelayService],
 })
 export class ClaimsModule {}

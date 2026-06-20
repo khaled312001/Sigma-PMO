@@ -7,6 +7,7 @@ import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { AuditLog } from '../audit/audit-log.entity';
 import { IngestionRun, ProjectRecord, SourceFile, User } from '../canonical/entities';
 import { StorageService } from '../ingestion/storage/storage.service';
+import { LegalHoldService } from '../legal-hold/legal-hold.service';
 import { EvidenceProcessorService } from './evidence-processor.service';
 import { EvidenceChunk } from './evidence-chunk.entity';
 import { EvidenceFile } from './evidence-file.entity';
@@ -46,6 +47,7 @@ export class EvidenceService {
     @InjectRepository(IngestionRun) private readonly runs: Repository<IngestionRun>,
     private readonly storage: StorageService,
     private readonly processor: EvidenceProcessorService,
+    private readonly legalHold: LegalHoldService,
   ) {}
 
   // ── rooms ────────────────────────────────────────────────────────────────
@@ -175,6 +177,96 @@ export class EvidenceService {
   async fileChunks(roomId: string, fileId: string, caller: User): Promise<EvidenceChunk[]> {
     await this.getRoom(roomId, caller);
     return this.chunks.find({ where: { roomId, fileId }, order: { chunkIndex: 'ASC' }, take: 1000 });
+  }
+
+  // ── legal-grade evidence integrity (Mr. Ayham acceptance #6) ────────────────
+
+  /**
+   * Re-hash one archived file and compare to the SHA-256 stored at ingest —
+   * proof of non-modification on read. Records the result in the chain of
+   * custody (verified / verify_failed) with the SHA at the time.
+   */
+  async verifyFile(roomId: string, fileId: string, caller: User): Promise<{
+    fileId: string; fileName: string; expectedSha: string | null; actualSha: string | null; bytes: number; verified: boolean; reason?: string;
+  }> {
+    const room = await this.getRoom(roomId, caller);
+    const file = await this.files.findOne({ where: { id: fileId, roomId: room.id } });
+    if (!file) throw new NotFoundException('Evidence file not found in this room');
+    if (!file.storedPath || !file.sha256) {
+      return { fileId, fileName: file.fileName, expectedSha: file.sha256 ?? null, actualSha: null, bytes: Number(file.bytes || 0), verified: false, reason: 'No archived content / stored hash to verify.' };
+    }
+    let actualSha: string | null = null;
+    let verified = false;
+    let reason: string | undefined;
+    try {
+      const bytes = await this.storage.read(file.storedPath);
+      actualSha = this.storage.sha256(bytes);
+      verified = actualSha === file.sha256;
+      if (!verified) reason = 'Recomputed digest does not match the digest recorded at ingest.';
+    } catch (err) {
+      reason = `Archive unreadable: ${(err as Error).message}`;
+    }
+    await this.legalHold.logCustody({
+      targetTable: 'evidence_file', targetId: file.id, event: verified ? 'verified' : 'verify_failed',
+      projectBusinessKey: room.projectBusinessKey, actorEmail: caller.email, actorRole: caller.role,
+      shaAtEvent: actualSha, detail: { fileName: file.fileName, expectedSha: file.sha256, actualSha, roomId: room.id },
+    });
+    return { fileId, fileName: file.fileName, expectedSha: file.sha256, actualSha, bytes: Number(file.bytes || 0), verified, reason };
+  }
+
+  /**
+   * Assemble a deliverable evidence bundle for a lawyer / claims expert: the
+   * evidence index with per-file SHA-256 + integrity verification, the
+   * source-linked findings, the timeline, any legal hold, and the chain of
+   * custody. A self-describing, defensible export. Records an 'exported' custody
+   * event on the room.
+   */
+  async exportBundle(roomId: string, caller: User): Promise<Record<string, unknown>> {
+    const room = await this.getRoom(roomId, caller);
+    const [files, items, hold, custody] = await Promise.all([
+      this.files.find({ where: { roomId: room.id }, order: { docDate: 'ASC', createdAt: 'ASC' }, take: 2000 }),
+      this.items.find({ where: { roomId: room.id }, order: { chronologyOrder: 'ASC', createdAt: 'ASC' }, take: 5000 }),
+      this.legalHold.activeHoldFor('evidence_room', room.id),
+      this.legalHold.listCustody(undefined, undefined, room.projectBusinessKey ?? undefined),
+    ]);
+
+    const manifest: Array<Record<string, unknown>> = [];
+    for (const f of files.slice(0, 300)) {
+      let verified: boolean | null = null;
+      let actualSha: string | null = null;
+      if (f.storedPath && f.sha256) {
+        try { actualSha = this.storage.sha256(await this.storage.read(f.storedPath)); verified = actualSha === f.sha256; }
+        catch { verified = false; }
+      }
+      manifest.push({
+        fileName: f.fileName, docNumber: f.docNumber, party: f.party, docDate: f.docDate,
+        category: f.category, bytes: Number(f.bytes || 0), pageCount: f.pageCount,
+        sha256: f.sha256, integrity: { algorithm: 'SHA-256', recomputed: actualSha, verified },
+      });
+    }
+
+    await this.legalHold.logCustody({
+      targetTable: 'evidence_room', targetId: room.id, event: 'exported',
+      projectBusinessKey: room.projectBusinessKey, actorEmail: caller.email, actorRole: caller.role,
+      detail: { files: files.length, items: items.length },
+    });
+    await this.writeAudit(caller, room, 'evidence.exported', { files: files.length, items: items.length });
+
+    return {
+      generatedAt: new Date().toISOString(),
+      generatedBy: caller.email,
+      room: { id: room.id, title: room.title, kind: room.kind, mode: room.mode, status: room.status, projectBusinessKey: room.projectBusinessKey },
+      integrity: { algorithm: 'SHA-256', filesVerified: manifest.filter((m) => (m.integrity as Record<string, unknown>).verified === true).length, fileCount: files.length, manifest },
+      findings: items.map((i) => ({
+        id: i.id, type: i.type, layer: i.layer, label: i.label,
+        value: i.correctedValue ?? i.value, effectiveDate: i.effectiveDate,
+        confidence: i.confidence, status: i.status, sourceRefs: i.sourceRefs ?? [],
+      })),
+      timeline: items.filter((i) => i.type === 'fact' || i.type === 'event').map((i) => ({ date: i.effectiveDate, label: i.label, sourceRefs: i.sourceRefs ?? [] })),
+      legalHold: hold ? { active: true, reason: hold.reason, matterRef: hold.matterRef, placedBy: hold.placedByEmail, placedAt: hold.createdAt } : { active: false },
+      chainOfCustody: custody.map((c) => ({ event: c.event, target: `${c.targetTable}/${c.targetId}`, actor: c.actorEmail, at: c.createdAt, sha: c.shaAtEvent })),
+      disclaimer: 'Sigma PMO evidence export. Each file is content-addressed by SHA-256 captured at ingest; integrity.verified=true means the archived bytes still hash to that digest. Findings are AI-assisted and require human review before reliance. Dispute-linked records are protected from deletion by legal hold.',
+    };
   }
 
   /** Manual re-drive of the pipeline for a room (e.g. after raising a limit). */

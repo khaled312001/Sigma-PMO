@@ -79,6 +79,12 @@ import { FireSafetyRecord } from './fire-safety-record.entity';
 import { AuthoritySubmission } from './authority-submission.entity';
 import { UtilityConnection } from './utility-connection.entity';
 import { OperationalReadinessItem } from './operational-readiness-item.entity';
+// QA/QC Governance (Mr. Ayham acceptance #4, 2026-06-20).
+import { QualityRecord } from './quality-record.entity';
+// Contractual Authority Matrix (Mr. Ayham acceptance #10, 2026-06-20).
+import { AuthorityMatrixEntry } from './authority-matrix-entry.entity';
+// Contract Rules Engine (Mr. Ayham acceptance #2, 2026-06-20).
+import { ContractClauseRule } from './contract-clause-rule.entity';
 
 export {
   Activity,
@@ -144,6 +150,9 @@ export {
   AuthoritySubmission,
   UtilityConnection,
   OperationalReadinessItem,
+  QualityRecord,
+  AuthorityMatrixEntry,
+  ContractClauseRule,
 };
 
 /** All canonical ORM entities, for TypeOrmModule.forFeature registration. */
@@ -242,4 +251,13 @@ export const CANONICAL_ENTITIES = [
   AuthoritySubmission,
   UtilityConnection,
   OperationalReadinessItem,
+  // QA/QC Governance (Mr. Ayham acceptance #4, 2026-06-20): NCR/ITP/Inspection
+  // lifecycle with the NCR → delay/cost/claim chain.
+  QualityRecord,
+  // Contractual Authority Matrix (Mr. Ayham acceptance #10, 2026-06-20): who may
+  // perform which contractual actions per project + the authorization check.
+  AuthorityMatrixEntry,
+  // Contract Rules Engine (Mr. Ayham acceptance #2, 2026-06-20): clause rules
+  // (notice/time-bar/deemed-approval/determination) + procedural evaluator.
+  ContractClauseRule,
 ];
