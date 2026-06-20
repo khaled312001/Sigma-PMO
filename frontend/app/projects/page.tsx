@@ -12,6 +12,34 @@ import { useProject, ProjectSummary } from '../../lib/project-context';
 import { useToast } from '../../components/ToastProvider';
 import { IconAlertCritical, IconAlertWarning, IconDatabase, IconEdit, IconFolder, IconPlus, IconTrash, IconX } from '../../components/Icons';
 import { Button, Card, PageHeader, Pill, SeverityBadge, ConfidenceBar } from '../../components/ui';
+import { useMe } from '../../lib/me-context';
+import { CAPABILITIES } from '../../lib/capabilities';
+
+// Governance tree shapes (Enterprise → Portfolio → Program), used to place a new
+// project under a client (Enterprise) + a Program that links related projects or
+// the phases of one project (Mr. Ayham, 2026-06-21).
+interface TreeProgramLite { businessKey: string; name: string }
+interface TreePortfolioLite { businessKey: string; name: string; programs: TreeProgramLite[] }
+interface TreeEnterpriseLite { businessKey: string; name: string; portfolios: TreePortfolioLite[] }
+interface GovTree { enterprises: TreeEnterpriseLite[] }
+
+/** Stable governance-node key from a name (latin slug, else a short hash for Arabic). */
+function slugKey(prefix: string, name: string): string {
+  const latin = name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32);
+  if (latin) return `${prefix}-${latin}`;
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `${prefix}-${h.toString(36).toUpperCase()}`;
+}
+
+/** Create a governance node, treating an "already exists" response as success (idempotent). */
+async function ensureNode(path: string, body: Record<string, unknown>): Promise<void> {
+  try {
+    await api(path, { method: 'POST', body: JSON.stringify(body) });
+  } catch (e) {
+    if (!/already exists/i.test((e as Error).message)) throw e;
+  }
+}
 
 export default function ProjectsPageRoute() {
   return <AuthGate surface="Projects"><ProjectsPage /></AuthGate>;
@@ -82,6 +110,22 @@ function ProjectsPage() {
   // True when the create form is entering a NEW client (vs picking an existing one).
   const [newClientMode, setNewClientMode] = useState(false);
 
+  // Hierarchy placement (Mr. Ayham, 2026-06-21): a client = an Enterprise that can
+  // own several projects; a Program links related projects or the phases of one
+  // project. Only the governance-management tier sees this.
+  const { me } = useMe();
+  const canHierarchy = !!me?.user && !!CAPABILITIES[me.user.role]?.canManageHierarchy;
+  const [tree, setTree] = useState<GovTree | null>(null);
+  const [entSel, setEntSel] = useState('');       // '' none | <enterpriseKey> | '__new__'
+  const [entNewName, setEntNewName] = useState('');
+  const [progSel, setProgSel] = useState('');     // '' none | <programKey> | '__new__'
+  const [progNewName, setProgNewName] = useState('');
+  const enterprises = tree?.enterprises ?? [];
+  const programsForEnt = useMemo<TreeProgramLite[]>(() => {
+    const ent = enterprises.find((e) => e.businessKey === entSel);
+    return ent ? ent.portfolios.flatMap((pf) => pf.programs) : [];
+  }, [enterprises, entSel]);
+
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -146,6 +190,10 @@ function ProjectsPage() {
     // Default to "pick existing client" when any client already exists; otherwise
     // there is nothing to pick, so start in new-client mode.
     setNewClientMode(existingClients.length === 0);
+    setEntSel(''); setEntNewName(''); setProgSel(''); setProgNewName('');
+    if (canHierarchy) {
+      api<GovTree>('/hierarchy/tree').then(setTree).catch(() => setTree({ enterprises: [] }));
+    }
     setModalOpen(true);
   };
 
@@ -179,12 +227,47 @@ function ProjectsPage() {
     setSaving(true);
     try {
       if (modalMode === 'create') {
+        const projectKey = form.businessKey.trim();
+        // ── Resolve the client (Enterprise): pick existing, create new, or none. ──
+        let enterpriseKey: string | null = null;
+        let enterpriseName: string | null = null;
+        if (canHierarchy && entSel) {
+          if (entSel === '__new__') {
+            enterpriseName = entNewName.trim() || null;
+            if (enterpriseName) {
+              enterpriseKey = slugKey('ENT', enterpriseName);
+              await ensureNode('/hierarchy/enterprise', { businessKey: enterpriseKey, name: enterpriseName });
+            }
+          } else {
+            enterpriseKey = entSel;
+            enterpriseName = enterprises.find((e) => e.businessKey === entSel)?.name ?? null;
+          }
+        }
+        // clientName follows the chosen Enterprise when placed in the hierarchy.
+        const clientName = enterpriseName ?? (form.clientName.trim() || null);
+
+        // ── Resolve the Program (links related projects / phases): existing or new. ──
+        let programKey: string | null = null;
+        if (canHierarchy && progSel) {
+          if (progSel === '__new__') {
+            const pn = progNewName.trim();
+            if (pn && enterpriseKey && enterpriseName) {
+              const portfolioKey = slugKey('PF', enterpriseName);
+              await ensureNode('/hierarchy/portfolio', { businessKey: portfolioKey, name: `${enterpriseName} — Portfolio`, enterpriseBusinessKey: enterpriseKey });
+              programKey = slugKey('PRG', pn);
+              await ensureNode('/hierarchy/program', { businessKey: programKey, name: pn, portfolioBusinessKey: portfolioKey });
+            }
+          } else {
+            programKey = progSel;
+          }
+        }
+
         await api('/projects', {
           method: 'POST',
           body: JSON.stringify({
-            businessKey: form.businessKey.trim(),
+            businessKey: projectKey,
             name: form.name.trim(),
-            clientName: form.clientName.trim() || null,
+            clientName,
             status: form.status.trim() || 'active',
             currency: form.currency.trim() || null,
             plannedStart: form.plannedStart || null,
@@ -192,6 +275,10 @@ function ProjectsPage() {
             budgetAtCompletion: form.budgetAtCompletion.trim() || null,
           }),
         });
+        // Attach into the hierarchy — denormalizes program → portfolio → enterprise.
+        if (programKey) {
+          await api('/hierarchy/attach', { method: 'POST', body: JSON.stringify({ projectKey, programKey }) });
+        }
         toast.success(
           isAr ? 'تم الإنشاء' : 'Created',
           isAr ? `تم إنشاء المشروع ${form.name}` : `Project "${form.name}" created`,
@@ -491,8 +578,55 @@ function ProjectsPage() {
                 />
               </FieldGroup>
 
-              {/* Client — pick an EXISTING client (same client → add this project to
-                  them) or add a NEW client (new project). Mr. Ayham, 2026-06-20. */}
+              {/* Client/hierarchy placement. Governance-tier users place the project
+                  under a client (Enterprise) + an optional Program that links related
+                  projects or the phases of one project (Mr. Ayham, 2026-06-21). Other
+                  users get the simple existing/new client selector (2026-06-20). */}
+              {canHierarchy && modalMode === 'create' ? (
+                <>
+                  <FieldGroup
+                    label={isAr ? 'العميل (المؤسسة)' : 'Client (Enterprise)'}
+                    hint={isAr ? 'العميل = مؤسسة ممكن تملك عدة مشاريع' : 'A client is an Enterprise that can own several projects'}
+                  >
+                    <div className="space-y-2">
+                      <select
+                        value={entSel}
+                        onChange={(e) => { setEntSel(e.target.value); setProgSel(''); }}
+                        dir="auto"
+                        className="input-field"
+                      >
+                        <option value="">{isAr ? '— بدون / عميل كنص حر —' : '— None / free-text client —'}</option>
+                        {enterprises.map((en) => <option key={en.businessKey} value={en.businessKey}>{en.name}</option>)}
+                        <option value="__new__">{isAr ? '➕ عميل جديد…' : '➕ New client…'}</option>
+                      </select>
+                      {entSel === '__new__' && (
+                        <input value={entNewName} onChange={(e) => setEntNewName(e.target.value)} placeholder={isAr ? 'اسم العميل/المؤسسة الجديدة' : 'New client / enterprise name'} dir="auto" className="input-field" autoFocus />
+                      )}
+                      {entSel === '' && (
+                        <input value={form.clientName} onChange={(e) => setField('clientName', e.target.value)} placeholder={isAr ? 'اسم العميل (نص حر، اختياري)' : 'Client name (free text, optional)'} dir="auto" className="input-field" />
+                      )}
+                    </div>
+                  </FieldGroup>
+
+                  {entSel && (
+                    <FieldGroup
+                      label={isAr ? 'البرنامج (ربط)' : 'Program (link)'}
+                      hint={isAr ? 'اربط المشاريع المترابطة أو مراحل المشروع الواحد تحت برنامج' : 'Group related projects — or the phases of one project — under a program'}
+                    >
+                      <div className="space-y-2">
+                        <select value={progSel} onChange={(e) => setProgSel(e.target.value)} dir="auto" className="input-field">
+                          <option value="">{isAr ? '— مستقل (بدون برنامج) —' : '— Standalone (no program) —'}</option>
+                          {entSel !== '__new__' && programsForEnt.map((pr) => <option key={pr.businessKey} value={pr.businessKey}>{pr.name}</option>)}
+                          <option value="__new__">{isAr ? '➕ برنامج جديد…' : '➕ New program…'}</option>
+                        </select>
+                        {progSel === '__new__' && (
+                          <input value={progNewName} onChange={(e) => setProgNewName(e.target.value)} placeholder={isAr ? 'اسم البرنامج (مثال: مراحل برج النيل)' : 'Program name (e.g. Nile Tower phases)'} dir="auto" className="input-field" />
+                        )}
+                      </div>
+                    </FieldGroup>
+                  )}
+                </>
+              ) : (
               <FieldGroup
                 label={isAr ? 'العميل' : 'Client'}
                 hint={isAr ? 'اختر عميلًا موجودًا لإضافة المشروع له، أو أضف عميلًا جديدًا' : 'Pick an existing client to add this project to, or add a new client'}
@@ -534,6 +668,7 @@ function ProjectsPage() {
                   />
                 )}
               </FieldGroup>
+              )}
 
               {/* Status + Currency (side by side) */}
               <div className="grid grid-cols-2 gap-3">
