@@ -79,6 +79,8 @@ function ProjectsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  // True when the create form is entering a NEW client (vs picking an existing one).
+  const [newClientMode, setNewClientMode] = useState(false);
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
@@ -122,6 +124,14 @@ function ProjectsPage() {
     });
   }, [baseProjects, alerts, runs]);
 
+  // Distinct existing clients (Mr. Ayham, 2026-06-20 voice note): adding a project
+  // can attach it to an EXISTING client (same client → new project), or create a
+  // brand-new client. This list powers the "pick existing client" selector.
+  const existingClients = useMemo(
+    () => Array.from(new Set(baseProjects.map((p) => (p.clientName ?? '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [baseProjects],
+  );
+
   const totalAlerts = rows.reduce((s, r) => s + r.alerts, 0);
   const totalCriticals = rows.reduce((s, r) => s + r.criticals, 0);
   const totalRuns = rows.reduce((s, r) => s + r.runs, 0);
@@ -133,6 +143,9 @@ function ProjectsPage() {
     setForm(EMPTY_FORM);
     setEditId(null);
     setModalMode('create');
+    // Default to "pick existing client" when any client already exists; otherwise
+    // there is nothing to pick, so start in new-client mode.
+    setNewClientMode(existingClients.length === 0);
     setModalOpen(true);
   };
 
@@ -478,15 +491,48 @@ function ProjectsPage() {
                 />
               </FieldGroup>
 
-              {/* Client */}
-              <FieldGroup label={isAr ? 'اسم العميل' : 'Client Name'}>
-                <input
-                  value={form.clientName}
-                  onChange={(e) => setField('clientName', e.target.value)}
-                  placeholder={isAr ? 'اسم الشركة أو العميل' : 'Company or client name'}
-                  dir="auto"
-                  className="input-field"
-                />
+              {/* Client — pick an EXISTING client (same client → add this project to
+                  them) or add a NEW client (new project). Mr. Ayham, 2026-06-20. */}
+              <FieldGroup
+                label={isAr ? 'العميل' : 'Client'}
+                hint={isAr ? 'اختر عميلًا موجودًا لإضافة المشروع له، أو أضف عميلًا جديدًا' : 'Pick an existing client to add this project to, or add a new client'}
+              >
+                {modalMode === 'create' && existingClients.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      value={newClientMode ? '__new__' : form.clientName}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '__new__') { setNewClientMode(true); setField('clientName', ''); }
+                        else { setNewClientMode(false); setField('clientName', v); }
+                      }}
+                      dir="auto"
+                      className="input-field"
+                    >
+                      <option value="">{isAr ? '— اختر عميلًا موجودًا —' : '— Select existing client —'}</option>
+                      {existingClients.map((c) => <option key={c} value={c}>{c}</option>)}
+                      <option value="__new__">{isAr ? '➕ عميل جديد…' : '➕ New client…'}</option>
+                    </select>
+                    {newClientMode && (
+                      <input
+                        value={form.clientName}
+                        onChange={(e) => setField('clientName', e.target.value)}
+                        placeholder={isAr ? 'اسم العميل الجديد' : 'New client name'}
+                        dir="auto"
+                        className="input-field"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    value={form.clientName}
+                    onChange={(e) => setField('clientName', e.target.value)}
+                    placeholder={isAr ? 'اسم الشركة أو العميل' : 'Company or client name'}
+                    dir="auto"
+                    className="input-field"
+                  />
+                )}
               </FieldGroup>
 
               {/* Status + Currency (side by side) */}
