@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { AuthGate } from '../../components/AuthGate';
+import { RecordActions } from '../../components/RecordActions';
 import { IconChevronRight, IconRefresh, IconSparkles } from '../../components/Icons';
 import { useToast } from '../../components/ToastProvider';
 import { Button, Card, EmptyState, ErrorBanner, PageHeader, Pill } from '../../components/ui';
@@ -159,6 +160,7 @@ function RiskPage() {
                   <Pill tone="slate">{r.category}</Pill>
                   <span className="text-sm font-medium text-slate-100">{r.title}</span>
                   <span className="ms-auto font-mono text-[10px] text-slate-500" dir="ltr">priority {r.priorityScore}</span>
+                  <RecordActions table="risk" id={r.id} record={r as unknown as Record<string, unknown>} fields={['title', 'mitigation', 'status']} onChanged={load} />
                 </div>
                 <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Meter label={ar ? 'الاحتمالية' : 'Probability'} value={r.probability} />

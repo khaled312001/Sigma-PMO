@@ -74,6 +74,7 @@ export const ar: Dictionary = {
     bootstrapMode: 'وضع التهيئة الأولى',
     communications: 'المراسلات',
     communicationRules: 'قواعد المراسلات',
+    disputeRooms: 'غرف بيانات النزاعات',
     groupWorkspace: 'مساحة العمل',
     groupIntelligence: 'الذكاء والتحليلات',
     groupCommercial: 'التجاري والاستثمار',

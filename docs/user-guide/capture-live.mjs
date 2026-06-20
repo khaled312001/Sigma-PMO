@@ -123,8 +123,24 @@ async function main() {
     await new Promise((r) => setTimeout(r, 1600));
   }
 
+  // Pre-login onboarding pages — captured with NO session (public).
+  const PRELOGIN = [['intro', '/intro'], ['register', '/register'], ['auth', '/auth']];
+
   let done = 0, skipped = 0;
-  for (const lang of ['ar', 'en']) {
+  const LANGS = (process.env.LANGS || 'ar,en').split(',').map((s) => s.trim()).filter(Boolean);
+  for (const lang of LANGS) {
+    // Pre-login flow first — land on the app origin, then clear any session.
+    await page.goto(`${BASE}/auth`, { waitUntil: 'domcontentloaded' });
+    prepared = true;
+    await page.evaluate((l) => { localStorage.clear(); localStorage.setItem('sigma_lang', l); localStorage.setItem('sigma_theme', 'light'); }, lang);
+    for (const [name, route] of PRELOGIN) {
+      try {
+        await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle2', timeout: 60000 });
+        await waitLoaded();
+        await page.screenshot({ path: `shots-live/${lang}/${name}.png`, fullPage: true });
+        done++; console.log(`shot ${lang}: ${name}`);
+      } catch (err) { console.warn(`FAILED ${lang}/${name}: ${err.message}`); }
+    }
     let curRole = null;
     for (const [name, route, role] of ROUTES) {
       const key = keys[role];
