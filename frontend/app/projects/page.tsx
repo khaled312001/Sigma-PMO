@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { AlertRecord, api, IngestionRun } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
@@ -9,8 +9,9 @@ import { DataTable } from '../../components/DataTable';
 import { SkeletonStat, SkeletonRow } from '../../components/Skeleton';
 import { useI18n } from '../../lib/i18n';
 import { useProject, ProjectSummary } from '../../lib/project-context';
-import { IconAlertCritical, IconAlertWarning, IconDatabase, IconFolder } from '../../components/Icons';
-import { Card, PageHeader, Pill, SeverityBadge, ConfidenceBar } from '../../components/ui';
+import { useToast } from '../../components/ToastProvider';
+import { IconAlertCritical, IconAlertWarning, IconDatabase, IconEdit, IconFolder, IconPlus, IconTrash, IconX } from '../../components/Icons';
+import { Button, Card, PageHeader, Pill, SeverityBadge, ConfidenceBar } from '../../components/ui';
 
 export default function ProjectsPageRoute() {
   return <AuthGate surface="Projects"><ProjectsPage /></AuthGate>;
@@ -39,13 +40,51 @@ interface ProjectRow extends ScoredProject {
   confidence: number | null;
 }
 
+/** Shape sent to the create / update endpoints. */
+interface ProjectFormData {
+  businessKey: string;
+  name: string;
+  clientName: string;
+  status: string;
+  currency: string;
+  plannedStart: string;
+  plannedFinish: string;
+  budgetAtCompletion: string;
+}
+
+const EMPTY_FORM: ProjectFormData = {
+  businessKey: '',
+  name: '',
+  clientName: '',
+  status: 'active',
+  currency: 'SAR',
+  plannedStart: '',
+  plannedFinish: '',
+  budgetAtCompletion: '',
+};
+
 function ProjectsPage() {
   const { t, lang } = useI18n();
   const isAr = lang === 'ar';
-  const { projects, loading } = useProject();
+  const { projects, loading, refresh: refreshCtx } = useProject();
+  const toast = useToast();
   const [scored, setScored] = useState<ScoredProject[] | null>(null);
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [runs, setRuns] = useState<IngestionRun[] | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState<ProjectFormData>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
   useEffect(() => {
     Promise.all([
@@ -54,7 +93,7 @@ function ProjectsPage() {
       api<ScoredProject[]>('/projects'),
     ]).then(([a, r, s]) => { setAlerts(a); setRuns(r); setScored(s); })
       .catch(() => { setAlerts([]); setRuns([]); setScored([]); });
-  }, []);
+  }, [fetchKey]);
 
   // Prefer the score-decorated list from /projects; fall back to the context
   // list (no scores) so the table still renders if the scored fetch failed.
@@ -89,12 +128,126 @@ function ProjectsPage() {
 
   const ready = !loading && alerts !== null && runs !== null;
 
+  // ── Modal handlers ──
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setEditId(null);
+    setModalMode('create');
+    setModalOpen(true);
+  };
+
+  const openEdit = (r: ProjectRow) => {
+    setForm({
+      businessKey: r.businessKey,
+      name: r.name,
+      clientName: r.clientName ?? '',
+      status: r.status ?? 'active',
+      currency: '',
+      plannedStart: '',
+      plannedFinish: '',
+      budgetAtCompletion: '',
+    });
+    setEditId(r.id);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const closeModal = () => { setModalOpen(false); setEditId(null); };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error(isAr ? 'خطأ' : 'Error', isAr ? 'اسم المشروع مطلوب' : 'Project name is required');
+      return;
+    }
+    if (modalMode === 'create' && !form.businessKey.trim()) {
+      toast.error(isAr ? 'خطأ' : 'Error', isAr ? 'مفتاح المشروع مطلوب' : 'Project key is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (modalMode === 'create') {
+        await api('/projects', {
+          method: 'POST',
+          body: JSON.stringify({
+            businessKey: form.businessKey.trim(),
+            name: form.name.trim(),
+            clientName: form.clientName.trim() || null,
+            status: form.status.trim() || 'active',
+            currency: form.currency.trim() || null,
+            plannedStart: form.plannedStart || null,
+            plannedFinish: form.plannedFinish || null,
+            budgetAtCompletion: form.budgetAtCompletion.trim() || null,
+          }),
+        });
+        toast.success(
+          isAr ? 'تم الإنشاء' : 'Created',
+          isAr ? `تم إنشاء المشروع ${form.name}` : `Project "${form.name}" created`,
+        );
+      } else {
+        await api(`/projects/${editId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: form.name.trim(),
+            clientName: form.clientName.trim() || null,
+            status: form.status.trim() || null,
+            currency: form.currency.trim() || null,
+            plannedStart: form.plannedStart || null,
+            plannedFinish: form.plannedFinish || null,
+            budgetAtCompletion: form.budgetAtCompletion.trim() || null,
+          }),
+        });
+        toast.success(
+          isAr ? 'تم التحديث' : 'Updated',
+          isAr ? `تم تحديث المشروع ${form.name}` : `Project "${form.name}" updated`,
+        );
+      }
+      closeModal();
+      refetch();
+      void refreshCtx();
+    } catch (e) {
+      toast.error(
+        isAr ? 'فشلت العملية' : 'Operation failed',
+        (e as Error).message,
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api(`/projects/${deleteTarget.id}`, { method: 'DELETE' });
+      toast.success(
+        isAr ? 'تم الحذف' : 'Deleted',
+        isAr ? `تم حذف المشروع ${deleteTarget.name}` : `Project "${deleteTarget.name}" deleted`,
+      );
+      setDeleteTarget(null);
+      refetch();
+      void refreshCtx();
+    } catch (e) {
+      toast.error(isAr ? 'فشل الحذف' : 'Delete failed', (e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const setField = (key: keyof ProjectFormData, value: string) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
   return (
     <div className="space-y-7">
       <PageHeader
         eyebrow={t('projects.eyebrow')}
         title={t('projects.title')}
         description={t('projects.description')}
+        actions={
+          <Button variant="primary" size="sm" onClick={openCreate}>
+            <IconPlus className="h-4 w-4" />
+            {isAr ? 'إضافة مشروع' : 'Add Project'}
+          </Button>
+        }
       />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -236,6 +389,30 @@ function ProjectsPage() {
               accessor: (r) => r.lastIngested?.getTime() ?? 0,
               hideOnMobile: true,
             },
+            {
+              key: 'actions',
+              label: isAr ? 'إجراءات' : 'Actions',
+              width: '7rem',
+              align: 'end',
+              render: (r) => (
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openEdit(r); }}
+                    title={isAr ? 'تعديل' : 'Edit'}
+                    className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-sky-500/15 hover:text-sky-300"
+                  >
+                    <IconEdit className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(r); }}
+                    title={isAr ? 'حذف' : 'Delete'}
+                    className="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-300"
+                  >
+                    <IconTrash className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ),
+            },
           ]}
         />
       ) : (
@@ -247,6 +424,226 @@ function ProjectsPage() {
       <p className="text-center text-[11px] text-slate-500">
         <Link href="/review" className="hover:text-slate-300">{t('common2.viewAll')} →</Link>
       </p>
+
+      {/* ═══ Create / Edit Modal ═══ */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
+
+          {/* Panel */}
+          <div className="relative mx-4 w-full max-w-lg animate-[fadeScaleIn_200ms_ease-out] rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-50">
+                  {modalMode === 'create'
+                    ? (isAr ? 'إضافة مشروع جديد' : 'Add New Project')
+                    : (isAr ? 'تعديل المشروع' : 'Edit Project')}
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {modalMode === 'create'
+                    ? (isAr ? 'أدخل بيانات المشروع الأساسية' : 'Enter the basic project details')
+                    : (isAr ? 'عدّل بيانات المشروع' : 'Update the project details')}
+                </p>
+              </div>
+              <button onClick={closeModal} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-slate-100">
+                <IconX className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="max-h-[65vh] overflow-y-auto px-6 py-5 space-y-4">
+              {/* Business Key — only for create mode */}
+              {modalMode === 'create' && (
+                <FieldGroup label={isAr ? 'مفتاح المشروع' : 'Project Key'} required hint={isAr ? 'مثال: P-2000' : 'e.g. P-2000'}>
+                  <input
+                    value={form.businessKey}
+                    onChange={(e) => setField('businessKey', e.target.value)}
+                    placeholder="P-2000"
+                    dir="ltr"
+                    className="input-field font-mono"
+                  />
+                </FieldGroup>
+              )}
+
+              {/* Name */}
+              <FieldGroup label={isAr ? 'اسم المشروع' : 'Project Name'} required>
+                <input
+                  value={form.name}
+                  onChange={(e) => setField('name', e.target.value)}
+                  placeholder={isAr ? 'اسم المشروع' : 'Project name'}
+                  dir="auto"
+                  className="input-field"
+                />
+              </FieldGroup>
+
+              {/* Client */}
+              <FieldGroup label={isAr ? 'اسم العميل' : 'Client Name'}>
+                <input
+                  value={form.clientName}
+                  onChange={(e) => setField('clientName', e.target.value)}
+                  placeholder={isAr ? 'اسم الشركة أو العميل' : 'Company or client name'}
+                  dir="auto"
+                  className="input-field"
+                />
+              </FieldGroup>
+
+              {/* Status + Currency (side by side) */}
+              <div className="grid grid-cols-2 gap-3">
+                <FieldGroup label={isAr ? 'الحالة' : 'Status'}>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setField('status', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="active">{isAr ? 'نشط' : 'Active'}</option>
+                    <option value="on_hold">{isAr ? 'متوقف' : 'On Hold'}</option>
+                    <option value="completed">{isAr ? 'مكتمل' : 'Completed'}</option>
+                    <option value="cancelled">{isAr ? 'ملغي' : 'Cancelled'}</option>
+                    <option value="planning">{isAr ? 'تخطيط' : 'Planning'}</option>
+                  </select>
+                </FieldGroup>
+                <FieldGroup label={isAr ? 'العملة' : 'Currency'}>
+                  <select
+                    value={form.currency}
+                    onChange={(e) => setField('currency', e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="SAR">SAR</option>
+                    <option value="USD">USD</option>
+                    <option value="AED">AED</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                  </select>
+                </FieldGroup>
+              </div>
+
+              {/* Planned Start + Finish (side by side) */}
+              <div className="grid grid-cols-2 gap-3">
+                <FieldGroup label={isAr ? 'تاريخ البدء المخطط' : 'Planned Start'}>
+                  <input
+                    type="date"
+                    value={form.plannedStart}
+                    onChange={(e) => setField('plannedStart', e.target.value)}
+                    dir="ltr"
+                    className="input-field"
+                  />
+                </FieldGroup>
+                <FieldGroup label={isAr ? 'تاريخ الانتهاء المخطط' : 'Planned Finish'}>
+                  <input
+                    type="date"
+                    value={form.plannedFinish}
+                    onChange={(e) => setField('plannedFinish', e.target.value)}
+                    dir="ltr"
+                    className="input-field"
+                  />
+                </FieldGroup>
+              </div>
+
+              {/* Budget */}
+              <FieldGroup label={isAr ? 'الميزانية الإجمالية' : 'Budget at Completion'}>
+                <input
+                  type="number"
+                  value={form.budgetAtCompletion}
+                  onChange={(e) => setField('budgetAtCompletion', e.target.value)}
+                  placeholder="0.00"
+                  dir="ltr"
+                  className="input-field font-mono"
+                  min="0"
+                  step="0.01"
+                />
+              </FieldGroup>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 border-t border-slate-800 px-6 py-4">
+              <Button variant="ghost" size="sm" onClick={closeModal}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
+              <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
+                {saving
+                  ? (isAr ? 'جارٍ الحفظ…' : 'Saving…')
+                  : modalMode === 'create'
+                    ? (isAr ? 'إنشاء المشروع' : 'Create Project')
+                    : (isAr ? 'حفظ التعديلات' : 'Save Changes')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Delete Confirmation Modal ═══ */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+
+          {/* Panel */}
+          <div className="relative mx-4 w-full max-w-md animate-[fadeScaleIn_200ms_ease-out] rounded-2xl border border-rose-500/30 bg-slate-900 shadow-2xl">
+            <div className="px-6 py-5">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-rose-500/15 text-rose-400 ring-1 ring-rose-500/30">
+                  <IconTrash className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-50">
+                    {isAr ? 'حذف المشروع' : 'Delete Project'}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-300">
+                    {isAr
+                      ? <>هل أنت متأكد من حذف المشروع <strong className="text-white">{deleteTarget.name}</strong> ({deleteTarget.businessKey})؟</>
+                      : <>Are you sure you want to delete <strong className="text-white">{deleteTarget.name}</strong> ({deleteTarget.businessKey})?</>}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    {isAr ? 'سيتم إخفاء المشروع من القوائم. يمكن استرجاعه لاحقاً.' : 'The project will be hidden from all lists. It can be restored later.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-800 px-6 py-4">
+              <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(null)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
+              <Button variant="danger" size="sm" onClick={handleDelete} disabled={deleting}>
+                {deleting ? (isAr ? 'جارٍ الحذف…' : 'Deleting…') : (isAr ? 'نعم، احذف' : 'Yes, Delete')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scoped styles for the modal input fields + animation */}
+      <style jsx global>{`
+        .input-field {
+          display: block;
+          width: 100%;
+          border-radius: 0.75rem;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(15,23,42,0.6);
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+          color: #f1f5f9;
+          transition: border-color 0.2s;
+          outline: none;
+        }
+        .input-field::placeholder { color: #64748b; }
+        .input-field:focus { border-color: rgba(56,189,248,0.5); }
+        .input-field option { background: #0f172a; color: #f1f5f9; }
+        @keyframes fadeScaleIn {
+          from { opacity: 0; transform: scale(0.95) translateY(8px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** Form field wrapper. */
+function FieldGroup({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-300">
+        {label} {required && <span className="text-rose-400">*</span>}
+      </label>
+      {hint && <p className="mt-0.5 text-[10px] text-slate-500">{hint}</p>}
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
