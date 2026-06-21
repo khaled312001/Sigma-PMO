@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useToast } from '../../components/ToastProvider';
@@ -38,6 +39,7 @@ interface Proposal {
   items: InputItem[];
   questions: string[] | null;
   commitResult?: Record<string, number | string | unknown> | null;
+  createdAt?: string;
 }
 
 const LAYER_LABEL: Record<string, { en: string; ar: string; tone: 'sky' | 'emerald' | 'amber' | 'rose' | 'violet' | 'slate' }> = {
@@ -57,6 +59,20 @@ const LAYER_LABEL: Record<string, { en: string; ar: string; tone: 'sky' | 'emera
   'missing-information': { en: 'Missing Information', ar: 'معلومات ناقصة', tone: 'rose' },
   'supporting-evidence': { en: 'Supporting Evidence', ar: 'أدلة داعمة', tone: 'slate' },
 };
+
+/** Where each layer's committed data lands in the platform — for the distribution links. */
+const LAYER_ROUTE: Record<string, string> = {
+  'project-data': '/projects', planning: '/baselines',
+  commercial: '/quantity-survey', cost: '/quantity-survey', qs: '/quantity-survey',
+  procurement: '/procurement', risk: '/risk', claims: '/claims',
+  governance: '/governance-command', compliance: '/governance-command', approvals: '/approval',
+  reports: '/reports/monthly', 'daily-reporting': '/reports/monthly',
+  safety: '/safety', communications: '/communications', stakeholders: '/hierarchy',
+};
+const layerRoute = (layer: string): string => LAYER_ROUTE[layer] ?? '/review';
+
+/** Schedule file types that should also be ingested into a Project + Activities. */
+const SCHEDULE_EXT = ['.xer', '.xml', '.mpp', '.mpx'];
 
 const ACCEPT = '.xer,.xml,.xlsx,.xls,.csv,.pdf,.docx,.doc,.txt,.md,.json,.png,.jpg,.jpeg,.webp';
 const MAX_BYTES = 24 * 1024 * 1024;
@@ -78,6 +94,12 @@ function UniversalInput() {
   const [committing, setCommitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement | null>(null);
+  // Index of recent input operations (Mr. Ayham, 2026-06-21).
+  const [history, setHistory] = useState<Proposal[]>([]);
+  const loadHistory = useCallback(async () => {
+    try { setHistory(await api<Proposal[]>('/input/proposals')); } catch { /* ignore */ }
+  }, []);
+  useEffect(() => { void loadHistory(); }, [loadHistory]);
 
   // Default each item's decision from its completeness so the user starts from a sane state.
   useEffect(() => {
@@ -110,11 +132,27 @@ function UniversalInput() {
     setAnalyzing(true); setProposal(null);
     try {
       const payloadFiles = await Promise.all(files.map(async (f) => ({ filename: f.name, contentBase64: await toB64(f) })));
+
+      // Schedule files (XER / P6-XML / MS-Project) also create the Project + Activities
+      // via ingestion — so uploading a Primavera file actually adds the project.
+      const scheduleFiles = payloadFiles.filter((f) => SCHEDULE_EXT.some((e) => f.filename.toLowerCase().endsWith(e)));
+      let createdFromSchedule = 0;
+      for (const sf of scheduleFiles) {
+        try {
+          await api('/ingestion/upload', { method: 'POST', body: JSON.stringify({ filename: sf.filename, contentBase64: sf.contentBase64 }) });
+          createdFromSchedule += 1;
+        } catch (e) { toast.error(isAr ? 'تعذّر استيراد الجدول كمشروع' : 'Could not import schedule as a project', (e as Error).message); }
+      }
+      if (createdFromSchedule > 0) {
+        toast.success(isAr ? 'تم استيراد الجدول كمشروع' : 'Schedule imported as a project', isAr ? 'المشروع وأنشطته ظهروا في صفحة المشاريع' : 'The project + activities now appear in Projects');
+      }
+
       const p = await api<Proposal>('/input/analyze', {
         method: 'POST',
         body: JSON.stringify({ files: payloadFiles, text: text.trim() || undefined, projectKey: projectKey.trim() || undefined }),
       });
       setProposal(p);
+      void loadHistory();
       toast.success(isAr ? 'تم التحليل' : 'Analysed', isAr ? `${p.items.length} عنصر — راجِعها قبل الالتزام` : `${p.items.length} items — review before committing`);
     } catch (e) { toast.error(isAr ? 'فشل التحليل' : 'Analysis failed', (e as Error).message); }
     finally { setAnalyzing(false); }
@@ -130,6 +168,7 @@ function UniversalInput() {
       const payload = { decisions: proposal.items.map((it) => ({ id: it.id, decision: decisions[it.id]?.decision ?? 'confirm', correctedValue: decisions[it.id]?.correctedValue ?? null })) };
       const p = await api<Proposal>(`/input/proposals/${proposal.id}/commit`, { method: 'POST', body: JSON.stringify(payload) });
       setProposal(p);
+      void loadHistory();
       const r = (p.commitResult ?? {}) as Record<string, number>;
       toast.success(isAr ? 'تم الالتزام' : 'Committed', isAr ? `${r.committed ?? 0} سجل · ${r.assumptions ?? 0} افتراض · ${r.missing ?? 0} ناقص` : `${r.committed ?? 0} records · ${r.assumptions ?? 0} assumptions · ${r.missing ?? 0} missing`);
     } catch (e) { toast.error(isAr ? 'فشل الالتزام' : 'Commit failed', (e as Error).message); }
@@ -220,6 +259,24 @@ function UniversalInput() {
             )}
           </Card>
 
+          {/* Where the extracted data is distributed across the platform — with links. */}
+          <Card title={isAr ? 'توزيع البيانات على موديولات المنصّة' : 'Distribution across platform modules'} hint={isAr ? 'كل طبقة، عدد عناصرها، ورابط صفحتها' : 'Each layer, its item count, and a link to its page'}>
+            <div className="flex flex-wrap gap-2">
+              {grouped.map(([layer, items]) => {
+                const L = LAYER_LABEL[layer] ?? { en: layer, ar: layer, tone: 'slate' as const };
+                return (
+                  <Link key={layer} href={layerRoute(layer)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-slate-200 transition hover:border-sky-400/50 hover:bg-sky-500/10">
+                    <Pill tone={L.tone}>{isAr ? L.ar : L.en}</Pill>
+                    <span className="font-mono text-slate-400">{items.length}</span>
+                    <span className="text-sky-300">→</span>
+                  </Link>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-slate-500">{isAr ? 'بعد الالتزام تتسجّل العناصر المؤكَّدة في الصفحات دي.' : 'After committing, confirmed items are recorded on these pages.'}</p>
+          </Card>
+
           {committed ? (
             <Card title={isAr ? 'نتيجة الالتزام' : 'Commit result'}>
               <div className="flex flex-wrap gap-2 text-[12px]">
@@ -306,6 +363,35 @@ function UniversalInput() {
 
       {!proposal && !analyzing && files.length === 0 && !text && (
         <EmptyState title={isAr ? 'ابدأ بإضافة معلومات' : 'Start by adding information'} description={isAr ? 'ارفع ملفات أو الصق نصاً ثم اضغط «حلّل».' : 'Upload files or paste text, then press Analyse.'} />
+      )}
+
+      {/* ===== Index of input operations ===== */}
+      {history.length > 0 && (
+        <Card title={isAr ? 'فهرس عمليات الإدخال' : 'Input operations index'} hint={isAr ? 'آخر العمليات — اضغط أي صف لاستعراضه' : 'Recent operations — click a row to review it'}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-[12px]">
+              <thead><tr className="border-b border-white/10 text-[10px] uppercase tracking-wider text-slate-500">
+                <th className="px-2 py-2 text-start">{isAr ? 'الوقت' : 'When'}</th>
+                <th className="px-2 py-2 text-start">{isAr ? 'المشروع' : 'Project'}</th>
+                <th className="px-2 py-2 text-center">{isAr ? 'عناصر' : 'Items'}</th>
+                <th className="px-2 py-2 text-center">{isAr ? 'الحالة' : 'Status'}</th>
+                <th className="px-2 py-2 text-start">{isAr ? 'ملخّص' : 'Summary'}</th>
+              </tr></thead>
+              <tbody>
+                {history.map((h) => (
+                  <tr key={h.id} className="cursor-pointer border-b border-white/5 hover:bg-white/[0.03]"
+                    onClick={() => { setProposal(h); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                    <td className="px-2 py-2 font-mono text-[10px] text-slate-500" dir="ltr">{h.createdAt ? h.createdAt.slice(0, 16).replace('T', ' ') : '—'}</td>
+                    <td className="px-2 py-2 font-mono text-[11px] text-sky-300" dir="ltr">{h.projectBusinessKey ?? (isAr ? 'غير مُسند' : 'unassigned')}</td>
+                    <td className="px-2 py-2 text-center text-slate-300">{h.items?.length ?? 0}</td>
+                    <td className="px-2 py-2 text-center"><Pill tone={h.status === 'committed' ? 'emerald' : h.status === 'discarded' ? 'slate' : 'amber'}>{h.status}</Pill></td>
+                    <td className="px-2 py-2"><span className="block max-w-[24rem] truncate text-slate-400">{h.summary ?? '—'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );
