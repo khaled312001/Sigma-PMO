@@ -118,13 +118,20 @@ function ProjectsPage() {
   const [tree, setTree] = useState<GovTree | null>(null);
   const [entSel, setEntSel] = useState('');       // '' none | <enterpriseKey> | '__new__'
   const [entNewName, setEntNewName] = useState('');
+  const [pfSel, setPfSel] = useState('');         // '' none | <portfolioKey> | '__new__'
+  const [pfNewName, setPfNewName] = useState('');
   const [progSel, setProgSel] = useState('');     // '' none | <programKey> | '__new__'
   const [progNewName, setProgNewName] = useState('');
+  const [phaseLabel, setPhaseLabel] = useState('');
   const enterprises = tree?.enterprises ?? [];
-  const programsForEnt = useMemo<TreeProgramLite[]>(() => {
+  const portfoliosForEnt = useMemo<TreePortfolioLite[]>(() => {
     const ent = enterprises.find((e) => e.businessKey === entSel);
-    return ent ? ent.portfolios.flatMap((pf) => pf.programs) : [];
+    return ent ? ent.portfolios : [];
   }, [enterprises, entSel]);
+  const programsForPf = useMemo<TreeProgramLite[]>(() => {
+    const pf = portfoliosForEnt.find((p) => p.businessKey === pfSel);
+    return pf ? pf.programs : [];
+  }, [portfoliosForEnt, pfSel]);
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<ProjectRow | null>(null);
@@ -190,7 +197,8 @@ function ProjectsPage() {
     // Default to "pick existing client" when any client already exists; otherwise
     // there is nothing to pick, so start in new-client mode.
     setNewClientMode(existingClients.length === 0);
-    setEntSel(''); setEntNewName(''); setProgSel(''); setProgNewName('');
+    setEntSel(''); setEntNewName(''); setPfSel(''); setPfNewName('');
+    setProgSel(''); setProgNewName(''); setPhaseLabel('');
     if (canHierarchy) {
       api<GovTree>('/hierarchy/tree').then(setTree).catch(() => setTree({ enterprises: [] }));
     }
@@ -246,14 +254,29 @@ function ProjectsPage() {
         // clientName follows the chosen Enterprise when placed in the hierarchy.
         const clientName = enterpriseName ?? (form.clientName.trim() || null);
 
+        // ── Resolve the Portfolio (المحفظة) under the enterprise: existing or new. ──
+        let portfolioKey: string | null = null;
+        if (canHierarchy && enterpriseKey && pfSel) {
+          if (pfSel === '__new__') {
+            const pfn = pfNewName.trim() || `${enterpriseName} — Portfolio`;
+            portfolioKey = slugKey('PF', pfn);
+            await ensureNode('/hierarchy/portfolio', { businessKey: portfolioKey, name: pfn, enterpriseBusinessKey: enterpriseKey });
+          } else {
+            portfolioKey = pfSel;
+          }
+        }
+
         // ── Resolve the Program (links related projects / phases): existing or new. ──
         let programKey: string | null = null;
         if (canHierarchy && progSel) {
           if (progSel === '__new__') {
             const pn = progNewName.trim();
-            if (pn && enterpriseKey && enterpriseName) {
-              const portfolioKey = slugKey('PF', enterpriseName);
-              await ensureNode('/hierarchy/portfolio', { businessKey: portfolioKey, name: `${enterpriseName} — Portfolio`, enterpriseBusinessKey: enterpriseKey });
+            if (pn && enterpriseKey) {
+              // A program needs a portfolio: use the chosen one, else auto-create a default.
+              if (!portfolioKey) {
+                portfolioKey = slugKey('PF', enterpriseName || projectKey);
+                await ensureNode('/hierarchy/portfolio', { businessKey: portfolioKey, name: `${enterpriseName ?? 'Client'} — Portfolio`, enterpriseBusinessKey: enterpriseKey });
+              }
               programKey = slugKey('PRG', pn);
               await ensureNode('/hierarchy/program', { businessKey: programKey, name: pn, portfolioBusinessKey: portfolioKey });
             }
@@ -278,6 +301,10 @@ function ProjectsPage() {
         // Attach into the hierarchy — denormalizes program → portfolio → enterprise.
         if (programKey) {
           await api('/hierarchy/attach', { method: 'POST', body: JSON.stringify({ projectKey, programKey }) });
+        }
+        // Optional phase label — a project can be Phase 1/2/3 within its program.
+        if (canHierarchy && phaseLabel.trim()) {
+          await api('/hierarchy/phase', { method: 'POST', body: JSON.stringify({ projectKey, phase: phaseLabel.trim() }) });
         }
         toast.success(
           isAr ? 'تم الإنشاء' : 'Created',
@@ -609,21 +636,51 @@ function ProjectsPage() {
                   </FieldGroup>
 
                   {entSel && (
-                    <FieldGroup
-                      label={isAr ? 'البرنامج (ربط)' : 'Program (link)'}
-                      hint={isAr ? 'اربط المشاريع المترابطة أو مراحل المشروع الواحد تحت برنامج' : 'Group related projects — or the phases of one project — under a program'}
-                    >
-                      <div className="space-y-2">
-                        <select value={progSel} onChange={(e) => setProgSel(e.target.value)} dir="auto" className="input-field">
-                          <option value="">{isAr ? '— مستقل (بدون برنامج) —' : '— Standalone (no program) —'}</option>
-                          {entSel !== '__new__' && programsForEnt.map((pr) => <option key={pr.businessKey} value={pr.businessKey}>{pr.name}</option>)}
-                          <option value="__new__">{isAr ? '➕ برنامج جديد…' : '➕ New program…'}</option>
-                        </select>
-                        {progSel === '__new__' && (
-                          <input value={progNewName} onChange={(e) => setProgNewName(e.target.value)} placeholder={isAr ? 'اسم البرنامج (مثال: مراحل برج النيل)' : 'Program name (e.g. Nile Tower phases)'} dir="auto" className="input-field" />
-                        )}
-                      </div>
-                    </FieldGroup>
+                    <>
+                      {/* Portfolio (المحفظة) under the enterprise */}
+                      <FieldGroup
+                        label={isAr ? 'المحفظة (Portfolio)' : 'Portfolio'}
+                        hint={isAr ? 'مجموعة برامج/مشاريع العميل' : "The client's grouping of programs/projects"}
+                      >
+                        <div className="space-y-2">
+                          <select value={pfSel} onChange={(e) => { setPfSel(e.target.value); setProgSel(''); }} dir="auto" className="input-field">
+                            <option value="">{isAr ? '— بدون محفظة —' : '— No portfolio —'}</option>
+                            {entSel !== '__new__' && portfoliosForEnt.map((pf) => <option key={pf.businessKey} value={pf.businessKey}>{pf.name}</option>)}
+                            <option value="__new__">{isAr ? '➕ محفظة جديدة…' : '➕ New portfolio…'}</option>
+                          </select>
+                          {pfSel === '__new__' && (
+                            <input value={pfNewName} onChange={(e) => setPfNewName(e.target.value)} placeholder={isAr ? 'اسم المحفظة' : 'Portfolio name'} dir="auto" className="input-field" />
+                          )}
+                        </div>
+                      </FieldGroup>
+
+                      {/* Program (البرنامج) — links related projects / phases */}
+                      {pfSel && (
+                        <FieldGroup
+                          label={isAr ? 'البرنامج (ربط)' : 'Program (link)'}
+                          hint={isAr ? 'اربط المشاريع المترابطة أو مراحل المشروع الواحد تحت برنامج' : 'Group related projects — or the phases of one project — under a program'}
+                        >
+                          <div className="space-y-2">
+                            <select value={progSel} onChange={(e) => setProgSel(e.target.value)} dir="auto" className="input-field">
+                              <option value="">{isAr ? '— مستقل (بدون برنامج) —' : '— Standalone (no program) —'}</option>
+                              {pfSel !== '__new__' && programsForPf.map((pr) => <option key={pr.businessKey} value={pr.businessKey}>{pr.name}</option>)}
+                              <option value="__new__">{isAr ? '➕ برنامج جديد…' : '➕ New program…'}</option>
+                            </select>
+                            {progSel === '__new__' && (
+                              <input value={progNewName} onChange={(e) => setProgNewName(e.target.value)} placeholder={isAr ? 'اسم البرنامج (مثال: مراحل برج النيل)' : 'Program name (e.g. Nile Tower phases)'} dir="auto" className="input-field" />
+                            )}
+                          </div>
+                        </FieldGroup>
+                      )}
+
+                      {/* Phase (المرحلة) — this project's phase within its program */}
+                      <FieldGroup
+                        label={isAr ? 'المرحلة (Phase)' : 'Phase'}
+                        hint={isAr ? 'اختياري — مرحلة المشروع داخل البرنامج (مثال: Phase 1)' : "Optional — the project's phase within its program (e.g. Phase 1)"}
+                      >
+                        <input value={phaseLabel} onChange={(e) => setPhaseLabel(e.target.value)} placeholder={isAr ? 'مثال: Phase 1' : 'e.g. Phase 1'} dir="auto" className="input-field" />
+                      </FieldGroup>
+                    </>
                   )}
                 </>
               ) : (
