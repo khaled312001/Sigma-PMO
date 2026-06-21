@@ -49,3 +49,9 @@ CLAUDE.md
 docs/user-guide/shots/
 docs/user-guide/shots-new/
 docs/handover/
+
+# Schedule / sample binaries dropped in for testing (Primavera, MS-Project, dumps)
+*.xer
+*.mpp
+*.mpx
+*.sql

@@ -9,6 +9,10 @@ import { AuthGate } from '../../components/AuthGate';
 import { useI18n } from '../../lib/i18n';
 import { IconRefresh, IconUpload } from '../../components/Icons';
 import { Button, Card, ConfidenceBar, EmptyState, PageHeader, Pill } from '../../components/ui';
+import { HierarchyPicker } from '../../components/HierarchyPicker';
+import { emptyHierarchySel, placeProjectInHierarchy, resolveEnterprise, type GovTree, type HierarchySel } from '../../lib/hierarchy';
+import { useMe } from '../../lib/me-context';
+import { CAPABILITIES } from '../../lib/capabilities';
 
 type Completeness = 'complete' | 'uncertain' | 'missing';
 type Decision = 'pending' | 'confirm' | 'correct' | 'exclude' | 'assumption' | 'missing' | 'limited_confidence';
@@ -65,11 +69,32 @@ const LAYER_ROUTE: Record<string, string> = {
   'project-data': '/projects', planning: '/baselines',
   commercial: '/quantity-survey', cost: '/quantity-survey', qs: '/quantity-survey',
   procurement: '/procurement', risk: '/risk', claims: '/claims',
+  contract: '/contract-rules', 'contract-rules': '/contract-rules',
   governance: '/governance-command', compliance: '/governance-command', approvals: '/approval',
   reports: '/reports/monthly', 'daily-reporting': '/reports/monthly',
-  safety: '/safety', communications: '/communications', stakeholders: '/hierarchy',
+  letters: '/letters', correspondence: '/letters', communications: '/communications',
+  safety: '/safety', quality: '/quality', stakeholders: '/hierarchy', 'supporting-evidence': '/evidence',
 };
 const layerRoute = (layer: string): string => LAYER_ROUTE[layer] ?? '/review';
+
+/**
+ * Every per-project surface a freshly-added project unlocks — shown after analysis so the
+ * user can jump straight into Contract, Letters, Reports, etc. for the new project
+ * (Mr. Ayham, 2026-06-21). Each opens scoped to ?projectKey.
+ */
+const PROJECT_SURFACES: { href: string; en: string; ar: string }[] = [
+  { href: '/projects', en: 'Project', ar: 'المشروع' },
+  { href: '/baselines', en: 'Baseline / Schedule', ar: 'الجدول الأساسي' },
+  { href: '/contract-rules', en: 'Contract', ar: 'العقد' },
+  { href: '/letters', en: 'Letters', ar: 'الرسائل' },
+  { href: '/communications', en: 'Communications', ar: 'المراسلات' },
+  { href: '/reports/monthly', en: 'Reports', ar: 'التقارير' },
+  { href: '/quantity-survey', en: 'Quantity Survey', ar: 'حصر الكميات' },
+  { href: '/procurement', en: 'Procurement', ar: 'المشتريات' },
+  { href: '/risk', en: 'Risk', ar: 'المخاطر' },
+  { href: '/claims', en: 'Claims', ar: 'المطالبات' },
+  { href: '/governance-command', en: 'Governance', ar: 'الحوكمة' },
+];
 
 /** Schedule file types that should also be ingested into a Project + Activities. */
 const SCHEDULE_EXT = ['.xer', '.xml', '.mpp', '.mpx'];
@@ -100,6 +125,20 @@ function UniversalInput() {
     try { setHistory(await api<Proposal[]>('/input/proposals')); } catch { /* ignore */ }
   }, []);
   useEffect(() => { void loadHistory(); }, [loadHistory]);
+
+  // Assign-to-hierarchy: pick a target project + place it under a client/portfolio/program/phase
+  // — same model as the Projects "Add" form (Mr. Ayham, 2026-06-21).
+  const { me } = useMe();
+  const canHierarchy = !!me?.user && !!CAPABILITIES[me.user.role]?.canManageHierarchy;
+  const [tree, setTree] = useState<GovTree | null>(null);
+  const [hsel, setHsel] = useState<HierarchySel>(emptyHierarchySel());
+  const [projList, setProjList] = useState<{ businessKey: string; name: string; clientName: string | null }[]>([]);
+  useEffect(() => {
+    api<{ businessKey: string; name: string; clientName: string | null }[]>('/projects').then(setProjList).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (canHierarchy) api<GovTree>('/hierarchy/tree').then(setTree).catch(() => setTree({ enterprises: [] }));
+  }, [canHierarchy]);
 
   // Default each item's decision from its completeness so the user starts from a sane state.
   useEffect(() => {
@@ -136,6 +175,7 @@ function UniversalInput() {
       // Schedule files (XER / P6-XML / MS-Project) also create the Project + Activities
       // via ingestion — so uploading a Primavera file actually adds the project.
       const scheduleFiles = payloadFiles.filter((f) => SCHEDULE_EXT.some((e) => f.filename.toLowerCase().endsWith(e)));
+      const before = new Set(projList.map((p) => p.businessKey));
       let createdFromSchedule = 0;
       for (const sf of scheduleFiles) {
         try {
@@ -143,13 +183,38 @@ function UniversalInput() {
           createdFromSchedule += 1;
         } catch (e) { toast.error(isAr ? 'تعذّر استيراد الجدول كمشروع' : 'Could not import schedule as a project', (e as Error).message); }
       }
+
+      // Detect newly-created project(s) (the upload API returns counts, not keys) so we can
+      // both target the AI analysis at them and place them in the hierarchy.
+      let targetKey = projectKey.trim();
+      let newKeys: string[] = [];
       if (createdFromSchedule > 0) {
+        try {
+          const after = await api<{ businessKey: string; name: string; clientName: string | null }[]>('/projects');
+          setProjList(after);
+          newKeys = after.map((p) => p.businessKey).filter((k) => !before.has(k));
+        } catch { /* ignore */ }
         toast.success(isAr ? 'تم استيراد الجدول كمشروع' : 'Schedule imported as a project', isAr ? 'المشروع وأنشطته ظهروا في صفحة المشاريع' : 'The project + activities now appear in Projects');
+      }
+      if (!targetKey && newKeys.length > 0) targetKey = newKeys[0];
+
+      // Assign/place the target (and any newly-created) project under the chosen
+      // client → portfolio → program → phase. Idempotent; reuses the Projects-page logic.
+      if (canHierarchy && hsel.entSel && tree) {
+        try {
+          const { key: entKey, name: entName } = await resolveEnterprise(hsel, tree);
+          const toPlace = Array.from(new Set([targetKey, ...newKeys].filter(Boolean)));
+          for (const k of toPlace) await placeProjectInHierarchy(k, hsel, entKey, entName);
+          if (toPlace.length) {
+            toast.success(isAr ? 'تم تصنيف المشروع في الهيكل' : 'Project placed in the hierarchy', isAr ? 'العميل/المحفظة/البرنامج/المرحلة' : 'client / portfolio / program / phase');
+            try { setTree(await api<GovTree>('/hierarchy/tree')); } catch { /* ignore */ }
+          }
+        } catch (e) { toast.error(isAr ? 'تعذّر التصنيف في الهيكل' : 'Hierarchy placement failed', (e as Error).message); }
       }
 
       const p = await api<Proposal>('/input/analyze', {
         method: 'POST',
-        body: JSON.stringify({ files: payloadFiles, text: text.trim() || undefined, projectKey: projectKey.trim() || undefined }),
+        body: JSON.stringify({ files: payloadFiles, text: text.trim() || undefined, projectKey: targetKey || undefined }),
       });
       setProposal(p);
       void loadHistory();
@@ -228,15 +293,33 @@ function UniversalInput() {
               className="mt-2 block w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500/70 focus:outline-none" />
           </div>
 
-          <div className="mt-4 flex flex-wrap items-end gap-3">
-            <div>
-              <label className="block text-xs font-medium text-slate-300">{isAr ? 'مفتاح المشروع (اختياري)' : 'Project key (optional)'}</label>
-              <input value={projectKey} onChange={(e) => setProjectKey(e.target.value)} placeholder="P-1000" dir="ltr"
-                className="mt-2 w-40 rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500/70 focus:outline-none" />
+          {/* ===== Assign this input / project to a target + hierarchy (Mr. Ayham, 2026-06-21) ===== */}
+          <div className="mt-5 space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
+            <p className="text-xs font-semibold text-slate-200">{isAr ? 'تصنيف الإدخال / المشروع' : 'Assign this input / project'}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-slate-300">{isAr ? 'المشروع المستهدف' : 'Target project'}
+                <select value={projList.some((p) => p.businessKey === projectKey) ? projectKey : ''} onChange={(e) => setProjectKey(e.target.value)} dir="auto"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500/70 focus:outline-none">
+                  <option value="">{isAr ? '— مشروع جديد من الملف / غير محدّد —' : '— New from file / unassigned —'}</option>
+                  {projList.map((p) => <option key={p.businessKey} value={p.businessKey}>{p.clientName ? `${p.clientName} · ` : ''}{p.name} ({p.businessKey})</option>)}
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-slate-300">{isAr ? 'أو مفتاح يدوي' : 'Or type a key'}
+                <input value={projectKey} onChange={(e) => setProjectKey(e.target.value)} placeholder="P-1000" dir="ltr"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500/70 focus:outline-none" />
+              </label>
             </div>
-            <Button variant="primary" onClick={analyze} disabled={analyzing} className="ms-auto">
-              {analyzing ? (isAr ? 'يحلّل بالذكاء الاصطناعي…' : 'Analysing with AI…') : (isAr ? 'حلّل ووزّع بالذكاء الاصطناعي' : 'Analyse & map with AI')}
-            </Button>
+            {canHierarchy && (
+              <div className="border-t border-white/10 pt-3">
+                <p className="text-[11px] text-slate-500">{isAr ? 'صنّف المشروع تحت عميل / محفظة / برنامج / مرحلة (نفس صفحة المشاريع):' : 'Place the project under a client / portfolio / program / phase (same as Projects):'}</p>
+                <div className="mt-2"><HierarchyPicker value={hsel} onChange={setHsel} tree={tree} isAr={isAr} /></div>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button variant="primary" onClick={analyze} disabled={analyzing}>
+                {analyzing ? (isAr ? 'يحلّل بالذكاء الاصطناعي…' : 'Analysing with AI…') : (isAr ? 'حلّل ووزّع بالذكاء الاصطناعي' : 'Analyse & map with AI')}
+              </Button>
+            </div>
           </div>
         </Card>
       )}
@@ -276,6 +359,21 @@ function UniversalInput() {
             </div>
             <p className="mt-2 text-[11px] text-slate-500">{isAr ? 'بعد الالتزام تتسجّل العناصر المؤكَّدة في الصفحات دي.' : 'After committing, confirmed items are recorded on these pages.'}</p>
           </Card>
+
+          {/* Per-project surfaces unlocked by adding this project — Contract, Letters, Reports, … */}
+          {proposal.projectBusinessKey && (
+            <Card title={isAr ? 'صفحات المشروع المتاحة الآن' : 'Project surfaces now available'} hint={isAr ? `المشروع ${proposal.projectBusinessKey} — افتح أي صفحة مرتبطة به` : `Project ${proposal.projectBusinessKey} — open any of its linked pages`}>
+              <div className="flex flex-wrap gap-2">
+                {PROJECT_SURFACES.map((s) => (
+                  <Link key={s.href} href={`${s.href}?projectKey=${encodeURIComponent(proposal.projectBusinessKey!)}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-slate-200 transition hover:border-sky-400/50 hover:bg-sky-500/10">
+                    {isAr ? s.ar : s.en}<span className="text-sky-300">→</span>
+                  </Link>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-slate-500">{isAr ? 'العقد والرسائل والتقارير وكل الموديولات أصبحت مرتبطة بهذا المشروع — تُملأ من الإدخال أو يدويًا من صفحاتها.' : 'Contract, letters, reports and every module are now linked to this project — populated from input or directly on their pages.'}</p>
+            </Card>
+          )}
 
           {committed ? (
             <Card title={isAr ? 'نتيجة الالتزام' : 'Commit result'}>
