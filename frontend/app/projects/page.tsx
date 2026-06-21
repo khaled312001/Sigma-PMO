@@ -18,10 +18,25 @@ import { CAPABILITIES } from '../../lib/capabilities';
 // Governance tree shapes (Enterprise → Portfolio → Program), used to place a new
 // project under a client (Enterprise) + a Program that links related projects or
 // the phases of one project (Mr. Ayham, 2026-06-21).
-interface TreeProgramLite { businessKey: string; name: string }
+interface TreeProjectLite { businessKey: string; lifecyclePhase?: string | null }
+interface TreeProgramLite { businessKey: string; name: string; projects?: TreeProjectLite[] }
 interface TreePortfolioLite { businessKey: string; name: string; programs: TreeProgramLite[] }
 interface TreeEnterpriseLite { businessKey: string; name: string; portfolios: TreePortfolioLite[] }
-interface GovTree { enterprises: TreeEnterpriseLite[] }
+interface GovTree { enterprises: TreeEnterpriseLite[]; unattachedProjects?: TreeProjectLite[] }
+
+/** Find a project's current placement (enterprise/portfolio/program/phase) in the tree. */
+function locateInTree(tree: GovTree, key: string): { entKey: string | null; pfKey: string | null; progKey: string | null; phase: string | null } {
+  for (const e of tree.enterprises) {
+    for (const pf of e.portfolios) {
+      for (const pr of pf.programs) {
+        const found = (pr.projects ?? []).find((p) => p.businessKey === key);
+        if (found) return { entKey: e.businessKey, pfKey: pf.businessKey, progKey: pr.businessKey, phase: found.lifecyclePhase ?? null };
+      }
+    }
+  }
+  const un = (tree.unattachedProjects ?? []).find((p) => p.businessKey === key);
+  return { entKey: null, pfKey: null, progKey: null, phase: un?.lifecyclePhase ?? null };
+}
 
 /** Stable governance-node key from a name (latin slug, else a short hash for Arabic). */
 function slugKey(prefix: string, name: string): string {
@@ -218,6 +233,20 @@ function ProjectsPage() {
     });
     setEditId(r.id);
     setModalMode('edit');
+    setNewClientMode(false);
+    setEntSel(''); setEntNewName(''); setPfSel(''); setPfNewName('');
+    setProgSel(''); setProgNewName(''); setPhaseLabel('');
+    if (canHierarchy) {
+      // Pre-fill the hierarchy selectors from the project's current placement.
+      api<GovTree>('/hierarchy/tree').then((t) => {
+        setTree(t);
+        const loc = locateInTree(t, r.businessKey);
+        if (loc.entKey) setEntSel(loc.entKey);
+        if (loc.pfKey) setPfSel(loc.pfKey);
+        if (loc.progKey) setProgSel(loc.progKey);
+        if (loc.phase) setPhaseLabel(loc.phase);
+      }).catch(() => setTree({ enterprises: [] }));
+    }
     setModalOpen(true);
   };
 
@@ -311,11 +340,29 @@ function ProjectsPage() {
           isAr ? `تم إنشاء المشروع ${form.name}` : `Project "${form.name}" created`,
         );
       } else {
+        const projectKey = form.businessKey;
+        // ── Resolve the client (Enterprise): pick existing, create new, or none. ──
+        let enterpriseKey: string | null = null;
+        let enterpriseName: string | null = null;
+        if (canHierarchy && entSel) {
+          if (entSel === '__new__') {
+            enterpriseName = entNewName.trim() || null;
+            if (enterpriseName) {
+              enterpriseKey = slugKey('ENT', enterpriseName);
+              await ensureNode('/hierarchy/enterprise', { businessKey: enterpriseKey, name: enterpriseName });
+            }
+          } else {
+            enterpriseKey = entSel;
+            enterpriseName = enterprises.find((e) => e.businessKey === entSel)?.name ?? null;
+          }
+        }
+        const clientName = enterpriseName ?? (form.clientName.trim() || null);
+
         await api(`/projects/${editId}`, {
           method: 'PATCH',
           body: JSON.stringify({
             name: form.name.trim(),
-            clientName: form.clientName.trim() || null,
+            clientName,
             status: form.status.trim() || null,
             currency: form.currency.trim() || null,
             plannedStart: form.plannedStart || null,
@@ -323,6 +370,43 @@ function ProjectsPage() {
             budgetAtCompletion: form.budgetAtCompletion.trim() || null,
           }),
         });
+
+        // ── Re-place under Portfolio → Program, and set the phase. ──
+        if (canHierarchy && enterpriseKey) {
+          let portfolioKey: string | null = null;
+          if (pfSel) {
+            if (pfSel === '__new__') {
+              const pfn = pfNewName.trim() || `${enterpriseName} — Portfolio`;
+              portfolioKey = slugKey('PF', pfn);
+              await ensureNode('/hierarchy/portfolio', { businessKey: portfolioKey, name: pfn, enterpriseBusinessKey: enterpriseKey });
+            } else {
+              portfolioKey = pfSel;
+            }
+          }
+          let programKey: string | null = null;
+          if (progSel) {
+            if (progSel === '__new__') {
+              const pn = progNewName.trim();
+              if (pn) {
+                if (!portfolioKey) {
+                  portfolioKey = slugKey('PF', enterpriseName || projectKey);
+                  await ensureNode('/hierarchy/portfolio', { businessKey: portfolioKey, name: `${enterpriseName ?? 'Client'} — Portfolio`, enterpriseBusinessKey: enterpriseKey });
+                }
+                programKey = slugKey('PRG', pn);
+                await ensureNode('/hierarchy/program', { businessKey: programKey, name: pn, portfolioBusinessKey: portfolioKey });
+              }
+            } else {
+              programKey = progSel;
+            }
+          }
+          if (programKey) {
+            await api('/hierarchy/attach', { method: 'POST', body: JSON.stringify({ projectKey, programKey }) });
+          }
+        }
+        if (canHierarchy && phaseLabel.trim()) {
+          await api('/hierarchy/phase', { method: 'POST', body: JSON.stringify({ projectKey, phase: phaseLabel.trim() }) });
+        }
+
         toast.success(
           isAr ? 'تم التحديث' : 'Updated',
           isAr ? `تم تحديث المشروع ${form.name}` : `Project "${form.name}" updated`,
@@ -609,7 +693,7 @@ function ProjectsPage() {
                   under a client (Enterprise) + an optional Program that links related
                   projects or the phases of one project (Mr. Ayham, 2026-06-21). Other
                   users get the simple existing/new client selector (2026-06-20). */}
-              {canHierarchy && modalMode === 'create' ? (
+              {canHierarchy ? (
                 <>
                   <FieldGroup
                     label={isAr ? 'العميل (المؤسسة)' : 'Client (Enterprise)'}
