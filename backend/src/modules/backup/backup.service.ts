@@ -95,8 +95,10 @@ export class BackupService {
     const conn = await createConnection({
       host: db.host, port: db.port, user: db.username, password: db.password, database: db.database,
       dateStrings: true,
-      // JSON columns come back as raw text (not parsed objects) so they re-insert cleanly.
-      typeCast: (field, next) => (field.type === 'JSON' ? field.string() : next()),
+      // JSON columns as raw UTF-8 text (not parsed objects) so they re-insert cleanly
+      // AND non-ASCII (Arabic) content is preserved byte-for-byte. field.string()
+      // without an encoding decodes JSON as BINARY → would corrupt UTF-8.
+      typeCast: (field, next) => (field.type === 'JSON' ? field.string('utf8') : next()),
     });
     try {
       const out: string[] = [
