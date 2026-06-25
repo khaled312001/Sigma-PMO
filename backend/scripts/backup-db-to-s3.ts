@@ -71,7 +71,10 @@ async function main(): Promise<void> {
   const encKey = backupKey();
   const body = encKey ? encrypt(gz, encKey) : gz;
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const key = `db-backups/${DB_DATABASE}-${ts}.sql.gz${encKey ? '.enc' : ''}`;
+  // Optional system folder (S3_PREFIX) — keeps every system's files + backups together.
+  const prefix = (process.env.S3_PREFIX ?? '').replace(/^\/+|\/+$/g, '');
+  const backupDir = `${prefix ? `${prefix}/` : ''}db-backups/`;
+  const key = `${backupDir}${DB_DATABASE}-${ts}.sql.gz${encKey ? '.enc' : ''}`;
 
   const s3 = new S3Client({
     region: process.env.S3_REGION ?? 'us-east-1',
@@ -91,7 +94,7 @@ async function main(): Promise<void> {
   }));
 
   const retain = Number(process.env.BACKUP_RETENTION ?? 14);
-  const list = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: 'db-backups/' }));
+  const list = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: backupDir }));
   const objs = (list.Contents ?? [])
     .filter((o) => o.Key)
     .sort((a, b) => (b.LastModified?.getTime() ?? 0) - (a.LastModified?.getTime() ?? 0));

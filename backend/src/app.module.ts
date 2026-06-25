@@ -15,6 +15,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { BackupModule } from './modules/backup/backup.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SeedModule } from './modules/seed/seed.module';
 import { BaselinesModule } from './modules/baselines/baselines.module';
@@ -98,6 +99,7 @@ import { SummaryModule } from './modules/summary/summary.module';
     // Multi-tenant SaaS — platform SUPER_ADMIN console (manages all companies,
     // subscriptions, support/requests + platform analytics). Gated canManagePlatform.
     SuperAdminModule,
+    BackupModule,
     // SaaS billing (Stripe) — subscription Checkout with trial + signed webhook.
     BillingModule,
     // First-boot demo seeder (SEED_DEMO=true) — default company + 15 role

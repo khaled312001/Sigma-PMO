@@ -50,7 +50,8 @@ export class StorageService {
 
   private key(filename: string, sha256: string): string {
     const safeName = filename.replace(/[^\w.\-]+/g, '_');
-    return `${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}__${safeName}`;
+    const prefix = this.s3?.prefix ? `${this.s3.prefix}/` : '';
+    return `${prefix}${sha256.slice(0, 2)}/${sha256.slice(2, 4)}/${sha256}__${safeName}`;
   }
 
   /** Archive the file content-addressed by SHA-256 (idempotent). */

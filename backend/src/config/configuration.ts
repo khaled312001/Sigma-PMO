@@ -107,6 +107,9 @@ export interface S3Config {
   accessKeyId: string;
   secretAccessKey: string;
   forcePathStyle: boolean;
+  /** Optional key prefix — a top-level "folder" inside the bucket (e.g. the
+   *  system name "sigma-system"). File-archive keys + DB backups go under it. */
+  prefix: string;
   /** Derived: true when bucket + access key + secret are all set. */
   enabled: boolean;
 }
@@ -295,6 +298,7 @@ export default (): AppConfiguration => {
     accessKeyId: process.env.S3_ACCESS_KEY ?? '',
     secretAccessKey: process.env.S3_SECRET_KEY ?? '',
     forcePathStyle: toBool(process.env.S3_FORCE_PATH_STYLE, true),
+    prefix: (process.env.S3_PREFIX ?? '').replace(/^\/+|\/+$/g, ''),
     enabled: !!(process.env.S3_BUCKET && process.env.S3_ACCESS_KEY && process.env.S3_SECRET_KEY),
   },
   stripe: {

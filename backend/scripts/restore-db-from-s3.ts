@@ -64,13 +64,15 @@ async function main(): Promise<void> {
     credentials: { accessKeyId: process.env.S3_ACCESS_KEY!, secretAccessKey: process.env.S3_SECRET_KEY! },
   });
 
-  const list = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: 'db-backups/' }));
+  const prefix = (process.env.S3_PREFIX ?? '').replace(/^\/+|\/+$/g, '');
+  const backupDir = `${prefix ? `${prefix}/` : ''}db-backups/`;
+  const list = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: backupDir }));
   const objs = (list.Contents ?? [])
     .filter((o) => o.Key)
     .sort((a, b) => (b.LastModified?.getTime() ?? 0) - (a.LastModified?.getTime() ?? 0));
 
   if (has('list') || (!has('latest') && !arg('key'))) {
-    console.log(`Backups in s3://${bucket}/db-backups/ (newest first):`);
+    console.log(`Backups in s3://${bucket}/${backupDir} (newest first):`);
     objs.forEach((o) => console.log(`  ${o.Key}\t${((o.Size ?? 0) / 1024 / 1024).toFixed(2)} MB\t${o.LastModified?.toISOString()}`));
     if (!has('list')) console.log('\nPass --latest --yes  or  --key <key> --yes  to restore (DESTRUCTIVE).');
     return;
