@@ -1,0 +1,18 @@
+[
+  {
+    "reviewId": "907e7d80-b541-4c9a-b02f-289ec9f517f1",
+    "createdAt": "2026-06-28T11:54:28.953Z",
+    "action": "approve",
+    "comment": "Acceptance run — approved by Sigma Admin (2026-06-28).",
+    "actorUserId": "6b068ee7-1212-4097-876b-23b7440bb9be",
+    "actorDisplay": "Sigma Admin",
+    "decisionId": "de540110-546f-4070-b279-a2a8d547d70f",
+    "responsibleParty": "shared",
+    "fidicClause": null,
+    "escalationLevel": "L1",
+    "alertId": "a63824de-330d-44ff-9de6-2bf665094a16",
+    "alertCode": "REPORTED_VS_SCHEDULE_MISMATCH",
+    "severity": "warning",
+    "alertSummary": "Latest weekly report for \"Hospital Tower — Phase 1\" under-reports progress: reported 38.0% vs schedule-weighted actual 59.9% (gap 21.9 pts, threshold 15 pts)."
+  }
+]

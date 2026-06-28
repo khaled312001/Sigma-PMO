@@ -1,0 +1,18 @@
+{
+  "id": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+  "type": "ingestion",
+  "label": "excel",
+  "status": "completed",
+  "rawStatus": "normalized",
+  "startedAt": "2026-06-28T11:54:27.893Z",
+  "finishedAt": "2026-06-28T11:54:28.102Z",
+  "createdAt": "2026-06-28T11:54:27.896Z",
+  "rowCounts": {
+    "report": 1,
+    "project": 1,
+    "activity": 2,
+    "resource": 1,
+    "assignment": 1
+  },
+  "error": null
+}

@@ -1,0 +1,91 @@
+[
+  {
+    "id": "a63824de-330d-44ff-9de6-2bf665094a16",
+    "code": "REPORTED_VS_SCHEDULE_MISMATCH",
+    "severity": "warning",
+    "summary": "Latest weekly report for \"Hospital Tower — Phase 1\" under-reports progress: reported 38.0% vs schedule-weighted actual 59.9% (gap 21.9 pts, threshold 15 pts).",
+    "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+    "activityId": null,
+    "resourceId": null,
+    "assignmentId": null,
+    "reportId": "793ead98-f44c-4044-992f-44deef018388",
+    "ingestionRunId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+    "sourceFileId": "9a6a3d5f-5fc7-45d9-8d08-2d7d7af6df0b",
+    "ruleEvaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+    "context": {
+      "basis": "duration-weighted",
+      "gapPoints": 21.864864864864863,
+      "threshold": 15,
+      "reportDate": "2026-06-01",
+      "reportedPct": 0.38,
+      "scheduleActualPct": 0.5986486486486486
+    },
+    "createdAt": "2026-06-28T11:54:28.396Z",
+    "projectBusinessKey": "P-1000"
+  },
+  {
+    "id": "6a8bed8e-998a-41d9-8ee7-01df0066390e",
+    "code": "RESOURCE_UNDERUSE",
+    "severity": "warning",
+    "summary": "Resource on \"Excavation\" used 200 of 432 planned units (46%).",
+    "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+    "activityId": "1c18e3f1-9bdf-45c7-952b-64d08492f4f1",
+    "resourceId": "9aeddf9a-a7f9-485c-b55b-592ee6aed7be",
+    "assignmentId": "9cf8e9e2-0ffe-49a5-8855-50886df9b8a3",
+    "reportId": null,
+    "ingestionRunId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+    "sourceFileId": "9a6a3d5f-5fc7-45d9-8d08-2d7d7af6df0b",
+    "ruleEvaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+    "context": {
+      "ratio": 0.46296296296296297,
+      "threshold": 0.7,
+      "actualUnits": 200,
+      "plannedUnits": 432
+    },
+    "createdAt": "2026-06-28T11:54:28.393Z",
+    "projectBusinessKey": "P-1000"
+  },
+  {
+    "id": "0d1e62b5-dfc8-482a-b5c1-fcd7da98d344",
+    "code": "SCHEDULE_BEHIND_PLAN",
+    "severity": "warning",
+    "summary": "Activity \"Excavation\" is 15.0% behind plan (planned 60%, actual 45%).",
+    "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+    "activityId": "1c18e3f1-9bdf-45c7-952b-64d08492f4f1",
+    "resourceId": null,
+    "assignmentId": null,
+    "reportId": null,
+    "ingestionRunId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+    "sourceFileId": "9a6a3d5f-5fc7-45d9-8d08-2d7d7af6df0b",
+    "ruleEvaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+    "context": {
+      "gap": 0.14999999999999997,
+      "actualPct": 0.45,
+      "threshold": 0.05,
+      "plannedPct": 0.6
+    },
+    "createdAt": "2026-06-28T11:54:28.390Z",
+    "projectBusinessKey": "P-1000"
+  },
+  {
+    "id": "35718394-2de1-4b05-a901-75f49a3f55a8",
+    "code": "SCHEDULE_FINISH_SLIPPED",
+    "severity": "critical",
+    "summary": "Activity \"Site mobilisation\" finished 2 day(s) late.",
+    "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+    "activityId": "54f96050-27f0-42c2-88c1-d04d7a739058",
+    "resourceId": null,
+    "assignmentId": null,
+    "reportId": null,
+    "ingestionRunId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+    "sourceFileId": "9a6a3d5f-5fc7-45d9-8d08-2d7d7af6df0b",
+    "ruleEvaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+    "context": {
+      "slipDays": 2,
+      "actualFinish": "2026-01-22",
+      "plannedFinish": "2026-01-20"
+    },
+    "createdAt": "2026-06-28T11:54:28.387Z",
+    "projectBusinessKey": "P-1000"
+  }
+]

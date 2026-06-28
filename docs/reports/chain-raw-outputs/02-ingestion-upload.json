@@ -1,0 +1,25 @@
+{
+  "runId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+  "sourceFileId": "9a6a3d5f-5fc7-45d9-8d08-2d7d7af6df0b",
+  "parser": "excel",
+  "status": "normalized",
+  "validation": {
+    "passed": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "issues": []
+  },
+  "counts": {
+    "project": 1,
+    "resource": 1,
+    "activity": 2,
+    "report": 1,
+    "assignment": 1
+  },
+  "confidence": {
+    "completeness": 1,
+    "consistency": 1,
+    "sourceReliability": 0.85,
+    "overall": 0.9700000000000001
+  }
+}

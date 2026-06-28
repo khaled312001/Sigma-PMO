@@ -1,0 +1,84 @@
+{
+  "project": "P-1000",
+  "ranAt": "2026-06-28T11:54:28.303Z",
+  "ingestion": {
+    "runId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+    "counts": {
+      "project": 1,
+      "resource": 1,
+      "activity": 2,
+      "report": 1,
+      "assignment": 1
+    },
+    "jobStatus": "completed"
+  },
+  "workflow": {
+    "scope": "project",
+    "projectCount": 1,
+    "totalAlertCount": 4,
+    "totalDecisionCount": 4,
+    "projects": [
+      {
+        "projectKey": "P-1000",
+        "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+        "projectName": "Hospital Tower — Phase 1",
+        "evaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+        "alertCount": 4,
+        "decisionCount": 4
+      }
+    ],
+    "failures": [],
+    "empty": false
+  },
+  "evaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+  "alertCount": 4,
+  "sampleAlert": {
+    "id": "a63824de-330d-44ff-9de6-2bf665094a16",
+    "code": "REPORTED_VS_SCHEDULE_MISMATCH",
+    "severity": "warning",
+    "summary": "Latest weekly report for \"Hospital Tower — Phase 1\" under-reports progress: reported 38.0% vs schedule-weighted actual 59.9% (gap 21.9 pts, threshold 15 pts).",
+    "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+    "activityId": null,
+    "resourceId": null,
+    "assignmentId": null,
+    "reportId": "793ead98-f44c-4044-992f-44deef018388",
+    "ingestionRunId": "e1a79546-455f-43da-b7ff-79cfbad3573b",
+    "sourceFileId": "9a6a3d5f-5fc7-45d9-8d08-2d7d7af6df0b",
+    "ruleEvaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+    "context": {
+      "basis": "duration-weighted",
+      "gapPoints": 21.864864864864863,
+      "threshold": 15,
+      "reportDate": "2026-06-01",
+      "reportedPct": 0.38,
+      "scheduleActualPct": 0.5986486486486486
+    },
+    "createdAt": "2026-06-28T11:54:28.396Z",
+    "projectBusinessKey": "P-1000"
+  },
+  "decisionCount": 4,
+  "sampleDecision": {
+    "id": "de540110-546f-4070-b279-a2a8d547d70f",
+    "createdAt": "2026-06-28T11:54:28.445Z",
+    "alertId": "a63824de-330d-44ff-9de6-2bf665094a16",
+    "policyId": "fdd1f9b2-7a02-464b-83ac-0a25b555c02a",
+    "policyVersion": 1,
+    "responsibleParty": "shared",
+    "fidicClause": null,
+    "fidicNotice": null,
+    "fidicDeadlineDays": null,
+    "escalationLevel": "L1",
+    "notifyParties": [],
+    "interventions": [],
+    "rationale": "Rule REPORTED_VS_SCHEDULE_MISMATCH of severity warning; party: shared. Escalation: L1 (alert age 0d, threshold 3d).",
+    "chainState": "pending",
+    "approvals": [],
+    "requiresDualApproval": false,
+    "approvalsRemaining": 1,
+    "pendingAgeDays": 0,
+    "escalateAfterDays": 7,
+    "escalated": false
+  },
+  "approvedDecisionId": "de540110-546f-4070-b279-a2a8d547d70f",
+  "auditEntries": 1
+}

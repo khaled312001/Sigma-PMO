@@ -1,0 +1,18 @@
+{
+  "scope": "project",
+  "projectCount": 1,
+  "totalAlertCount": 4,
+  "totalDecisionCount": 4,
+  "projects": [
+    {
+      "projectKey": "P-1000",
+      "projectId": "408affa9-6c6f-4a52-bcb3-009f56ef4d44",
+      "projectName": "Hospital Tower — Phase 1",
+      "evaluationId": "00255fb1-d798-4956-9c35-a6657a941d00",
+      "alertCount": 4,
+      "decisionCount": 4
+    }
+  ],
+  "failures": [],
+  "empty": false
+}

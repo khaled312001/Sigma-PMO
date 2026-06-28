@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "nodeType": "project",
+      "businessKey": "P-1000",
+      "name": "Hospital Tower — Phase 1",
+      "governanceStatus": null,
+      "cost": {
+        "cpi": 0.909
+      },
+      "schedule": {
+        "spi": 0.819
+      },
+      "risk": {
+        "openCount": 0,
+        "maxScore": 0
+      },
+      "claims": {
+        "openCount": 0,
+        "exposure": 0
+      },
+      "benefitRealizationPct": 55,
+      "bac": 2700000
+    },
+    {
+      "nodeType": "project",
+      "businessKey": "3157",
+      "name": "10th-RH-Rev.03-1",
+      "governanceStatus": null,
+      "cost": {
+        "cpi": null
+      },
+      "schedule": {
+        "spi": null
+      },
+      "risk": {
+        "openCount": 0,
+        "maxScore": 0
+      },
+      "claims": {
+        "openCount": 0,
+        "exposure": 0
+      },
+      "benefitRealizationPct": 0,
+      "bac": 0
+    },
+    {
+      "nodeType": "project",
+      "businessKey": "P-AVENUE-MALL",
+      "name": "Avenue Mall - Riyadh",
+      "governanceStatus": "yellow",
+      "cost": {
+        "cpi": null
+      },
+      "schedule": {
+        "spi": 0.844
+      },
+      "risk": {
+        "openCount": 1,
+        "maxScore": 0.515
+      },
+      "claims": {
+        "openCount": 0,
+        "exposure": 0
+      },
+      "benefitRealizationPct": 9,
+      "bac": 412000000
+    }
+  ],
+  "computedAt": "2026-06-28T11:54:29.468Z"
+}
