@@ -20,6 +20,9 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(PinoLogger));
 
+  // Don't advertise the server stack (defence-in-depth; audit 2026-06-28).
+  app.disable('x-powered-by');
+
   const config = app.get(ConfigService);
   const bodyLimit = config.get<string>('bodyLimit') ?? '25mb';
 

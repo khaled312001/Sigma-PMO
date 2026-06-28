@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useToast } from '../../components/ToastProvider';
-import { api } from '../../lib/api';
+import { api, API_BASE } from '../../lib/api';
 import { AuthGate } from '../../components/AuthGate';
 import { useI18n } from '../../lib/i18n';
 import { IconRefresh, IconUpload } from '../../components/Icons';
@@ -273,7 +273,13 @@ function UniversalInput() {
             <div className="grid h-12 w-12 place-items-center rounded-full bg-sky-500/10 text-sky-300 ring-1 ring-sky-500/30"><IconUpload className="h-5 w-5" /></div>
             <p className="text-sm text-slate-200">{isAr ? 'أفلِت الملفات هنا أو تصفّح (عدة ملفات بأي نوع)' : 'Drop files here or browse (multiple files, any type)'}</p>
             <input ref={fileInput} type="file" multiple accept={ACCEPT} className="hidden" onChange={(e) => addFiles(e.target.files)} />
-            <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>{isAr ? 'اختر ملفات' : 'Choose files'}</Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>{isAr ? 'اختر ملفات' : 'Choose files'}</Button>
+              <a href={`${API_BASE}/ingestion/template`} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[12px] font-medium text-emerald-200 transition hover:border-emerald-400/60 hover:bg-emerald-500/15">
+                ⬇ {isAr ? 'حمّل القالب الرسمي (Excel)' : 'Download official template (Excel)'}
+              </a>
+            </div>
+            <p className="text-[11px] text-slate-500">{isAr ? 'القالب فيه أوراق: Projects · Activities · Resources · Assignments · Reports مع عيّنات جاهزة.' : 'Template sheets: Projects · Activities · Resources · Assignments · Reports — with worked samples.'}</p>
           </div>
 
           {files.length > 0 && (

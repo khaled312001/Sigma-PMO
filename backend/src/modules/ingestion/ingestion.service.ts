@@ -102,6 +102,28 @@ export class IngestionService {
         return { counts: normalized.counts, confidenceScore: score };
       });
 
+      // Reject files that parsed/validated but yielded NOTHING — an empty or
+      // mis-shaped file must not look like a successful ingestion (audit 2026-06-28).
+      const totalRows = Object.values(counts).reduce((sum, n) => sum + (Number(n) || 0), 0);
+      if (totalRows === 0) {
+        run.status = IngestionStatus.FAILED;
+        run.finishedAt = new Date();
+        run.rowCounts = counts;
+        run.summary = { validation, parserMeta: dataset.meta, reason: 'zero-records' };
+        await runRepo.save(run);
+        this.logger.warn(`Ingestion ${run.id} produced zero records — rejected.`);
+        throw new UnprocessableEntityException({
+          message:
+            'No records were extracted from this file. Make sure it follows the expected template ' +
+            '(projects, activities, resources, assignments, reports) and is not empty. ' +
+            'Download the sample template from the Input page and try again.',
+          runId: run.id,
+          counts,
+          validation,
+          parserMeta: dataset.meta,
+        });
+      }
+
       run.status = IngestionStatus.NORMALIZED;
       run.rowCounts = counts;
       run.finishedAt = new Date();

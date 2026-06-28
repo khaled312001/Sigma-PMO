@@ -15,12 +15,14 @@ import { P6XerParser } from './parsers/p6-xer.parser';
 import { P6XmlParser } from './parsers/p6-xml.parser';
 import { ParserRegistry } from './parsers/parser.registry';
 import { StorageService } from './storage/storage.service';
+import { TemplateService } from './template.service';
 
 @Module({
   imports: [CanonicalModule, ValidationModule, GovernanceModule],
   controllers: [IngestionController],
   providers: [
     IngestionService,
+    TemplateService,
     NormalizerService,
     StorageService,
     ParserRegistry,
