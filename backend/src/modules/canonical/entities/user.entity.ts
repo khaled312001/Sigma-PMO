@@ -41,6 +41,14 @@ export class User extends UuidEntity {
   @Column({ type: 'char', length: 64 })
   apiKeyHash!: string;
 
+  /**
+   * Recent API-key hashes (most-recent first), so concurrent logins to the SAME
+   * account no longer invalidate each other (audit 2026-06-28). `apiKeyHash`
+   * stays the current/primary key; this keeps the last few sessions valid too.
+   */
+  @Column({ type: 'json', nullable: true })
+  apiKeyHashes!: string[] | null;
+
   /** scrypt hash of the password (hex). Nullable for API-key-only users. */
   @Column({ type: 'varchar', length: 128, nullable: true })
   passwordHash!: string | null;

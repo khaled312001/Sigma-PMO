@@ -32,14 +32,38 @@ export class AuthService {
     return createHash('sha256').update(rawKey).digest('hex');
   }
 
-  findActiveByApiKey(rawKey: string): Promise<User | null> {
-    return this.users.findOne({ where: { apiKeyHash: this.hashApiKey(rawKey), active: true } });
+  /** How many concurrent sessions (recent keys) we keep valid per account. */
+  private static readonly MAX_SESSIONS = 5;
+
+  async findActiveByApiKey(rawKey: string): Promise<User | null> {
+    const hash = this.hashApiKey(rawKey);
+    // Fast path: the current/primary key (unique-indexed) — unchanged behaviour.
+    const primary = await this.users.findOne({ where: { apiKeyHash: hash, active: true } });
+    if (primary) return primary;
+    // Multi-session: also accept any of the user's recent keys. Wrapped so a JSON
+    // query issue degrades gracefully to "not found" (i.e. the old behaviour).
+    try {
+      return await this.users
+        .createQueryBuilder('u')
+        .where('u.active = :active', { active: true })
+        .andWhere('JSON_CONTAINS(u.apiKeyHashes, :h)', { h: JSON.stringify(hash) })
+        .getOne();
+    } catch {
+      return null;
+    }
   }
 
-  /** Issue a fresh API key for the given user; old key invalidated. */
+  /**
+   * Issue a fresh API key for the user. The new key becomes the primary, and the
+   * last few keys are kept valid so a second login (another tab/device, or shared
+   * demo account) does NOT log the existing session out (audit 2026-06-28).
+   */
   async issueApiKey(user: User): Promise<string> {
     const rawKey = `sk_${randomBytes(24).toString('hex')}`;
-    user.apiKeyHash = this.hashApiKey(rawKey);
+    const hash = this.hashApiKey(rawKey);
+    const prev = Array.isArray(user.apiKeyHashes) ? user.apiKeyHashes : [];
+    user.apiKeyHash = hash;
+    user.apiKeyHashes = [hash, ...prev.filter((h) => h !== hash)].slice(0, AuthService.MAX_SESSIONS);
     await this.users.save(user);
     return rawKey;
   }
