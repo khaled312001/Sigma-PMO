@@ -9,11 +9,14 @@ import {
   Req,
 } from '@nestjs/common';
 
+import { ApiTags } from '@nestjs/swagger';
+
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { AgentExecution, User } from '../canonical/entities';
 import { AiAnalysisService } from '../ai-analysis/ai-analysis.service';
 import { PREDICTIVE_AS_OF, PredictionResult, PredictionService } from './prediction.service';
 import { PredictiveAgentService } from './predictive-agent.service';
+import { PredictiveAiAnalysisDto, PredictiveRunDto } from './dto/predictive-run.dto';
 
 /**
  * `/predictive` — Predictive Governance (Mr. Ayham, 2026-06-12 active scope):
@@ -22,6 +25,7 @@ import { PredictiveAgentService } from './predictive-agent.service';
  * status (via the `ext.predictive` agent) and a grounded AI narrative. Gated on
  * `canRunPredictive`.
  */
+@ApiTags('Predictive Governance')
 @Controller('predictive')
 export class PredictiveController {
   constructor(
@@ -46,7 +50,7 @@ export class PredictiveController {
   @HttpCode(200)
   @RequiresCapability('canRunPredictive')
   async run(
-    @Body() body: { projectKey: string; asOfDate?: string },
+    @Body() body: PredictiveRunDto,
     @Req() req: { user?: User },
   ): Promise<{ execution: AgentExecution; forecast: PredictionResult }> {
     if (!body?.projectKey) throw new BadRequestException('projectKey is required');
@@ -66,7 +70,7 @@ export class PredictiveController {
   @HttpCode(200)
   @RequiresCapability('canRunPredictive')
   async aiAnalysisRun(
-    @Body() body: { projectKey: string; asOfDate?: string; language?: 'en' | 'ar' },
+    @Body() body: PredictiveAiAnalysisDto,
   ): Promise<unknown> {
     if (!body?.projectKey) throw new BadRequestException('projectKey is required');
     const result = await this.prediction.forecast(body.projectKey, body.asOfDate || PREDICTIVE_AS_OF);

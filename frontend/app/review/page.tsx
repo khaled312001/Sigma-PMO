@@ -46,6 +46,9 @@ function ReviewPage() {
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
+  // Gate the empty-state so the page never flashes "no decisions yet" before the
+  // first fetch resolves (eval 2026-06-28: show loading, not premature "No data").
+  const [loaded, setLoaded] = useState(false);
 
   // Scoped to the selected project; re-fetches on every switcher change.
   const refresh = useCallback(async () => {
@@ -61,6 +64,7 @@ function ReviewPage() {
       setDecisionsByAlert(map);
       setSummary(s[0] ?? null);
     } catch (e) { toast.error(lang === 'ar' ? 'تعذّر تحميل التنبيهات' : 'Failed to load alerts', (e as Error).message); }
+    finally { setLoaded(true); }
   }, [toast, projectKey, lang]);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -197,7 +201,12 @@ function ReviewPage() {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {!loaded ? (
+        <EmptyState
+          title={lang === 'ar' ? `جارٍ تحميل بيانات ${projectKey}…` : `Loading ${projectKey} data…`}
+          description={lang === 'ar' ? 'يتم جلب التنبيهات والقرارات لهذا المشروع.' : 'Fetching alerts and decisions for this project.'}
+        />
+      ) : filtered.length === 0 ? (
         alerts.length === 0 ? (
           <EmptyState
             title={t('approval.noDecisions')}

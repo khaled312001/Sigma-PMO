@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ApiTags } from '@nestjs/swagger';
 import { Repository } from 'typeorm';
 
 import { HierarchyLevel } from '../../common/enums';
@@ -22,6 +23,7 @@ import {
   RecommendedAction,
 } from './command-center.service';
 import { ConsolidatedNode } from './consolidation.service';
+import { RecomputeDto } from './dto/recompute.dto';
 import { SigmaGovernanceAgentService } from './sigma-governance-agent.service';
 
 /**
@@ -30,6 +32,7 @@ import { SigmaGovernanceAgentService } from './sigma-governance-agent.service';
  * view; recompute re-runs the L8 consolidation; corrective actions can be
  * advanced through their lifecycle.
  */
+@ApiTags('Governance Command (L8)')
 @Controller('governance-command')
 export class SigmaGovernanceController {
   constructor(
@@ -99,7 +102,7 @@ export class SigmaGovernanceController {
   @Post('recompute')
   @HttpCode(200)
   @RequiresCapability('canEvaluateRules')
-  recompute(@Body() body: { nodeType?: string; nodeKey: string }) {
+  recompute(@Body() body: RecomputeDto) {
     if (!body?.nodeKey) throw new BadRequestException('nodeKey is required');
     return this.l8.run({
       nodeType: body.nodeType ?? HierarchyLevel.PROJECT,

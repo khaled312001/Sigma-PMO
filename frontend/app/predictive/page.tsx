@@ -88,13 +88,15 @@ function PredictivePage() {
   const toast = useToast();
   const [data, setData] = useState<PredictionDto | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Gate the empty-state on the first fetch (eval 2026-06-28: no premature "No data").
+  const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
       setData(await api<PredictionDto>(`/predictive/forecast?projectKey=${encodeURIComponent(projectKey)}`));
     } catch (e) {
       toast.error(ar ? 'تعذّر تحميل التوقعات' : 'Failed to load forecasts', (e as Error).message);
-    }
+    } finally { setLoaded(true); }
   }, [projectKey, toast, ar]);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -155,7 +157,9 @@ function PredictivePage() {
       </Card>
 
       {/* Five forecast cards */}
-      {!data ? (
+      {!loaded ? (
+        <EmptyState title={ar ? `جارٍ تحميل توقعات ${projectKey}…` : `Loading ${projectKey} forecasts…`} description={ar ? 'يتم حساب التوقعات لهذا المشروع.' : 'Computing forecasts for this project.'} />
+      ) : !data ? (
         <EmptyState title={ar ? 'لا توجد توقعات بعد' : 'No forecasts yet'} description={ar ? 'شغّل التوقعات لهذا المشروع.' : 'Run forecasts for this project.'} />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
