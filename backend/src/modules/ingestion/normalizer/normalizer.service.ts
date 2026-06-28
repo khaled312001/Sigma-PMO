@@ -112,6 +112,12 @@ export class NormalizerService {
       entity.actualPctComplete = asFraction(raw.actualPctComplete);
       entity.budgetedCost = decimalString(raw.budgetedCost);
       entity.actualCost = decimalString(raw.actualCost);
+      // CPM logic network (parsed from P6 TASKPRED + total_float/driving_path).
+      entity.totalFloat = asNumber(raw.totalFloat) === null ? null : Math.round(asNumber(raw.totalFloat)!);
+      entity.isCritical = raw.isCritical === true;
+      entity.predecessors = Array.isArray(raw.predecessors)
+        ? (raw.predecessors as Array<{ activityKey: string; type: string; lagDays: number }>)
+        : null;
       const saved = await manager.save(entity);
       activityIdByKey.set(key, saved.id);
       counts.activity += 1;

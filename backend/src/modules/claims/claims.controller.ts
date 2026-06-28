@@ -59,4 +59,16 @@ export class ClaimsController {
   claimPackage(@Param('id') id: string) {
     return this.extras.claimPackage(id);
   }
+
+  /**
+   * Forensic evidence chain (Mr. Ayham acceptance 2026-06-28) — claim →
+   * forensic delay → entitlement → FIDIC clause verdict → evidence legs
+   * (letter + daily report + baseline/update + photo/video + BOQ line + FIDIC
+   * clause), each source-ref'd back to the exact file / page / paragraph / sha256.
+   */
+  @Get(':id/chain')
+  @RequiresCapability('canRead')
+  chain(@Param('id') id: string) {
+    return this.extras.forensicChain(id);
+  }
 }

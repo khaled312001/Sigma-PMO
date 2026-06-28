@@ -65,4 +65,9 @@ export class FeasibilityAssessment extends UuidEntity {
 
   @Column({ type: 'varchar', length: 128, nullable: true })
   createdBy!: string | null;
+
+  /** Threads the cross-module journey (sketch → … → decision) together. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  journeyCorrelationId!: string | null;
 }

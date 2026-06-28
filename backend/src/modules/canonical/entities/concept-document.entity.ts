@@ -60,4 +60,9 @@ export class ConceptDocument extends UuidEntity {
 
   @Column({ type: 'varchar', length: 128, nullable: true })
   confirmedBy!: string | null;
+
+  /** Threads the cross-module journey (sketch → … → decision) together. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  journeyCorrelationId!: string | null;
 }

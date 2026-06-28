@@ -47,4 +47,9 @@ export class GovernanceDecision extends UuidEntity {
   /** Human-readable explanation, deterministic from rule code + policy. */
   @Column({ type: 'text' })
   rationale!: string;
+
+  /** Threads the cross-module journey (sketch → … → decision) together. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  journeyCorrelationId!: string | null;
 }

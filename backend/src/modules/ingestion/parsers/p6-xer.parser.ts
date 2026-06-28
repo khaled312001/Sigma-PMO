@@ -30,6 +30,33 @@ function hoursToDays(value: unknown): number | null {
   return Number.isFinite(num) ? num / HOURS_PER_DAY : null;
 }
 
+/** Total float in whole days from a P6 hour count, or null. */
+function floatDays(value: unknown): number | null {
+  const days = hoursToDays(value);
+  return days === null ? null : Math.round(days);
+}
+
+/** P6 boolean flag ('Y'/'1'/'true') → boolean. */
+function p6Flag(value: unknown): boolean {
+  const s = String(value ?? '').trim().toUpperCase();
+  return s === 'Y' || s === '1' || s === 'TRUE';
+}
+
+/** Map a P6 TASKPRED pred_type code to a canonical relationship type. */
+function mapPredType(code: unknown): string {
+  switch (String(code ?? '').toUpperCase()) {
+    case 'PR_SS':
+      return 'SS';
+    case 'PR_FF':
+      return 'FF';
+    case 'PR_SF':
+      return 'SF';
+    case 'PR_FS':
+    default:
+      return 'FS';
+  }
+}
+
 /**
  * Primavera P6 XER parser. XER is a tab-delimited multi-table text format:
  *   %T <TABLE>   table start
@@ -62,7 +89,25 @@ export class P6XerParser implements SourceParser {
       });
     }
 
+    // Predecessor logic links (TASKPRED): one row per relationship — `task_id`
+    // is the SUCCESSOR, `pred_task_id` the predecessor. Index by successor so
+    // each activity carries its own predecessor list.
+    const predsBySuccessor = new Map<string, Array<{ activityKey: string; type: string; lagDays: number }>>();
+    for (const row of tables.TASKPRED ?? []) {
+      const successor = row.task_id;
+      const predecessor = row.pred_task_id;
+      if (!successor || !predecessor) continue;
+      const list = predsBySuccessor.get(successor) ?? [];
+      list.push({
+        activityKey: predecessor,
+        type: mapPredType(row.pred_type),
+        lagDays: floatDays(row.lag_hr_cnt) ?? 0,
+      });
+      predsBySuccessor.set(successor, list);
+    }
+
     for (const row of tables.TASK ?? []) {
+      const predecessors = predsBySuccessor.get(row.task_id) ?? null;
       dataset.activities.push({
         businessKey: row.task_id,
         projectKey: row.proj_id,
@@ -77,6 +122,9 @@ export class P6XerParser implements SourceParser {
         plannedDurationDays: hoursToDays(row.target_drtn_hr_cnt),
         remainingDurationDays: hoursToDays(row.remain_drtn_hr_cnt),
         actualPctComplete: row.phys_complete_pct ?? null,
+        totalFloat: floatDays(row.total_float_hr_cnt),
+        isCritical: p6Flag(row.driving_path_flag),
+        predecessors: predecessors && predecessors.length ? predecessors : null,
         __raw: row,
       });
     }

@@ -52,8 +52,10 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { UniversalInputModule } from './modules/universal-input/universal-input.module';
 import { CommunicationsModule } from './modules/communications/communications.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
+import { JourneyModule } from './modules/journey/journey.module';
 import { RecordsModule } from './modules/records/records.module';
 import { QualityModule } from './modules/quality/quality.module';
+import { SiteEvidenceModule } from './modules/site-evidence/site-evidence.module';
 import { AuthorityMatrixModule } from './modules/authority-matrix/authority-matrix.module';
 import { LegalHoldModule } from './modules/legal-hold/legal-hold.module';
 import { ContractRulesModule } from './modules/contract-rules/contract-rules.module';
@@ -117,10 +119,19 @@ import { SummaryModule } from './modules/summary/summary.module';
     // communications with an authenticated open-in-Sigma evidence trail.
     CommunicationsModule,
     EvidenceModule,
+    // Cross-module journey assembler (Mr. Ayham acceptance 2026-06-28, "the one
+    // pipeline") — GET /journey/:projectKey returns the ordered chain sketch →
+    // feasibility → BIM → BoQ → schedule → contract → site-evidence → report →
+    // decision for a project, threaded by journeyCorrelationId where stamped.
+    JourneyModule,
     RecordsModule,
     // QA/QC Governance (Mr. Ayham acceptance #4, 2026-06-20) — NCR/ITP/Inspection
     // lifecycle with the NCR → delay/cost/claim chain.
     QualityModule,
+    // Smart-glasses / site-evidence capture channel (Mr. Ayham acceptance
+    // 2026-06-28) — photo/video/audio/transcript with rich metadata, a daily
+    // rollup, and an optional safety/quality finding raised from the capture.
+    SiteEvidenceModule,
     // Contractual Authority Matrix (Mr. Ayham acceptance #10, 2026-06-20).
     AuthorityMatrixModule,
     // Legal-grade Evidence Integrity (Mr. Ayham acceptance #6/#12) — legal holds

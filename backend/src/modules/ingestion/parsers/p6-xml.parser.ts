@@ -24,6 +24,38 @@ function str(node: XmlNode, key: string): string | null {
   return text.length === 0 ? null : text;
 }
 
+/** First present string among several candidate keys (schema variants). */
+function firstStr(node: XmlNode, keys: string[]): string | null {
+  for (const k of keys) {
+    const v = str(node, k);
+    if (v !== null) return v;
+  }
+  return null;
+}
+
+/** PMXML TotalFloat is in hours; convert to whole days (8h/day). Null when absent. */
+function floatToDays(node: XmlNode, keys: string[]): number | null {
+  const raw = firstStr(node, keys);
+  if (raw === null) return null;
+  const hours = Number(raw);
+  return Number.isFinite(hours) ? Math.round(hours / 8) : null;
+}
+
+/** PMXML boolean ('1'/'true'/'Y') → boolean. */
+function xmlFlag(node: XmlNode, keys: string[]): boolean {
+  const raw = (firstStr(node, keys) ?? '').toUpperCase();
+  return raw === '1' || raw === 'TRUE' || raw === 'Y';
+}
+
+/** Map a PMXML relationship Type ('Finish to Start' / 'FS') to a canonical code. */
+function mapXmlRelType(value: string | null): string {
+  const v = (value ?? '').toUpperCase();
+  if (v.includes('START TO START') || v === 'SS') return 'SS';
+  if (v.includes('FINISH TO FINISH') || v === 'FF') return 'FF';
+  if (v.includes('START TO FINISH') || v === 'SF') return 'SF';
+  return 'FS';
+}
+
 /**
  * Primavera P6 XML (PMXML) parser. Reads the standard APIBusinessObjects tree:
  * Projects (with nested Activities), Resources, and ResourceAssignments, mapping
@@ -51,6 +83,30 @@ export class P6XmlParser implements SourceParser {
     const doc = this.parser.parse(buffer.toString('utf8')) as XmlNode;
     const root = (doc.APIBusinessObjects ?? {}) as XmlNode;
 
+    // Predecessor logic links. PMXML carries them either as top-level
+    // <Relationship> elements or nested <RelationshipPredecessor> under each
+    // Activity. Index by successor activity id so each activity gets its own list.
+    const predsBySuccessor = new Map<string, Array<{ activityKey: string; type: string; lagDays: number }>>();
+    const addRel = (successor: string | null, predecessor: string | null, type: string | null, lag: string | null): void => {
+      if (!successor || !predecessor) return;
+      const list = predsBySuccessor.get(successor) ?? [];
+      const lagHours = Number(lag);
+      list.push({
+        activityKey: predecessor,
+        type: mapXmlRelType(type),
+        lagDays: Number.isFinite(lagHours) ? Math.round(lagHours / 8) : 0,
+      });
+      predsBySuccessor.set(successor, list);
+    };
+    for (const rel of toArray(root.Relationship)) {
+      addRel(
+        firstStr(rel, ['SuccessorActivityId', 'SuccessorActivityObjectId']),
+        firstStr(rel, ['PredecessorActivityId', 'PredecessorActivityObjectId']),
+        firstStr(rel, ['Type', 'RelationshipType']),
+        firstStr(rel, ['Lag', 'LagDuration']),
+      );
+    }
+
     for (const project of toArray(root.Project)) {
       const projectKey = str(project, 'Id');
       dataset.projects.push({
@@ -69,8 +125,19 @@ export class P6XmlParser implements SourceParser {
       });
 
       for (const activity of toArray(project.Activity)) {
+        const activityId = str(activity, 'Id');
+        // Nested per-activity predecessor links, in addition to any top-level ones.
+        for (const rel of toArray(activity.RelationshipPredecessor)) {
+          addRel(
+            activityId,
+            firstStr(rel, ['PredecessorActivityId', 'PredecessorActivityObjectId', 'Id']),
+            firstStr(rel, ['Type', 'RelationshipType']),
+            firstStr(rel, ['Lag', 'LagDuration']),
+          );
+        }
+        const predecessors = activityId ? predsBySuccessor.get(activityId) ?? null : null;
         dataset.activities.push({
-          businessKey: str(activity, 'Id'),
+          businessKey: activityId,
           projectKey,
           wbsCode: str(activity, 'WBSCode'),
           name: str(activity, 'Name'),
@@ -85,6 +152,9 @@ export class P6XmlParser implements SourceParser {
           actualPctComplete: str(activity, 'PercentComplete'),
           budgetedCost: str(activity, 'BudgetedCost'),
           actualCost: str(activity, 'ActualCost'),
+          totalFloat: floatToDays(activity, ['TotalFloat', 'TotalFloatHours']),
+          isCritical: xmlFlag(activity, ['IsCritical', 'Critical']),
+          predecessors: predecessors && predecessors.length ? predecessors : null,
           __raw: activity,
         });
       }

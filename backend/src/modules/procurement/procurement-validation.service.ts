@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
+  Activity,
   ProcurementFinding,
   ProcurementPackage,
+  Project,
   Vendor,
 } from '../canonical/entities';
 import { daysBetween } from '../../common/dates';
@@ -42,6 +44,8 @@ export class ProcurementValidationService {
     @InjectRepository(ProcurementFinding) private readonly findings: Repository<ProcurementFinding>,
     @InjectRepository(ProcurementPackage) private readonly packages: Repository<ProcurementPackage>,
     @InjectRepository(Vendor) private readonly vendors: Repository<Vendor>,
+    @InjectRepository(Project) private readonly projects: Repository<Project>,
+    @InjectRepository(Activity) private readonly activities: Repository<Activity>,
   ) {}
 
   async validate(projectKey: string, asOfDate?: string): Promise<{ projectKey: string; findings: ProcurementFinding[]; counts: Record<string, number> }> {
@@ -49,6 +53,10 @@ export class ProcurementValidationService {
     const pkgs = await this.packages.find({ where: { projectBusinessKey: projectKey, isCurrent: true } });
     const vendorByKey = new Map<string, Vendor>();
     for (const v of await this.vendors.find({ where: { isCurrent: true } })) vendorByKey.set(v.businessKey, v);
+
+    // CPM linkage: map a package's activityBusinessKey to its current Activity so
+    // a long-lead exposure on a critical-path activity flags the EOT risk.
+    const activityByKey = await this.criticalActivityMap(projectKey);
 
     const drafts: DraftFinding[] = [];
 
@@ -112,13 +120,28 @@ export class ProcurementValidationService {
       if (p.longLead && p.leadTimeDays && p.requiredOnSiteDate && p.status === 'planned') {
         const available = daysBetween(asOf, p.requiredOnSiteDate) ?? 0;
         if (available < p.leadTimeDays) {
+          // CPM linkage: if the package maps to a critical-path activity, the
+          // exposure is an EOT risk — escalate severity and note it.
+          const linkedActivity = p.activityBusinessKey ? activityByKey.get(p.activityBusinessKey) : undefined;
+          const onCriticalPath = !!linkedActivity?.isCritical;
+          const shortfall = p.leadTimeDays - available;
+          const severity: 'warning' | 'critical' =
+            onCriticalPath || available < p.leadTimeDays * 0.5 ? 'critical' : 'warning';
+          const criticalNote = onCriticalPath
+            ? ` Mapped activity ${p.activityBusinessKey} is on the CRITICAL PATH (float ${linkedActivity?.totalFloat ?? 0}d) — a slip directly extends completion, exposing an EOT of ~${shortfall}d.`
+            : '';
           drafts.push({
             findingType: 'long-lead-exposure',
-            severity: available < p.leadTimeDays * 0.5 ? 'critical' : 'warning',
-            title: `Long-lead exposure — ${p.businessKey} not yet ordered`,
-            description: `Long-lead package ${p.businessKey} needs ${p.leadTimeDays}d lead but only ${available}d remain to the required-on-site date ${p.requiredOnSiteDate}, and it is still '${p.status}'.`,
-            refs: { packageKey: p.businessKey, leadTimeDays: p.leadTimeDays, daysAvailable: available, requiredOnSiteDate: p.requiredOnSiteDate },
-            recommendation: 'Place the order immediately or re-sequence dependent works.',
+            severity,
+            title: `Long-lead exposure — ${p.businessKey} not yet ordered${onCriticalPath ? ' (critical path / EOT risk)' : ''}`,
+            description: `Long-lead package ${p.businessKey} needs ${p.leadTimeDays}d lead but only ${available}d remain to the required-on-site date ${p.requiredOnSiteDate}, and it is still '${p.status}'.${criticalNote}`,
+            refs: {
+              packageKey: p.businessKey, leadTimeDays: p.leadTimeDays, daysAvailable: available, requiredOnSiteDate: p.requiredOnSiteDate,
+              activityBusinessKey: p.activityBusinessKey ?? null, onCriticalPath, eotExposureDays: onCriticalPath ? shortfall : null,
+            },
+            recommendation: onCriticalPath
+              ? 'Place the order immediately — the linked activity is on the critical path; any further slip extends the completion date (EOT exposure).'
+              : 'Place the order immediately or re-sequence dependent works.',
             dedupKey: `longlead:${projectKey}:${p.businessKey}`,
           });
         }
@@ -146,6 +169,20 @@ export class ProcurementValidationService {
     for (const f of persisted) counts[f.findingType] = (counts[f.findingType] ?? 0) + 1;
     this.logger.log(`Procurement governance for ${projectKey}: ${persisted.length} finding(s) ${JSON.stringify(counts)}`);
     return { projectKey, findings: persisted, counts };
+  }
+
+  /**
+   * Map current Activity businessKey → activity (carrying isCritical + totalFloat)
+   * for the project, so a package's `activityBusinessKey` resolves to its
+   * schedule activity. Empty map when the project / its activities are absent.
+   */
+  private async criticalActivityMap(projectKey: string): Promise<Map<string, Activity>> {
+    const map = new Map<string, Activity>();
+    const project = await this.projects.findOne({ where: { businessKey: projectKey, isCurrent: true } });
+    if (!project) return map;
+    const acts = await this.activities.find({ where: { projectId: project.id, isCurrent: true } });
+    for (const a of acts) map.set(a.businessKey, a);
+    return map;
   }
 
   /** Delivery-tracking summary: status mix + on-time rate across packages. */

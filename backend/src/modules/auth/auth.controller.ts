@@ -153,7 +153,11 @@ export class AuthController {
     const { hash, salt } = this.auth.hashPassword(body.password);
     user.passwordHash = hash;
     user.passwordSalt = salt;
-    await this.users.save(user);
+    // Security: changing the password invalidates every previously issued API
+    // key / session (old tabs, lost laptops). The user must log in again with
+    // the new password to obtain a working key. revokeAllSessions persists the
+    // user (including the password fields set above).
+    await this.auth.revokeAllSessions(user);
     return { ok: true };
   }
 
@@ -303,10 +307,10 @@ export class AuthController {
   @RequiresCapability('canManageRoles')
   async rotateKey(@Param('id') id: string): Promise<{ apiKey: string }> {
     const user = await this.findUserInScope(id);
-    const rawKey = `sk_${randomBytes(24).toString('hex')}`;
-    user.apiKeyHash = this.auth.hashApiKey(rawKey);
-    await this.users.save(user);
-    return { apiKey: rawKey };
+    // Exclusive rotation: the new key becomes the ONLY valid key — every prior
+    // session hash is purged so rotating truly invalidates the old key(s).
+    const apiKey = await this.auth.rotateApiKeyExclusive(user);
+    return { apiKey };
   }
 
   /**

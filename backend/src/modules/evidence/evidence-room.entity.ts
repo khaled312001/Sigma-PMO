@@ -64,4 +64,9 @@ export class EvidenceRoom extends UuidEntity {
 
   @Column({ type: 'varchar', length: 320, nullable: true })
   createdByEmail!: string | null;
+
+  /** Threads the cross-module journey (sketch → … → decision) together. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  journeyCorrelationId!: string | null;
 }

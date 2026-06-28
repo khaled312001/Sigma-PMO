@@ -124,6 +124,8 @@ export class AutodeskApsService implements OnModuleInit {
     filename: string;
     buffer: Buffer;
     bucketKey?: string;
+    /** Model Derivative output format — `svf2` (default, viewer + counts) or `ifc`. */
+    outputFormat?: DerivativeFormat;
   }): Promise<AutodeskImportResult> {
     if (!this.isEnabled()) {
       throw new ServiceUnavailableException('Autodesk APS is not configured — set the client id/secret in /admin/settings.');
@@ -135,7 +137,7 @@ export class AutodeskApsService implements OnModuleInit {
     const objectId = await this.uploadObject(bucketKey, objectKey, input.buffer);
     const urn = toUrn(objectId);
 
-    await this.translate(urn, input.filename);
+    await this.translate(urn, input.filename, input.outputFormat ?? 'svf2');
     const manifest = await this.waitForTranslation(urn);
 
     if (manifest.status !== 'success' && manifest.status !== 'inprogress') {
@@ -235,9 +237,15 @@ export class AutodeskApsService implements OnModuleInit {
     return finished.objectId;
   }
 
-  private async translate(urn: string, filename: string): Promise<void> {
+  private async translate(urn: string, filename: string, format: DerivativeFormat = 'svf2'): Promise<void> {
     const token = await this.getToken(DATA_SCOPES);
     const rootFilename = filename.toLowerCase().endsWith('.zip') ? filename : undefined;
+    // svf2 carries 2d/3d views (the viewer + property tree the QS counts read);
+    // ifc is a model-export format and takes no `views`.
+    const outputFormat =
+      format === 'ifc'
+        ? { type: 'ifc' as const }
+        : { type: 'svf2' as const, views: ['2d', '3d'] };
     const res = await fetch(`${this.config.baseUrl}/modelderivative/v2/designdata/job`, {
       method: 'POST',
       headers: {
@@ -247,7 +255,7 @@ export class AutodeskApsService implements OnModuleInit {
       },
       body: JSON.stringify({
         input: { urn, ...(rootFilename ? { rootFilename, compressedUrn: true } : {}) },
-        output: { formats: [{ type: 'svf2', views: ['2d', '3d'] }] },
+        output: { formats: [outputFormat] },
       }),
     });
     if (!res.ok) throw new Error(`APS translation job failed (${res.status}): ${await safeText(res)}`);
@@ -324,6 +332,9 @@ export class AutodeskApsService implements OnModuleInit {
 }
 
 // ───────────────────────── module-local helpers/types ─────────────────────────
+
+/** Model Derivative output format: the viewer/counts default, or IFC export. */
+export type DerivativeFormat = 'svf2' | 'ifc';
 
 interface AutodeskConfigResolved {
   clientId: string;

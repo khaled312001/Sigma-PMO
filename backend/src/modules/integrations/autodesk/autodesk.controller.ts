@@ -12,7 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import { RequiresCapability } from '../../auth/require-capability.decorator';
 import { ProjectRecord } from '../../canonical/entities';
 import { BimModelService } from '../../clashes/bim-model.service';
-import { AutodeskApsService, AutodeskImportResult, AutodeskStatus } from './autodesk-aps.service';
+import { AutodeskApsService, AutodeskImportResult, AutodeskStatus, DerivativeFormat } from './autodesk-aps.service';
 
 interface ImportBody {
   projectKey: string;
@@ -20,6 +20,8 @@ interface ImportBody {
   contentBase64: string;
   bucketKey?: string;
   uploadedBy?: string | null;
+  /** Model Derivative output: `svf2` (default, viewer + QS counts) or `ifc`. */
+  outputFormat?: DerivativeFormat;
 }
 
 /**
@@ -60,11 +62,15 @@ export class AutodeskController {
     if (!body?.projectKey) throw new BadRequestException('projectKey is required');
     if (!body?.filename) throw new BadRequestException('filename is required');
     if (!body?.contentBase64) throw new BadRequestException('contentBase64 is required');
+    if (body.outputFormat && body.outputFormat !== 'svf2' && body.outputFormat !== 'ifc') {
+      throw new BadRequestException('outputFormat must be "svf2" or "ifc"');
+    }
 
     const result = await this.aps.importModel({
       filename: body.filename,
       buffer: Buffer.from(body.contentBase64, 'base64'),
       bucketKey: body.bucketKey,
+      outputFormat: body.outputFormat,
     });
 
     const record = await this.bim.ingestFromCounts({

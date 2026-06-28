@@ -70,6 +70,16 @@ export class ProcurementPackage extends UuidEntity {
   @Column({ type: 'decimal', precision: 18, scale: 4, nullable: true })
   installedQuantity!: string | null;
 
+  /**
+   * Canonical Activity businessKey this package's delivery maps to (Mr. Ayham
+   * acceptance 2026-06-28) — so a long-lead item ties to a P6 activity and, when
+   * that activity is on the critical path, the long-lead exposure flags an EOT
+   * risk. Nullable: packages without a schedule link leave it null.
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  activityBusinessKey!: string | null;
+
   @Column({ type: 'varchar', length: 64, nullable: true })
   awardedVendorBusinessKey!: string | null;
 

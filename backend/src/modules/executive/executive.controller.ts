@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { ExecutiveAgentService, ExecutivePack } from './executive-agent.service';
@@ -24,17 +24,15 @@ export class ExecutiveController {
 
   @Get('overview')
   @RequiresCapability('canRead')
-  overview(@Query('projectKey') projectKey?: string): Promise<ExecutivePack> {
-    if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
-    return this.executive.buildPack(projectKey);
+  async overview(@Query('projectKey') projectKey?: string): Promise<ExecutivePack> {
+    return this.executive.buildPack(await this.kpis.resolveProjectKey(projectKey));
   }
 
   /** Deterministic executive headline KPIs (health, confidence, forecasts). */
   @Get('kpis')
   @RequiresCapability('canRead')
-  executiveKpis(@Query('projectKey') projectKey?: string): Promise<ExecutiveKpis> {
-    if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
-    return this.kpis.computeKpis(projectKey);
+  async executiveKpis(@Query('projectKey') projectKey?: string): Promise<ExecutiveKpis> {
+    return this.kpis.computeKpis(await this.kpis.resolveProjectKey(projectKey));
   }
 
   /** Portfolio health roll-up (mean + worst) across all current projects. */
@@ -47,9 +45,8 @@ export class ExecutiveController {
   /** Strategic alignment + benefits realization + enterprise governance score. */
   @Get('strategic')
   @RequiresCapability('canEvaluateRules')
-  strategic(@Query('projectKey') projectKey?: string): Promise<StrategicKpis> {
-    if (!projectKey) throw new BadRequestException('projectKey query parameter is required');
-    return this.kpis.computeStrategic(projectKey);
+  async strategic(@Query('projectKey') projectKey?: string): Promise<StrategicKpis> {
+    return this.kpis.computeStrategic(await this.kpis.resolveProjectKey(projectKey));
   }
 
   /**

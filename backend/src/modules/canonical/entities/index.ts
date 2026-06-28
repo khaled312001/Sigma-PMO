@@ -85,6 +85,10 @@ import { QualityRecord } from './quality-record.entity';
 import { AuthorityMatrixEntry } from './authority-matrix-entry.entity';
 // Contract Rules Engine (Mr. Ayham acceptance #2, 2026-06-20).
 import { ContractClauseRule } from './contract-clause-rule.entity';
+// Smart-glasses / site-evidence capture channel (Mr. Ayham acceptance 2026-06-28).
+import { SiteEvidence } from './site-evidence.entity';
+// Forensic evidence chain (Mr. Ayham acceptance 2026-06-28).
+import { ClaimEvidenceLink } from './claim-evidence-link.entity';
 
 export {
   Activity,
@@ -153,6 +157,8 @@ export {
   QualityRecord,
   AuthorityMatrixEntry,
   ContractClauseRule,
+  SiteEvidence,
+  ClaimEvidenceLink,
 };
 
 /** All canonical ORM entities, for TypeOrmModule.forFeature registration. */
@@ -260,4 +266,12 @@ export const CANONICAL_ENTITIES = [
   // Contract Rules Engine (Mr. Ayham acceptance #2, 2026-06-20): clause rules
   // (notice/time-bar/deemed-approval/determination) + procedural evaluator.
   ContractClauseRule,
+  // Smart-glasses / site-evidence capture channel (Mr. Ayham acceptance
+  // 2026-06-28): photo/video/audio/transcript with rich metadata, rolling up
+  // per day and optionally raising a safety/quality finding.
+  SiteEvidence,
+  // Forensic evidence chain (Mr. Ayham acceptance 2026-06-28): a single claim
+  // cites letter + daily report + baseline/update + photo/video + BOQ line +
+  // FIDIC clause, each source-ref'd.
+  ClaimEvidenceLink,
 ];

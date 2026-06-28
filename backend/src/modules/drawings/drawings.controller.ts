@@ -22,9 +22,11 @@ interface UploadDrawingsBody {
 }
 
 /**
- * `/drawings` — phase-1 drawings ingestion (correction-plan §2.7). Same
- * base64 envelope as the other upload surfaces; throttled on the ingest
- * bucket because PDF parsing is CPU-bound.
+ * `/drawings` — drawings ingestion (correction-plan §2.7). Accepts PDF sets
+ * (feature-extracted) and AutoCAD .dwg/.dxf files (archived immutably; CAD
+ * geometry/text extraction is deferred to the Autodesk APS connector — see
+ * DrawingsService). Same base64 envelope as the other upload surfaces;
+ * throttled on the ingest bucket because PDF parsing is CPU-bound.
  */
 @Controller('drawings')
 export class DrawingsController {

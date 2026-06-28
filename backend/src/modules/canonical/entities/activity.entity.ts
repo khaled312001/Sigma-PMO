@@ -52,4 +52,21 @@ export class Activity extends TraceableEntity {
 
   @Column({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   actualCost!: string | null;
+
+  // ── CPM logic network (Mr. Ayham acceptance 2026-06-28) — parsed from the P6
+  // logic so critical-path / EOT is CPM-driven and a clash / long-lead change can
+  // be tied to a critical activity. Nullable: schedules without logic links leave
+  // them null and the float-to-completion fallback still applies. ──
+
+  /** Total float in days (P6 total_float_hr_cnt ÷ 8 / PMXML TotalFloat). */
+  @Column({ type: 'int', nullable: true })
+  totalFloat!: number | null;
+
+  /** True when the activity is on the critical path (P6 driving_path_flag / PMXML IsCritical). */
+  @Column({ type: 'boolean', default: false })
+  isCritical!: boolean;
+
+  /** Predecessor logic links: [{ activityKey, type, lagDays }] (FS/SS/FF/SF). */
+  @Column({ type: 'json', nullable: true })
+  predecessors!: Array<{ activityKey: string; type: string; lagDays: number }> | null;
 }

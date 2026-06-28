@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { SourceType } from '../../common/enums';
+import { parsePdf } from '../../common/pdf/parse-pdf.util';
 import { DrawingPackage, SourceFile } from '../canonical/entities';
 import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { StorageService } from '../ingestion/storage/storage.service';
@@ -40,7 +41,13 @@ export class DrawingsService {
     private readonly ownership?: ProjectOwnershipService,
   ) {}
 
-  /** Ingest one PDF drawing set. */
+  /**
+   * Ingest one drawing set. PDF sets keep the pdf-parse feature-extraction path;
+   * AutoCAD `.dwg` / `.dxf` files are accepted (Mr. Ayham acceptance 2026-06-28)
+   * — the bytes are archived immutably and the package persists with an honest
+   * `extractionNote` that geometry/text extraction for CAD needs the Autodesk
+   * APS connector. We do NOT pretend to parse DWG geometry.
+   */
   async ingestPdf(input: {
     projectKey: string;
     filename: string;
@@ -48,10 +55,13 @@ export class DrawingsService {
     uploadedBy: string | null;
   }): Promise<DrawingPackage> {
     if (!input.projectKey) throw new BadRequestException('projectKey is required');
-    if (!input.filename.toLowerCase().endsWith('.pdf')) {
-      throw new BadRequestException('Phase 1 accepts .pdf drawing sets only (IFC/DWG/RVT follow).');
+    const lower = input.filename.toLowerCase();
+    const isPdf = lower.endsWith('.pdf');
+    const isCad = lower.endsWith('.dwg') || lower.endsWith('.dxf');
+    if (!isPdf && !isCad) {
+      throw new BadRequestException('Accepts .pdf, .dwg or .dxf drawing sets (IFC/RVT follow via the Autodesk APS connector).');
     }
-    if (input.buffer.subarray(0, 4).toString('ascii') !== '%PDF') {
+    if (isPdf && input.buffer.subarray(0, 4).toString('ascii') !== '%PDF') {
       throw new BadRequestException('File does not look like a PDF (missing %PDF header).');
     }
 
@@ -64,28 +74,59 @@ export class DrawingsService {
         contentSha256: sha256,
         storedPath,
         byteSize: input.buffer.length,
-        sourceType: SourceType.P6_PDF, // drawing PDFs share the pdf source type
+        sourceType: SourceType.P6_PDF, // drawing files share the pdf source type
       }),
     );
 
-    const summary = await this.extractPdfFeatures(input.buffer);
+    const format = isPdf ? 'pdf' : lower.endsWith('.dwg') ? 'dwg' : 'dxf';
+    const summary = isPdf
+      ? await this.extractPdfFeatures(input.buffer)
+      : this.cadSummary(format);
 
     const row = await this.packages.save(
       this.packages.create({
         projectBusinessKey: input.projectKey,
         sourceFileId: sourceFile.id,
         filename: input.filename,
-        format: 'pdf',
+        format,
         summary,
         uploadedBy: input.uploadedBy,
       }),
     );
-    this.logger.log(
-      `Drawing package ${row.id} ingested for ${input.projectKey}: ` +
-        `${summary.pageCount} page(s), ${(summary.floorHints as string[]).length} floor hint(s), ` +
-        `${(summary.disciplineHints as string[]).length} discipline hint(s).`,
-    );
+    if (isPdf) {
+      this.logger.log(
+        `Drawing package ${row.id} ingested for ${input.projectKey}: ` +
+          `${summary.pageCount} page(s), ${(summary.floorHints as string[]).length} floor hint(s), ` +
+          `${(summary.disciplineHints as string[]).length} discipline hint(s).`,
+      );
+    } else {
+      this.logger.log(
+        `CAD drawing package ${row.id} (${format}) archived for ${input.projectKey} ` +
+          `(${input.buffer.length} bytes) — geometry/text extraction pending the Autodesk APS connector.`,
+      );
+    }
     return row;
+  }
+
+  /**
+   * Summary for an archived CAD (.dwg/.dxf) set. We deliberately do NOT parse
+   * DWG geometry (proprietary binary; requires licensed tooling) — the honest
+   * extractionNote says CAD geometry/text extraction requires the Autodesk APS
+   * connector (translate to SVF2/IFC, then read properties). The bytes are
+   * preserved immutably so that path can run later without re-upload.
+   */
+  private cadSummary(format: string): Record<string, unknown> {
+    return {
+      pageCount: 0,
+      sheetTitles: [],
+      floorHints: [],
+      disciplineHints: [],
+      textExcerpt: '',
+      extractionNote:
+        `${format.toUpperCase()} archived immutably. CAD geometry/text extraction is not performed here — ` +
+        'it requires the Autodesk APS connector (Model Derivative translation to SVF2/IFC, then property read). ' +
+        'The original bytes are preserved so the APS path can extract quantities later without re-upload.',
+    };
   }
 
   /** Packages for one project, newest first. */
@@ -108,14 +149,12 @@ export class DrawingsService {
 
   /** Best-effort PDF feature extraction (see class doc for the honesty contract). */
   private async extractPdfFeatures(buffer: Buffer): Promise<Record<string, unknown>> {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pdfParse = require('pdf-parse') as (b: Buffer) => Promise<{ text: string; numpages: number }>;
     let text = '';
     let pageCount = 0;
     try {
-      const parsed = await pdfParse(buffer);
-      text = parsed.text ?? '';
-      pageCount = parsed.numpages;
+      const parsed = await parsePdf(buffer);
+      text = parsed.text;
+      pageCount = parsed.pageCount;
     } catch (err) {
       return {
         pageCount: 0,

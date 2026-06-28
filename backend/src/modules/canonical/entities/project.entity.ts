@@ -67,4 +67,20 @@ export class Project extends TraceableEntity {
   /** Decimal returned as string by the driver to preserve precision. */
   @Column({ type: 'decimal', precision: 18, scale: 2, nullable: true })
   budgetAtCompletion!: string | null;
+
+  /**
+   * The InvestmentOpportunity this construction project realises, when it grew
+   * out of one. Welds the investment half (opportunity → feasibility → study)
+   * to the construction half (drawings → BoQ → schedule → … → decision) so the
+   * journey endpoint can assemble the whole chain. Nullable — projects ingested
+   * directly (no upstream opportunity) leave it null.
+   */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  opportunityId!: string | null;
+
+  /** Threads the cross-module journey (sketch → … → decision) together. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  journeyCorrelationId!: string | null;
 }

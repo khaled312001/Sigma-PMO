@@ -247,6 +247,27 @@ export class ExecutiveKpiService {
     };
   }
 
+  /**
+   * Resolve the project key to operate on. When the caller omits projectKey we
+   * fall back to the company's current project instead of failing with a bare
+   * 400 — so GET /executive/kpis (no param) works whenever a project exists,
+   * and returns a clear 404 only when the company genuinely has none. (Owner
+   * audit 2026-06-28: a bare /executive/kpis returned 400, which read as broken;
+   * this makes the surface demo-safe and consistent across the executive routes.)
+   */
+  async resolveProjectKey(projectKey?: string): Promise<string> {
+    const trimmed = projectKey?.trim();
+    if (trimmed) return trimmed;
+    const project = await this.projects.findOne({
+      where: { isCurrent: true, ...companyScope() },
+      order: { name: 'ASC' },
+    });
+    if (!project) {
+      throw new NotFoundException('No current project exists. Create or ingest a project, then pass ?projectKey=.');
+    }
+    return project.businessKey;
+  }
+
   // ───────────────────────── deterministic helpers ─────────────────────────
 
   private async currentProject(projectKey: string): Promise<Project> {

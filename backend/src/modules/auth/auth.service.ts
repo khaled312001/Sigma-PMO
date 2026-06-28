@@ -68,6 +68,34 @@ export class AuthService {
     return rawKey;
   }
 
+  /**
+   * Issue a fresh API key as the user's ONLY valid key, purging every prior
+   * session hash. Unlike {@link issueApiKey} (which keeps the last few keys
+   * valid for multi-device/demo convenience), this is the EXCLUSIVE rotation:
+   * every key handed out before this call stops authenticating immediately.
+   * Used by the admin rotate-key surface. Returns the new raw key once.
+   */
+  async rotateApiKeyExclusive(user: User): Promise<string> {
+    const rawKey = `sk_${randomBytes(24).toString('hex')}`;
+    const hash = this.hashApiKey(rawKey);
+    user.apiKeyHash = hash;
+    user.apiKeyHashes = [hash];
+    await this.users.save(user);
+    return rawKey;
+  }
+
+  /**
+   * Revoke every active API key/session for a user. Mints a throwaway primary
+   * key (kept private — never returned) so the unique apiKeyHash column stays
+   * populated, and drops all previously issued session hashes. After this call
+   * every key the user (or any old tab / lost laptop) holds returns 401; the
+   * user must log in again with their password to obtain a working key. Called
+   * on password change so "invalidate old keys on password change" holds.
+   */
+  async revokeAllSessions(user: User): Promise<void> {
+    await this.rotateApiKeyExclusive(user); // raw key discarded on purpose
+  }
+
   // ---- Password (scrypt + per-user salt) -----------------------------------
 
   hashPassword(plain: string): { hash: string; salt: string } {

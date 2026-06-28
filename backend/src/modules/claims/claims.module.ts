@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AgentsModule } from '../agents/agents.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { Letter } from '../canonical/entities';
+import { EvidenceFile } from '../evidence/evidence-file.entity';
+import { EvidenceItem } from '../evidence/evidence-item.entity';
+import { EvidenceRoom } from '../evidence/evidence-room.entity';
 import { OutboxModule } from '../outbox/outbox.module';
 import { ClaimsAgentService } from './claims-agent.service';
 import { ClaimsExtrasService } from './claims-extras.service';
@@ -19,10 +22,13 @@ import { ForensicDelayService } from './forensic-delay.service';
  *
  * `Letter` is registered locally via `forFeature` (it lives in LettersModule's
  * own feature set, not CANONICAL_ENTITIES) so the entitlement notice-window
- * test can read linked-letter dates without importing LettersModule.
+ * test can read linked-letter dates without importing LettersModule. The
+ * Evidence-room entities (Room/File/Item) are registered the same way so the
+ * forensic evidence chain can pull source-ref'd findings without importing
+ * EvidenceModule.
  */
 @Module({
-  imports: [AgentsModule, CanonicalModule, OutboxModule, TypeOrmModule.forFeature([Letter])],
+  imports: [AgentsModule, CanonicalModule, OutboxModule, TypeOrmModule.forFeature([Letter, EvidenceRoom, EvidenceFile, EvidenceItem])],
   controllers: [ClaimsController],
   providers: [DelayAnalysisService, ClaimsAgentService, EntitlementService, ClaimsExtrasService, ForensicDelayService],
   exports: [ClaimsAgentService, DelayAnalysisService, EntitlementService, ClaimsExtrasService, ForensicDelayService],

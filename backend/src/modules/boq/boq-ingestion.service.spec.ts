@@ -320,6 +320,7 @@ describe('BoqIngestionService', () => {
         totalAmount: '99.00',
         sourceFileId: 'old-source',
         authoredBy: 'someone',
+        journeyCorrelationId: null,
       };
       round2.boqRepo.findOne.mockResolvedValueOnce(prior);
 

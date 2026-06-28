@@ -102,3 +102,66 @@ describe('AuthService — multi-tenant access enforcement', () => {
     });
   });
 });
+
+/**
+ * Regression for the 2026-06-28 owner finding: rotating a key / changing a
+ * password must invalidate ALL previously issued keys (lost-laptop / old-tab
+ * sessions), not leave the last few apiKeyHashes valid.
+ */
+describe('AuthService — API key revocation', () => {
+  function svcWithSave() {
+    const users = {
+      findOne: jest.fn(),
+      save: jest.fn(async (u: User) => u),
+      createQueryBuilder: jest.fn(),
+    } as unknown as Repository<User>;
+    const companies = { findOne: jest.fn() } as unknown as Repository<Company>;
+    const subscriptions = { findOne: jest.fn() } as unknown as Repository<Subscription>;
+    const config = { get: jest.fn().mockReturnValue({ demoLoginPublic: false }) } as unknown as ConfigService;
+    return new AuthService(users, companies, subscriptions, config);
+  }
+
+  it('rotateApiKeyExclusive makes the new key the ONLY valid key and purges all prior hashes', async () => {
+    const svc = svcWithSave();
+    const user = { apiKeyHash: 'old-primary', apiKeyHashes: ['old-primary', 'older-1', 'older-2'] } as unknown as User;
+    const rawKey = await svc.rotateApiKeyExclusive(user);
+    const newHash = svc.hashApiKey(rawKey);
+    expect(user.apiKeyHash).toBe(newHash);
+    expect(user.apiKeyHashes).toEqual([newHash]);
+    for (const stale of ['old-primary', 'older-1', 'older-2']) {
+      expect(user.apiKeyHashes).not.toContain(stale);
+    }
+  });
+
+  it('revokeAllSessions drops every key down to a single throwaway nobody holds', async () => {
+    const svc = svcWithSave();
+    const priorHashes = ['old-primary', 'k2', 'k3', 'k4', 'k5'];
+    const user = { apiKeyHash: 'old-primary', apiKeyHashes: [...priorHashes] } as unknown as User;
+    await svc.revokeAllSessions(user);
+    expect(user.apiKeyHashes).toHaveLength(1);
+    // the surviving hash is a freshly minted private key, not any prior session
+    expect(priorHashes).not.toContain(user.apiKeyHashes![0]);
+    expect(user.apiKeyHash).toBe(user.apiKeyHashes![0]);
+  });
+
+  it('findActiveByApiKey no longer matches a pre-rotation key', async () => {
+    const svc = svcWithSave();
+    const rawOld = 'sk_oldsession';
+    const user = { active: true } as unknown as User;
+    user.apiKeyHash = svc.hashApiKey(rawOld);
+    user.apiKeyHashes = [user.apiKeyHash];
+    await svc.rotateApiKeyExclusive(user); // user now carries the NEW hash
+
+    const repo = (svc as unknown as { users: Repository<User> }).users;
+    (repo.findOne as jest.Mock).mockImplementation(async (opts: { where: { apiKeyHash: string } }) =>
+      opts.where.apiKeyHash === user.apiKeyHash ? user : null,
+    );
+    (repo.createQueryBuilder as jest.Mock).mockReturnValue({
+      where() { return this; },
+      andWhere() { return this; },
+      getOne: async () => null,
+    });
+
+    expect(await svc.findActiveByApiKey(rawOld)).toBeNull();
+  });
+});

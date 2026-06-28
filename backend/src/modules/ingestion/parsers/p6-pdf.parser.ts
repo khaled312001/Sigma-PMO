@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { SourceType } from '../../../common/enums';
+import { parsePdf } from '../../../common/pdf/parse-pdf.util';
 import { emptyDataset, RawDataset, RawRecord, SourceParser } from './parser.interface';
 
 /**
@@ -46,11 +47,7 @@ export class P6PdfParser implements SourceParser {
 
   async parse(filename: string, buffer: Buffer): Promise<RawDataset> {
     const dataset = emptyDataset(this.sourceType, this.name);
-    // Late import — pdf-parse pulls in heavy deps and we only want them
-    // loaded when an actual PDF is ingested.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pdfParse = require('pdf-parse') as (b: Buffer) => Promise<{ text: string; numpages: number }>;
-    const parsed = await pdfParse(buffer);
+    const parsed = await parsePdf(buffer);
     const text = parsed.text;
 
     const projectKey = deriveProjectKey(filename);
@@ -116,13 +113,13 @@ export class P6PdfParser implements SourceParser {
     dataset.projects.push(projectRow);
     dataset.activities.push(...activities);
     dataset.meta = {
-      pageCount: parsed.numpages,
+      pageCount: parsed.pageCount,
       activityCount: activities.length,
       wbsHeadersSeen: lines.filter((l) => matchWbsHeader(l.trim())).length,
       sniff: 'primavera-activity-table-pdf',
     };
     this.logger.log(
-      `Parsed P6 PDF "${filename}": ${activities.length} activities across ${parsed.numpages} page(s).`,
+      `Parsed P6 PDF "${filename}": ${activities.length} activities across ${parsed.pageCount} page(s).`,
     );
     return dataset;
   }

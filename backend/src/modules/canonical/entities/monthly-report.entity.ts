@@ -138,4 +138,9 @@ export class MonthlyReport extends UuidEntity {
   @Index()
   @Column({ type: 'varchar', length: 32 })
   status!: string;
+
+  /** Threads the cross-module journey (sketch → … → decision) together. */
+  @Index()
+  @Column({ type: 'char', length: 36, nullable: true })
+  journeyCorrelationId!: string | null;
 }
