@@ -88,4 +88,20 @@ describe('BimModelService (IFC parser)', () => {
       svc.ingestIfc({ projectKey: 'PRJ-1', filename: 'model.rvt', buffer: Buffer.from(SAMPLE_IFC, 'utf8') }),
     ).rejects.toThrow(/\.ifc/i);
   });
+
+  // Regression (2026-06-29 prod ER_DATA_TOO_LONG): a long projectKey + filename
+  // (and the long S3 storedPath) must not overflow the char(36) sourceFileId /
+  // ingestionRunId columns. Previously sourceFileId held the full storedPath and
+  // ingestionRunId held `bim-<businessKey>-v1` — both blew past 36 on real data.
+  it('keeps sourceFileId + ingestionRunId within the char(36) columns for a long key', async () => {
+    const { svc, saved } = makeService();
+    await svc.ingestIfc({
+      projectKey: 'P-1000-HOSPITAL-TOWER-PHASE-1',
+      filename: 'HospitalTower-Federated-Coordination-Model.ifc',
+      buffer: Buffer.from(SAMPLE_IFC, 'utf8'),
+    });
+    const row = saved[saved.length - 1];
+    expect(row.sourceFileId.length).toBeLessThanOrEqual(36);
+    expect(row.ingestionRunId.length).toBeLessThanOrEqual(36);
+  });
 });

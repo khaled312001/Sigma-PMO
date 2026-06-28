@@ -106,8 +106,12 @@ export class BimModelService {
         version,
         isCurrent: true,
         rawSource: { source: 'bim-ifc-intake', filename: input.filename, sha256 },
-        ingestionRunId: `bim-${businessKey}-v${version}`,
-        sourceFileId: storedPath,
+        // Keep both provenance ids within the char(36) columns. The full
+        // storedPath lives in details.storedPath / rawSource (below); the long
+        // S3 URI must NOT go in sourceFileId (a char(36)). Use a short sentinel
+        // (mirrors ProjectRecordService's 'l1-record') + a sha-derived run id.
+        ingestionRunId: `bim-${sha256.slice(0, 12)}-v${version}`,
+        sourceFileId: 'bim-ifc',
         projectBusinessKey: input.projectKey,
         recordType: 'bim-model',
         refNumber: input.filename,
