@@ -226,8 +226,8 @@ async function seedP1000() {
 
   // 7) QUANTITY / COST TRACEABILITY LEDGER entries (the cost-ledger leg).
   const ledgerEntries = [
-    { dimension: 'cost', subjectKey: 'structure', subjectLabel: 'Structural works', stage: 'cost-plan', value: 6836000, currency: 'AED', originType: 'cost-plan', changeReason: 'Concept cost plan' },
-    { dimension: 'cost', subjectKey: 'structure', subjectLabel: 'Structural works', stage: 'boq', value: 6900000, currency: 'AED', originType: 'boq', changeReason: 'Priced BoQ' },
+    { dimension: 'cost', subjectKey: 'structure', subjectLabel: 'Structural works', stage: 'budget', value: 6836000, currency: 'AED', originType: 'budget', changeReason: 'Concept cost plan' },
+    { dimension: 'cost', subjectKey: 'structure', subjectLabel: 'Structural works', stage: 'estimate', value: 6900000, currency: 'AED', originType: 'estimate', changeReason: 'Priced BoQ' },
     { dimension: 'quantity', subjectKey: 'concrete', subjectLabel: 'RC to cores', stage: 'boq', value: 1200, unit: 'm3', originType: 'boq', changeReason: 'Measured from BIM' },
   ];
   for (const e of ledgerEntries) await post('/quantity-survey/traceability/record', { projectKey: PROJECT, ...e }, 'ledger');
@@ -244,7 +244,7 @@ async function seedP1000() {
 
   // 10) CLAIM identification (L6 claims agent over the alert→decision→letter chain).
   if (await count(`/claims?projectKey=${PROJECT}`) === 0) {
-    await post('/agents/l6.claims/run', { projectBusinessKey: PROJECT }, 'claims');
+    await post('/agents/l6.claims/run', { nodeBusinessKey: PROJECT }, 'claims');
   } else skip('claims');
 
   // 11) MONTHLY REPORTS (deterministic — no Claude needed).
@@ -282,7 +282,7 @@ async function seedDisputed() {
   if (!created) return;
   // Clause rules + a claim so /claims/:id/chain is populated.
   await post('/contract-rules/apply-preset', { projectKey: KEY3, presetKey: 'fidic-red-1999' }, 'fidic');
-  await post('/agents/l6.claims/run', { projectBusinessKey: KEY3 }, 'claims');
+  await post('/agents/l6.claims/run', { nodeBusinessKey: KEY3 }, 'claims');
 }
 
 async function main() {

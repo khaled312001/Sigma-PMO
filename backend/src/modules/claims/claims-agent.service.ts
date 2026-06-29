@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
@@ -78,7 +78,7 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
 
   protected async process(ctx: AgentRunContext): Promise<AgentProcessResult> {
     const projectKey = ctx.nodeBusinessKey ?? ctx.projectKey;
-    if (!projectKey) throw new Error('projectKey/nodeBusinessKey is required for l6.claims');
+    if (!projectKey) throw new BadRequestException('projectKey/nodeBusinessKey is required for l6.claims');
     const project = await this.projects.findOne({
       where: { businessKey: projectKey, isCurrent: true },
     });
