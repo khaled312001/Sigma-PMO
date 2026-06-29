@@ -19,6 +19,7 @@ import {
   MonthlyReport,
   Project,
 } from '../canonical/entities';
+import { SiteEvidence } from '../canonical/entities/site-evidence.entity';
 import { EvidenceRoom } from '../evidence/evidence-room.entity';
 import { companyScope } from '../../common/tenant/tenant-context';
 
@@ -26,7 +27,15 @@ import { companyScope } from '../../common/tenant/tenant-context';
 export interface JourneyLeg {
   /** Stable lifecycle key, e.g. `opportunity`, `feasibility`, `bim`, `boq`. */
   stage: string;
+  /** Same key as `stage` (the explicit per-leg presence shape Mr. Ayham asked for). */
+  leg: string;
   label: string;
+  /** Whether this leg has any item. An EMPTY leg records absence via `note`. */
+  present: boolean;
+  /** Number of items on the leg (== items.length). */
+  count: number;
+  /** Why the leg is empty, when `present` is false. */
+  note?: string;
   /** Rows on this leg with their key fields + the shared journeyCorrelationId. */
   items: Array<Record<string, unknown>>;
 }
@@ -71,6 +80,7 @@ export class JourneyService {
     @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
     @InjectRepository(GovernanceDecision) private readonly decisions: Repository<GovernanceDecision>,
     @InjectRepository(LifecycleLedgerEntry) private readonly ledger: Repository<LifecycleLedgerEntry>,
+    @InjectRepository(SiteEvidence) private readonly siteEvidence: Repository<SiteEvidence>,
   ) {}
 
   /**
@@ -115,6 +125,7 @@ export class JourneyService {
     const letters = await this.letters.find({ where: { projectBusinessKey: projectKey }, order: { createdAt: 'ASC' } });
     const claims = await this.claims.find({ where: { projectBusinessKey: projectKey }, order: { createdAt: 'ASC' } });
     const evidenceRooms = await this.evidenceRooms.find({ where: { projectBusinessKey: projectKey }, order: { createdAt: 'ASC' } });
+    const siteCaptures = await this.siteEvidence.find({ where: { projectBusinessKey: projectKey }, order: { createdAt: 'ASC' } });
     const reports = await this.reports.find({ where: { projectBusinessKey: projectKey }, order: { createdAt: 'ASC' } });
     const ledger = await this.ledger.find({ where: { projectBusinessKey: projectKey, isCurrent: true }, order: { createdAt: 'ASC' } });
     for (const r of [...drawings, ...boqs, ...evidenceRooms, ...reports, ...ledger]) note(r.journeyCorrelationId);
@@ -127,9 +138,28 @@ export class JourneyService {
       : [];
     for (const d of decisions) note(d.journeyCorrelationId);
 
+    // The site-evidence leg now MERGES the EvidenceRoom dispute rooms AND the
+    // SiteEvidence smart-glasses captures (photo/video/audio/transcript) — both
+    // are on-site proof for the same lifecycle stage.
+    const siteEvidenceItems: Array<Record<string, unknown>> = [
+      ...evidenceRooms.map((e) => ({
+        source: 'evidence-room' as const, id: e.id, title: e.title, kind: e.kind,
+        status: e.status, journeyCorrelationId: e.journeyCorrelationId,
+      })),
+      ...siteCaptures.map((c) => ({
+        source: 'site-capture' as const, id: c.id, mediaKind: c.mediaKind, filename: c.filename,
+        capturedAt: c.capturedAt, reportDate: c.reportDate, activityKey: c.activityKey,
+        locationLabel: c.locationLabel, findingType: c.findingType, sha256: c.sha256,
+      })),
+    ];
+
+    // Each leg carries its `items` plus a short `note` that explains an EMPTY
+    // leg (so an absence is recorded, not silently blank). `present`/`count`/`leg`
+    // are filled in by `finalize()` below from items.length.
     const legs: JourneyLeg[] = [
       {
         stage: 'opportunity', label: 'Investment opportunity',
+        emptyNote: 'No investment opportunity linked to this project yet',
         items: opportunity ? [{
           id: opportunity.id, code: opportunity.code, title: opportunity.title,
           stage: opportunity.stage, projectType: opportunity.projectType,
@@ -138,6 +168,7 @@ export class JourneyService {
       },
       {
         stage: 'concept', label: 'Concept sketch / intake',
+        emptyNote: 'No concept sketch ingested for this project yet',
         items: concepts.map((c) => ({
           id: c.id, filename: c.filename, extractionStatus: c.extractionStatus,
           journeyCorrelationId: c.journeyCorrelationId,
@@ -145,6 +176,7 @@ export class JourneyService {
       },
       {
         stage: 'feasibility', label: 'Feasibility assessment',
+        emptyNote: 'No feasibility assessment run for this project yet',
         items: assessments.map((a) => ({
           id: a.id, level: a.level, recommendation: a.recommendation,
           riskRating: a.riskRating, journeyCorrelationId: a.journeyCorrelationId,
@@ -152,6 +184,7 @@ export class JourneyService {
       },
       {
         stage: 'study', label: 'Feasibility study sections',
+        emptyNote: 'No feasibility study sections authored for this project yet',
         items: sections.map((s) => ({
           id: s.id, sectionKey: s.sectionKey, title: s.title, status: s.status,
           journeyCorrelationId: s.journeyCorrelationId,
@@ -159,6 +192,7 @@ export class JourneyService {
       },
       {
         stage: 'bim', label: 'Drawings / BIM',
+        emptyNote: 'No drawings or BIM model uploaded for this project yet',
         items: drawings.map((d) => ({
           id: d.id, filename: d.filename, format: d.format,
           journeyCorrelationId: d.journeyCorrelationId,
@@ -166,6 +200,7 @@ export class JourneyService {
       },
       {
         stage: 'boq', label: 'Bill of Quantities',
+        emptyNote: 'No Bill of Quantities recorded for this project yet',
         items: boqs.map((b) => ({
           id: b.id, businessKey: b.businessKey, totalAmount: b.totalAmount,
           currency: b.currency, journeyCorrelationId: b.journeyCorrelationId,
@@ -173,6 +208,7 @@ export class JourneyService {
       },
       {
         stage: 'schedule', label: 'Schedule activities',
+        emptyNote: 'No schedule activities ingested for this project yet',
         items: activities.map((a) => ({
           id: a.id, businessKey: a.businessKey, wbsCode: a.wbsCode, name: a.name,
           plannedStart: a.plannedStart, plannedFinish: a.plannedFinish,
@@ -180,6 +216,7 @@ export class JourneyService {
       },
       {
         stage: 'cost-ledger', label: 'Quantity / cost traceability ledger',
+        emptyNote: 'No cost-ledger entries recorded for this project yet',
         items: ledger.map((l) => ({
           id: l.id, dimension: l.dimension, subjectKey: l.subjectKey, stage: l.stage,
           value: l.value, journeyCorrelationId: l.journeyCorrelationId,
@@ -187,6 +224,7 @@ export class JourneyService {
       },
       {
         stage: 'contract', label: 'Contract letters',
+        emptyNote: 'No contract letters logged for this project yet',
         items: letters.map((l) => ({
           id: l.id, subject: l.subject, trigger: l.trigger, status: l.status,
           fidicClauseRef: l.fidicClauseRef,
@@ -194,20 +232,20 @@ export class JourneyService {
       },
       {
         stage: 'claims', label: 'Claims',
+        emptyNote: 'No claims raised for this project yet',
         items: claims.map((c) => ({
           id: c.id, title: c.title, type: c.type, status: c.status,
           fidicClause: c.fidicClause,
         })),
       },
       {
-        stage: 'site-evidence', label: 'Evidence room(s)',
-        items: evidenceRooms.map((e) => ({
-          id: e.id, title: e.title, kind: e.kind, status: e.status,
-          journeyCorrelationId: e.journeyCorrelationId,
-        })),
+        stage: 'site-evidence', label: 'Site evidence (rooms + captures)',
+        emptyNote: 'No evidence room or site capture recorded for this project yet',
+        items: siteEvidenceItems,
       },
       {
         stage: 'report', label: 'Monthly reports',
+        emptyNote: 'No monthly reports generated for this project yet',
         items: reports.map((r) => ({
           id: r.id, periodKey: r.periodKey ?? r.month, audience: r.audience, status: r.status,
           journeyCorrelationId: r.journeyCorrelationId,
@@ -215,12 +253,20 @@ export class JourneyService {
       },
       {
         stage: 'decision', label: 'Governance decisions',
+        emptyNote: 'No governance decision recorded for this project yet',
         items: decisions.map((d) => ({
           id: d.id, alertId: d.alertId, responsibleParty: d.responsibleParty,
           escalationLevel: d.escalationLevel, journeyCorrelationId: d.journeyCorrelationId,
         })),
       },
-    ];
+    ].map((l) => {
+      const present = l.items.length > 0;
+      return {
+        stage: l.stage, leg: l.stage, label: l.label, present, count: l.items.length,
+        ...(present ? {} : { note: l.emptyNote }),
+        items: l.items,
+      };
+    });
 
     const totalItems = legs.reduce((s, l) => s + l.items.length, 0);
     this.logger.log(

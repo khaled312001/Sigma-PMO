@@ -31,6 +31,7 @@ describe('JourneyService — cross-module journey assembler', () => {
       letters: repo([{ id: 'l1', subject: 'Notice', trigger: 'incoming-letter', status: 'draft', fidicClauseRef: '20.1' }]),
       claims: repo([{ id: 'cl1', title: 'EOT', type: 'eot', status: 'potential', fidicClause: '8.4' }]),
       evidenceRooms: repo([{ id: 'er1', title: 'Dispute room', kind: 'standard', status: 'open', journeyCorrelationId: null }]),
+      siteEvidence: repo([{ id: 'se1', mediaKind: 'photo', filename: 'crack.jpg', capturedAt: '2026-01-05', reportDate: '2026-01-05', activityKey: 'A-1', locationLabel: 'Level 3', findingType: 'quality', sha256: 'abc123' }]),
       reports: repo([{ id: 'r1', periodKey: '2026-01', month: '2026-01', audience: 'owner', status: 'generated', journeyCorrelationId: null }]),
       alerts: repo([{ id: 'al1' }]),
       decisions: repo([{ id: 'gd1', alertId: 'al1', responsibleParty: 'contractor', escalationLevel: 'L1', journeyCorrelationId: null }]),
@@ -43,6 +44,7 @@ describe('JourneyService — cross-module journey assembler', () => {
       repos.boqs as never, repos.activities as never, repos.letters as never,
       repos.claims as never, repos.evidenceRooms as never, repos.reports as never,
       repos.alerts as never, repos.decisions as never, repos.ledger as never,
+      repos.siteEvidence as never,
     );
   }
 
@@ -78,6 +80,34 @@ describe('JourneyService — cross-module journey assembler', () => {
     const svc = build();
     const chain = await svc.chain(projectKey);
     expect(chain.correlationIds.sort()).toEqual(['JC-1', 'JC-2']);
+  });
+
+  it('marks each leg present:true with a count when it has items', async () => {
+    const svc = build();
+    const chain = await svc.chain(projectKey);
+    const concept = chain.legs.find((l) => l.stage === 'concept')!;
+    expect(concept).toMatchObject({ leg: 'concept', present: true, count: 1 });
+    expect(concept.note).toBeUndefined();
+  });
+
+  it('records an empty leg as present:false with an explanatory note', async () => {
+    const svc = build({ claims: repo([]) });
+    const chain = await svc.chain(projectKey);
+    const claims = chain.legs.find((l) => l.stage === 'claims')!;
+    expect(claims.present).toBe(false);
+    expect(claims.count).toBe(0);
+    expect(typeof claims.note).toBe('string');
+    expect(claims.note!.length).toBeGreaterThan(0);
+  });
+
+  it('merges SiteEvidence captures into the site-evidence leg alongside evidence rooms', async () => {
+    const svc = build();
+    const chain = await svc.chain(projectKey);
+    const site = chain.legs.find((l) => l.stage === 'site-evidence')!;
+    expect(site.present).toBe(true);
+    expect(site.items.some((i) => i.source === 'evidence-room')).toBe(true);
+    const capture = site.items.find((i) => i.source === 'site-capture');
+    expect(capture).toMatchObject({ id: 'se1', mediaKind: 'photo', filename: 'crack.jpg' });
   });
 
   it('skips the investment half when the project has no opportunityId', async () => {

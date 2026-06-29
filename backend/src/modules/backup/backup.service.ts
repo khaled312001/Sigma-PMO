@@ -1,13 +1,14 @@
-import { createCipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
-import { gzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   DeleteObjectsCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
@@ -28,6 +29,16 @@ export interface BackupResult {
   encrypted?: boolean;
   durationMs?: number;
   error?: string;
+}
+
+export interface RestoreVerifyResult {
+  backupKey: string;
+  sizeBytes: number;
+  tables: number;
+  rows: number;
+  durationMs: number;
+  scratchSchema: string;
+  note: string;
 }
 
 /**
@@ -80,6 +91,16 @@ export class BackupService {
     const cipher = createCipheriv('aes-256-gcm', key, iv);
     const enc = Buffer.concat([cipher.update(data), cipher.final()]);
     return Buffer.concat([iv, cipher.getAuthTag(), enc]);
+  }
+
+  /** Reverse of encrypt() — [12B iv][16B tag][ciphertext] AES-256-GCM. */
+  private decrypt(blob: Buffer, key: Buffer): Buffer {
+    const iv = blob.subarray(0, 12);
+    const tag = blob.subarray(12, 28);
+    const ciphertext = blob.subarray(28);
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_2AM, { name: 'db-backup' })
@@ -228,5 +249,84 @@ export class BackupService {
       .sort((a, b) => (b.LastModified?.getTime() ?? 0) - (a.LastModified?.getTime() ?? 0))
       .map((o) => ({ key: o.Key!, sizeMB: Number(((o.Size ?? 0) / 1024 / 1024).toFixed(2)), lastModified: o.LastModified?.toISOString() }));
     return { enabled: true, bucket: s3.bucket, prefix: this.backupDir(s3), backups };
+  }
+
+  /**
+   * Restore-verify (owner's "restore غير مثبت"): an API-callable proof that a
+   * real backup restores into a THROWAWAY scratch schema (`<db>_restore_check`),
+   * never touching the live DB. Downloads the chosen (or newest) backup, decrypts
+   * (.enc) + gunzips → SQL, runs it in a fresh scratch database, counts the base
+   * tables + total rows from information_schema, then drops the scratch schema.
+   * The live `DB_DATABASE` is never selected or written.
+   */
+  async restoreVerify(key?: string): Promise<RestoreVerifyResult> {
+    const s3 = this.s3cfg();
+    if (!s3?.enabled) throw new BadRequestException('S3 not configured (set S3_BUCKET/S3_ACCESS_KEY/S3_SECRET_KEY).');
+    if (this.running) throw new BadRequestException('a backup is already running; retry shortly');
+    this.running = true;
+    const started = Date.now();
+    const client = this.s3client(s3);
+    const db = this.config.get('database', { infer: true });
+    const scratchSchema = `${db.database}_restore_check`;
+    if (scratchSchema === db.database) throw new BadRequestException('scratch schema collides with the live database');
+
+    try {
+      // Resolve the backup object — explicit key, or the newest under db-backups/.
+      let backupKey = key?.trim();
+      if (!backupKey) {
+        const list = await client.send(new ListObjectsV2Command({ Bucket: s3.bucket, Prefix: this.backupDir(s3) }));
+        const newest = (list.Contents ?? []).filter((o) => o.Key)
+          .sort((a, b) => (b.LastModified?.getTime() ?? 0) - (a.LastModified?.getTime() ?? 0))[0];
+        if (!newest?.Key) throw new BadRequestException('no backups found on S3 to verify');
+        backupKey = newest.Key;
+      }
+
+      // Download → decrypt (.enc) → gunzip → SQL text.
+      const obj = await client.send(new GetObjectCommand({ Bucket: s3.bucket, Key: backupKey }));
+      const downloaded = Buffer.from(await obj.Body!.transformToByteArray());
+      let gz: Buffer = downloaded;
+      if (backupKey.endsWith('.enc')) {
+        const encKey = this.encKey();
+        if (!encKey) throw new BadRequestException('backup is encrypted but BACKUP_ENCRYPTION_KEY is not set');
+        gz = this.decrypt(downloaded, encKey);
+      }
+      const sql = gunzipSync(gz).toString('utf8');
+
+      // SEPARATE connection with NO database selected; recreate the scratch schema.
+      // multipleStatements lets us replay the dump in one round-trip.
+      const conn = await createConnection({
+        host: db.host, port: db.port, user: db.username, password: db.password,
+        multipleStatements: true, dateStrings: true,
+      });
+      try {
+        await conn.query(`DROP DATABASE IF EXISTS \`${scratchSchema}\``);
+        await conn.query(`CREATE DATABASE \`${scratchSchema}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+        await conn.changeUser({ database: scratchSchema });
+        await conn.query(sql);
+        const [tableRows] = await conn.query<any[]>(
+          "SELECT TABLE_NAME AS t FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'",
+          [scratchSchema],
+        );
+        let rows = 0;
+        for (const { t } of tableRows) {
+          const [[c]] = await conn.query<any[]>(`SELECT COUNT(*) AS n FROM \`${t}\``);
+          rows += Number(c.n) || 0;
+        }
+        const tables = tableRows.length;
+        await conn.query(`DROP DATABASE \`${scratchSchema}\``);
+        const durationMs = Date.now() - started;
+        this.logger.log(`Restore-verify ok → ${backupKey}: ${tables} table(s), ${rows} row(s) into ${scratchSchema} (dropped) in ${durationMs}ms.`);
+        return {
+          backupKey, sizeBytes: downloaded.length, tables, rows, durationMs, scratchSchema,
+          note: `Verified: backup restored into throwaway schema "${scratchSchema}" (then dropped); the live "${db.database}" was never written.`,
+        };
+      } finally {
+        // Best-effort cleanup if the dump failed mid-way; ignore drop errors.
+        try { await conn.query(`DROP DATABASE IF EXISTS \`${scratchSchema}\``); } catch { /* already gone */ }
+        await conn.end();
+      }
+    } finally {
+      this.running = false;
+    }
   }
 }

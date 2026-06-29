@@ -53,6 +53,7 @@ import { UniversalInputModule } from './modules/universal-input/universal-input.
 import { CommunicationsModule } from './modules/communications/communications.module';
 import { EvidenceModule } from './modules/evidence/evidence.module';
 import { JourneyModule } from './modules/journey/journey.module';
+import { GovernanceDashboardModule } from './modules/governance-dashboard/governance-dashboard.module';
 import { RecordsModule } from './modules/records/records.module';
 import { QualityModule } from './modules/quality/quality.module';
 import { SiteEvidenceModule } from './modules/site-evidence/site-evidence.module';
@@ -124,6 +125,10 @@ import { SummaryModule } from './modules/summary/summary.module';
     // feasibility → BIM → BoQ → schedule → contract → site-evidence → report →
     // decision for a project, threaded by journeyCorrelationId where stamped.
     JourneyModule,
+    // Read-only per-project governance dashboard (Mr. Ayham acceptance 2026-06-28):
+    // source inputs → outputs → evidence → human approval → recommended decision
+    // (requiresHumanApproval always true; nothing is auto-approved).
+    GovernanceDashboardModule,
     RecordsModule,
     // QA/QC Governance (Mr. Ayham acceptance #4, 2026-06-20) — NCR/ITP/Inspection
     // lifecycle with the NCR → delay/cost/claim chain.

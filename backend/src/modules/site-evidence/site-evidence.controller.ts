@@ -9,6 +9,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
@@ -16,6 +17,7 @@ import { User } from '../canonical/entities';
 import { SiteEvidence } from '../canonical/entities/site-evidence.entity';
 import { SiteEvidenceService } from './site-evidence.service';
 import type { CaptureEvidenceInput } from './site-evidence.service';
+import { SiteEvidenceCaptureDto } from './dto/site-evidence-capture.dto';
 
 /**
  * `/site-evidence` — the smart-glasses / site-evidence capture channel
@@ -24,6 +26,7 @@ import type { CaptureEvidenceInput } from './site-evidence.service';
  * &date=` lists a day's captures (the daily-report rollup) and `GET /:id`
  * returns one (both `canRead`).
  */
+@ApiTags('site-evidence')
 @Controller('site-evidence')
 export class SiteEvidenceController {
   constructor(private readonly siteEvidence: SiteEvidenceService) {}
@@ -32,6 +35,7 @@ export class SiteEvidenceController {
   @HttpCode(200)
   @Throttle({ ingest: { limit: 60, ttl: 60_000 } })
   @RequiresCapability('canIngest')
+  @ApiBody({ type: SiteEvidenceCaptureDto })
   capture(
     @Body() body: Omit<CaptureEvidenceInput, 'capturedBy'>,
     @Req() req: { user?: User },

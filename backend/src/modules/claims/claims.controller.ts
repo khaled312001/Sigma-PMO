@@ -1,16 +1,19 @@
 import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Claim } from '../canonical/entities';
 import { ClaimsAgentService } from './claims-agent.service';
 import { ClaimsExtrasService } from './claims-extras.service';
 import { ForensicDelayService } from './forensic-delay.service';
+import { ForensicChainResponseDto } from './dto/forensic-chain-response.dto';
 
 /**
  * `/claims` — the L6 claims register surface (read). Identification happens by
  * running the `l6.claims` agent (POST /agents/l6.claims/run); this lists it.
  * Dispute-prep drafting stays on the existing /letters surface.
  */
+@ApiTags('claims')
 @Controller('claims')
 export class ClaimsController {
   constructor(
@@ -68,6 +71,8 @@ export class ClaimsController {
    */
   @Get(':id/chain')
   @RequiresCapability('canRead')
+  @ApiParam({ name: 'id', description: 'Claim id.', example: 'clm-44…' })
+  @ApiResponse({ status: 200, type: ForensicChainResponseDto, description: 'The forensic evidence chain for the claim.' })
   chain(@Param('id') id: string) {
     return this.extras.forensicChain(id);
   }

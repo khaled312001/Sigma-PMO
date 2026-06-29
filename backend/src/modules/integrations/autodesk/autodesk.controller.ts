@@ -7,12 +7,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
 import { RequiresCapability } from '../../auth/require-capability.decorator';
 import { ProjectRecord } from '../../canonical/entities';
 import { BimModelService } from '../../clashes/bim-model.service';
 import { AutodeskApsService, AutodeskImportResult, AutodeskStatus, DerivativeFormat } from './autodesk-aps.service';
+import { AutodeskImportDto, AutodeskStatusDto, AutodeskViewerTokenDto } from './dto/autodesk.dto';
 
 interface ImportBody {
   projectKey: string;
@@ -34,6 +36,7 @@ interface ImportBody {
  * at /admin/settings). With them blank the surface reports `enabled:false` and
  * the BIM features keep working off the local IFC parser.
  */
+@ApiTags('integrations: autodesk')
 @Controller('integrations/autodesk')
 export class AutodeskController {
   constructor(
@@ -43,6 +46,7 @@ export class AutodeskController {
 
   @Get('status')
   @RequiresCapability('canRead')
+  @ApiResponse({ status: 200, type: AutodeskStatusDto, description: 'APS connector status. enabled:false => BIM stays on the local IFC parser.' })
   status(@Query('probe') probe?: string): Promise<AutodeskStatus> {
     return this.aps.getStatus(probe === 'true' || probe === '1');
   }
@@ -50,6 +54,7 @@ export class AutodeskController {
   /** 2-legged `viewables:read` token for the front-end Autodesk Viewer. */
   @Get('viewer-token')
   @RequiresCapability('canRead')
+  @ApiResponse({ status: 200, type: AutodeskViewerTokenDto, description: 'Short-lived viewables:read token for the Autodesk Viewer.' })
   viewerToken(): Promise<{ accessToken: string; expiresIn: number }> {
     return this.aps.getViewerToken();
   }
@@ -58,6 +63,8 @@ export class AutodeskController {
   @HttpCode(200)
   @Throttle({ ingest: { limit: 10, ttl: 60_000 } })
   @RequiresCapability('canIngest')
+  @ApiBody({ type: AutodeskImportDto })
+  @ApiResponse({ status: 200, description: 'Translates the model via APS Model Derivative (DWG/RVT/IFC → element counts) and writes the same bim-model the QS pipeline consumes.' })
   async import(@Body() body: ImportBody): Promise<{ result: AutodeskImportResult; record: ProjectRecord }> {
     if (!body?.projectKey) throw new BadRequestException('projectKey is required');
     if (!body?.filename) throw new BadRequestException('filename is required');
