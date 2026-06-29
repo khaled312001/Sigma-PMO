@@ -9,7 +9,8 @@ Companion docs: [`FINAL_HANDOVER.md`](FINAL_HANDOVER.md), [`ENVIRONMENT_VARIABLE
 ## 0. Toolchain — npm only
 This project is locked to **one package manager: npm** (one lockfile, `backend/package-lock.json`).
 
-- **Do not use pnpm or yarn.** A `preinstall` guard ([`backend/scripts/enforce-npm.cjs`](backend/scripts/enforce-npm.cjs))
+- **Do not use pnpm or yarn.** A self-contained `preinstall` guard in `backend/package.json` (an inline
+  `node -e` check — no external file, so it also runs inside the Docker build before sources are copied)
   stops them with a clear message; `backend/.npmrc` sets `engine-strict=true`; `package.json` declares
   `engines` (`node >=20`, `npm >=10`). There is intentionally **no** `pnpm-lock.yaml` / `yarn.lock`.
 - Supported runtime: **Node ≥ 20**, **npm ≥ 10** (production image is `node:20-alpine`).

@@ -10,7 +10,7 @@
     "npm": ">=10"
   },
   "scripts": {
-    "preinstall": "node scripts/enforce-npm.cjs",
+    "preinstall": "node -e \"var ua=(process.env.npm_config_user_agent||'').toLowerCase();if(process.env.SIGMA_ALLOW_ANY_PM!=='1'&&(ua.indexOf('pnpm/')===0||ua.indexOf(' pnpm/')>-1||ua.indexOf('yarn/')===0||ua.indexOf(' yarn/')>-1)){console.error('\\n  Sigma PMO is locked to npm. Use:  npm ci && npm run build && npm test\\n  pnpm/yarn are blocked (they add a second lockfile and break clean builds). Override: SIGMA_ALLOW_ANY_PM=1\\n');process.exit(1)}\"",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
