@@ -70,4 +70,57 @@ export class ClashItem extends UuidEntity {
 
   @Column({ type: 'datetime', precision: 6, nullable: true })
   decidedAt!: Date | null;
+
+  // ── Per-clash detail columns (Req 2, Mr. Ayham acceptance) — first-class
+  // typed fields so the clash detail view no longer re-parses `description`.
+  // Populated by GeometricClashService.detect (real geometry) and by the
+  // ClashExcelParser->ingestion path (Grid Location / Item GUIDs / Distance
+  // columns). All nullable/additive. ──
+
+  /** GUID of element on side A (IFC GlobalId / Revit element id). */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  elementGuidA!: string | null;
+
+  /** GUID of element on side B. */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  elementGuidB!: string | null;
+
+  /** World X coordinate of the clash centroid (project units, mm). */
+  @Column({ type: 'double', nullable: true })
+  locationX!: number | null;
+
+  @Column({ type: 'double', nullable: true })
+  locationY!: number | null;
+
+  @Column({ type: 'double', nullable: true })
+  locationZ!: number | null;
+
+  /** Grid/axis location text (e.g. "C-4 / +12.30"). */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  gridLocation!: string | null;
+
+  /** Penetration depth / clearance distance in millimetres. */
+  @Column({ type: 'double', nullable: true })
+  penetrationMm!: number | null;
+
+  /** Storage ref (path/key) of the clash snapshot image, when captured. */
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  snapshotImagePath!: string | null;
+
+  /** Autodesk Viewer model URN (the "viewer half" of the detail view). */
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  viewUrn!: string | null;
+
+  /** Autodesk Viewer view state (camera + isolated dbIds), opaque JSON. */
+  @Column({ type: 'json', nullable: true })
+  viewState!: Record<string, unknown> | null;
+
+  /** businessKey of the canonical Activity this clash resolution revised. */
+  @Index()
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  linkedActivityBusinessKey!: string | null;
+
+  /** Party responsible for resolving the clash (discipline/contractor). */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  responsibleParty!: string | null;
 }

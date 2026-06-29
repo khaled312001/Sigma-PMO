@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 
 import { Activity, BoQ, Project, Scenario } from '../canonical/entities';
+import { CpmService } from '../schedule/cpm.service';
 import { SimulationEngineService } from './simulation-engine.service';
 
 /**
@@ -41,6 +42,7 @@ function makeActivity(over: Partial<Activity>): Activity {
 function buildService(opts: {
   activities: Activity[];
   boqTotal?: string | null;
+  withCpm?: boolean;
 }) {
   const scenarioStore: Scenario[] = [];
   const projects = {
@@ -64,11 +66,13 @@ function buildService(opts: {
       return saved;
     }),
   };
+  const cpm = opts.withCpm ? new CpmService(null as never, null as never) : undefined;
   const svc = new SimulationEngineService(
     projects as unknown as Repository<Project>,
     activities as unknown as Repository<Activity>,
     boqs as unknown as Repository<BoQ>,
     scenarios as unknown as Repository<Scenario>,
+    cpm,
   );
   return { svc, scenarioStore };
 }
@@ -194,6 +198,36 @@ describe('SimulationEngineService.projectClashImpact', () => {
     expect(snap.input.clashId).toBe('clash-1');
     expect(snap.projection.durationDeltaDays).toBe(15);
     expect(scenarioStore[0].status).toBe('open');
+  });
+
+  it('uses a CPM re-pass over the logic network when predecessors are present', async () => {
+    const { svc } = buildService({
+      withCpm: true,
+      activities: [
+        makeActivity({
+          businessKey: 'A-1',
+          plannedStart: '2026-01-01',
+          plannedFinish: '2026-01-10',
+          plannedDurationDays: 9,
+          predecessors: null,
+        } as unknown as Partial<Activity>),
+        makeActivity({
+          businessKey: 'A-2',
+          plannedStart: '2026-01-11',
+          plannedFinish: '2026-01-20',
+          plannedDurationDays: 9,
+          predecessors: [{ activityKey: 'A-1', type: 'FS', lagDays: 0 }],
+        } as unknown as Partial<Activity>),
+      ],
+    });
+    const p = await svc.projectClashImpact({
+      ...BASE_INPUT,
+      durationImpactDays: 10,
+      affectedActivityKeys: ['A-1'],
+    });
+    // A-1 is critical (its successor depends on it) → a 10-day delay slips 10.
+    expect(p.durationDeltaDays).toBe(10);
+    expect(p.assumptions.join(' ')).toMatch(/CPM re-pass over the persisted predecessor logic network/);
   });
 
   it('rejects when none of the provided keys exist in the schedule', async () => {

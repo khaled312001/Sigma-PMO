@@ -1,8 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Activity, Project } from '../canonical/entities';
+import { CpmService } from '../schedule/cpm.service';
 
 /**
  * ForensicDelayService — a deterministic forensic delay-analysis engine
@@ -17,11 +18,12 @@ import { Activity, Project } from '../canonical/entities';
  * schedule-technical merits, not merely summarising documents.
  *
  * Deterministic-first: every number is computed from the canonical Activity rows
- * (planned vs actual dates) with named formulas; no LLM computes the delay. The
- * imported schedule carries no relationship/logic graph (the file-based P6 parser
- * does not yet read TASKPRED/total_float), so criticality is derived from
- * float-to-completion on the dates — disclosed in `caveats`, refined once logic
- * links are imported.
+ * (planned vs actual dates) with named formulas; no LLM computes the delay. When
+ * the imported schedule carries its relationship/logic graph (P6 TASKPRED parsed
+ * into `Activity.predecessors[]`), criticality is taken from a full CPM
+ * forward/backward pass (`CpmService`); otherwise it falls back to
+ * float-to-completion on the dates — which branch was used is disclosed in
+ * `caveats`.
  */
 @Injectable()
 export class ForensicDelayService {
@@ -32,13 +34,43 @@ export class ForensicDelayService {
   constructor(
     @InjectRepository(Project) private readonly projects: Repository<Project>,
     @InjectRepository(Activity) private readonly activities: Repository<Activity>,
+    @Optional() private readonly cpm?: CpmService,
   ) {}
 
   async analyse(projectKey: string): Promise<ForensicDelayReport> {
     const project = await this.projects.findOne({ where: { businessKey: projectKey, isCurrent: true } });
     if (!project) throw new NotFoundException(`No current project "${projectKey}"`);
-    const rows = await this.activities.find({ where: { projectId: project.id } });
-    return this.compute(projectKey, project.name, project.dataDate ?? null, project.plannedStart ?? null, rows);
+    const rows = await this.activities.find({ where: { projectId: project.id, isCurrent: true } });
+    // When logic links are present, solve the CPM and pass the critical-key set
+    // so the driving-path is taken from the network, not float-to-completion.
+    let criticalKeys: Set<string> | null = null;
+    const hasLogic = rows.some((a) => (a.predecessors?.length ?? 0) > 0);
+    if (this.cpm && hasLogic) {
+      try {
+        const result = this.cpm.compute(
+          projectKey,
+          rows.map((a) => ({
+            businessKey: a.businessKey,
+            name: a.name,
+            plannedStart: a.plannedStart,
+            plannedFinish: a.plannedFinish,
+            plannedDurationDays: a.plannedDurationDays,
+            predecessors: a.predecessors,
+          })),
+        );
+        criticalKeys = new Set(result.criticalPath);
+      } catch {
+        criticalKeys = null;
+      }
+    }
+    return this.compute(
+      projectKey,
+      project.name,
+      project.dataDate ?? null,
+      project.plannedStart ?? null,
+      rows,
+      criticalKeys,
+    );
   }
 
   /** Pure computation — exposed for unit testing without a DB. */
@@ -48,20 +80,31 @@ export class ForensicDelayService {
     dataDate: string | null,
     projectPlannedStart: string | null,
     rows: ScheduleActivity[],
+    criticalKeys: Set<string> | null = null,
   ): ForensicDelayReport {
     const acts = rows
       .filter((a) => a.plannedFinish)
       .map((a) => this.toRow(a));
 
-    const caveats = [
-      'Critical path is derived from float-to-completion on the planned/actual dates: the imported ' +
-        'schedule does not carry its relationship/logic links (P6 TASKPRED / total_float not parsed yet), ' +
-        'so an activity is treated as delay-driving when its finish slip exceeds its float to the ' +
-        'programme completion. It is refined to a full CPM driving-path once logic links are imported.',
-      'The excusable / compensable / non-excusable split requires the contractual CAUSE of each delay ' +
-        'event to be attributed (employer-risk vs contractor-risk vs neutral). This engine quantifies ' +
-        'the schedule impact and isolates concurrency; cause attribution is a human/contract input.',
-    ];
+    const caveats = criticalKeys
+      ? [
+          'Critical path is taken from a full CPM forward/backward pass over the imported logic links ' +
+            '(P6 TASKPRED parsed into Activity.predecessors[]): an activity is delay-driving when it sits ' +
+            'on the network critical path AND its finish slip exceeds its float. Concurrency and windowing ' +
+            'are then applied as below.',
+          'The excusable / compensable / non-excusable split requires the contractual CAUSE of each delay ' +
+            'event to be attributed (employer-risk vs contractor-risk vs neutral). This engine quantifies ' +
+            'the schedule impact and isolates concurrency; cause attribution is a human/contract input.',
+        ]
+      : [
+          'Critical path is derived from float-to-completion on the planned/actual dates: the imported ' +
+            'schedule carries no relationship/logic links (Activity.predecessors[] empty), so an activity is ' +
+            'treated as delay-driving when its finish slip exceeds its float to the programme completion. ' +
+            'It is refined to a full CPM driving-path once logic links are imported.',
+          'The excusable / compensable / non-excusable split requires the contractual CAUSE of each delay ' +
+            'event to be attributed (employer-risk vs contractor-risk vs neutral). This engine quantifies ' +
+            'the schedule impact and isolates concurrency; cause attribution is a human/contract input.',
+        ];
 
     if (acts.length === 0) {
       return this.empty(projectKey, projectName, dataDate, caveats);
@@ -72,10 +115,13 @@ export class ForensicDelayService {
     const projectDelayDays = daysBetween(asPlannedCompletion, asBuiltCompletion);
 
     // Float to completion + driving potential (slip that exceeds float → pushes completion).
+    // When a CPM critical-key set is available, an activity must ALSO sit on the
+    // network critical path to count as a driver (logic-network refinement).
     for (const a of acts) {
       a.completionFloatDays = daysBetween(a.plannedFinish!, asPlannedCompletion); // ≥ 0
       a.drivingConsumptionDays = Math.max(0, a.finishVarianceDays - a.completionFloatDays);
-      a.isCriticalDriver = a.drivingConsumptionDays > 0;
+      const onCriticalPath = criticalKeys ? !!a.businessKey && criticalKeys.has(a.businessKey) : true;
+      a.isCriticalDriver = a.drivingConsumptionDays > 0 && onCriticalPath;
     }
 
     const drivers = acts
@@ -152,6 +198,7 @@ export class ForensicDelayService {
 
     return {
       key: a.wbsCode || a.name || a.businessKey || 'activity',
+      businessKey: a.businessKey ?? null,
       name: a.name || a.wbsCode || a.businessKey || 'Activity',
       plannedStart: ps,
       plannedFinish: pf,
@@ -303,6 +350,7 @@ export interface ScheduleActivity {
   actualStart?: string | null;
   actualFinish?: string | null;
   plannedDurationDays?: number | null;
+  predecessors?: Array<{ activityKey: string; type: string; lagDays: number }> | null;
 }
 
 export interface ActivityDelayRow {
@@ -372,6 +420,7 @@ export interface ForensicDelayReport {
 
 interface InternalRow {
   key: string;
+  businessKey: string | null;
   name: string;
   plannedStart: Date | null;
   plannedFinish: Date | null;

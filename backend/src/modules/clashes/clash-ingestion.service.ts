@@ -1,13 +1,16 @@
 import { createHash } from 'node:crypto';
 
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { Layer, IngestionStatus, SourceType } from '../../common/enums';
-import { ClashItem, IngestionRun, SourceFile } from '../canonical/entities';
+import { ClashItem, IngestionRun, ProjectRecord, SourceFile } from '../canonical/entities';
 import { ProjectOwnershipService } from '../canonical/project-ownership.service';
+import { StorageService } from '../ingestion/storage/storage.service';
 import { OutboxService } from '../outbox/outbox.service';
+import { GeometricClash, GeometricClashService } from './geometric-clash.service';
+import { IfcGeometryService } from './ifc-geometry.service';
 import {
   ClashDataset,
   ClashExcelParser,
@@ -33,6 +36,43 @@ export interface ClashIngestionOutcome {
   };
   /** Sheet picked + header alignment + reject reasons (audit aid). */
   parserMeta: ClashDataset['meta'];
+}
+
+/** Outcome of the native geometric clash detect path (Task 1). */
+export interface ClashDetectOutcome {
+  sourceFileId: string;
+  projectBusinessKey: string;
+  modelAId: string;
+  modelBId: string;
+  clashesPersisted: number;
+  stats: {
+    elementsA: number;
+    elementsB: number;
+    pairsTested: number;
+    hardClashes: number;
+    clearanceClashes: number;
+    lowConfidenceClashes: number;
+  };
+  method: string;
+}
+
+/** Per-clash detail payload returned by `GET /clashes/:id` (Req 2). */
+export interface ClashDetail extends ClashItem {
+  detail: {
+    clashRef: string;
+    severity: string;
+    disciplinesInvolved: string[];
+    elementGuidA: string | null;
+    elementGuidB: string | null;
+    location: { x: number; y: number; z: number } | null;
+    gridLocation: string | null;
+    penetrationMm: number | null;
+    snapshotImagePath: string | null;
+    viewUrn: string | null;
+    viewState: Record<string, unknown> | null;
+    linkedActivityKeys: string[];
+    responsibleParty: string | null;
+  };
 }
 
 /**
@@ -81,6 +121,10 @@ export class ClashIngestionService {
     private readonly parser: ClashExcelParser,
     private readonly outbox: OutboxService,
     private readonly ownership?: ProjectOwnershipService,
+    @Optional() @InjectRepository(ProjectRecord) private readonly records?: Repository<ProjectRecord>,
+    @Optional() private readonly storage?: StorageService,
+    @Optional() private readonly geometry?: IfcGeometryService,
+    @Optional() private readonly geometricClash?: GeometricClashService,
   ) {}
 
   /**
@@ -226,6 +270,145 @@ export class ClashIngestionService {
     };
   }
 
+  /**
+   * Native geometric clash detection over two uploaded IFC models (Task 1).
+   * Loads two `bim-model` ProjectRecords, reads their archived IFC bytes,
+   * parses placement geometry + AABBs, runs the AABB-overlap/proximity pass
+   * across disciplines, and persists the produced clashes as `ClashItem` rows
+   * + one `engineering.clash.ingested` outbox event each — IN THE SAME
+   * TRANSACTION — so the existing propose → simulate → apply chain runs
+   * unchanged downstream. The Navisworks-Excel ingest path is untouched.
+   */
+  async detectFromModels(input: {
+    projectBusinessKey: string;
+    modelAId: string;
+    modelBId: string;
+    clearanceMm?: number;
+  }): Promise<ClashDetectOutcome> {
+    if (!input.projectBusinessKey) throw new BadRequestException('projectBusinessKey is required');
+    if (!input.modelAId || !input.modelBId) {
+      throw new BadRequestException('modelAId and modelBId are required');
+    }
+    if (input.modelAId === input.modelBId) {
+      throw new BadRequestException('modelAId and modelBId must be two different models');
+    }
+    if (!this.records || !this.storage || !this.geometry || !this.geometricClash) {
+      throw new BadRequestException('Geometric clash detection is not available in this deployment.');
+    }
+
+    const [recA, recB] = await Promise.all([
+      this.records.findOne({ where: { id: input.modelAId } }),
+      this.records.findOne({ where: { id: input.modelBId } }),
+    ]);
+    if (!recA || recA.recordType !== 'bim-model') {
+      throw new NotFoundException(`No bim-model record with id ${input.modelAId}`);
+    }
+    if (!recB || recB.recordType !== 'bim-model') {
+      throw new NotFoundException(`No bim-model record with id ${input.modelBId}`);
+    }
+    await this.ownership?.assertOwns(recA.projectBusinessKey);
+
+    const bytesA = await this.readModelBytes(recA);
+    const bytesB = await this.readModelBytes(recB);
+    const modelA = this.geometry.parse(bytesA.toString('utf8'));
+    const modelB = this.geometry.parse(bytesB.toString('utf8'));
+
+    const result = this.geometricClash.detect(modelA, modelB, { clearanceMm: input.clearanceMm });
+
+    // Persist a SourceFile sentinel anchoring the detect run to both models.
+    const sourceRepo = this.dataSource.getRepository(SourceFile);
+    const source = await sourceRepo.save(
+      sourceRepo.create({
+        filename: `clash-detect:${input.modelAId}+${input.modelBId}`,
+        sourceType: SourceType.CSV,
+        contentSha256: createHash('sha256')
+          .update(`${input.modelAId}:${input.modelBId}:${result.clashes.length}`)
+          .digest('hex'),
+        byteSize: bytesA.byteLength + bytesB.byteLength,
+        storedPath: '',
+      }),
+    );
+
+    let persisted = 0;
+    const runId = `clash-detect-${source.id.slice(0, 8)}`;
+    await this.dataSource.transaction(async (manager) => {
+      const clashRepo = manager.getRepository(ClashItem);
+      for (const gc of result.clashes) {
+        const entity = this.mapGeometricToEntity(gc, source.id, input.projectBusinessKey, {
+          modelAId: input.modelAId,
+          modelBId: input.modelBId,
+        });
+        const saved = await clashRepo.save(entity);
+        persisted += 1;
+        await this.pushIngestedEvent(
+          manager,
+          saved,
+          input.projectBusinessKey,
+          source.id,
+          runId,
+        );
+      }
+    });
+
+    this.logger.log(
+      `Clash detect ${runId} for ${input.projectBusinessKey}: ` +
+        `${persisted} clash(es) persisted (${result.stats.hardClashes} hard, ` +
+        `${result.stats.clearanceClashes} clearance).`,
+    );
+
+    return {
+      sourceFileId: source.id,
+      projectBusinessKey: input.projectBusinessKey,
+      modelAId: input.modelAId,
+      modelBId: input.modelBId,
+      clashesPersisted: persisted,
+      stats: result.stats,
+      method:
+        'Native AABB interference over resolved IFCLOCALPLACEMENT world coordinates ' +
+        '(simplified, translation-only; cross-discipline pairs only). Not Navisworks-grade.',
+    };
+  }
+
+  /** Resolve + read the archived IFC bytes for a bim-model record. */
+  private async readModelBytes(rec: ProjectRecord): Promise<Buffer> {
+    const storedPath = (rec.details as { storedPath?: string } | null)?.storedPath;
+    if (!storedPath) {
+      throw new BadRequestException(
+        `BIM model ${rec.id} has no archived file (it was ingested from counts, not an IFC upload) — ` +
+          'geometric clash needs two uploaded IFC files.',
+      );
+    }
+    return this.storage!.read(storedPath);
+  }
+
+  /** Map a geometric clash into the persisted ClashItem (with typed columns). */
+  private mapGeometricToEntity(
+    gc: GeometricClash,
+    sourceFileId: string,
+    projectBusinessKey: string,
+    models: { modelAId: string; modelBId: string },
+  ): ClashItem {
+    return this.clashes.create({
+      projectBusinessKey,
+      sourceFileId,
+      clashRef: gc.clashRef,
+      disciplinesInvolved: gc.disciplinesInvolved,
+      severity: gc.severity,
+      description: gc.description,
+      elementGuidA: gc.elementGuidA,
+      elementGuidB: gc.elementGuidB,
+      locationX: gc.location.x,
+      locationY: gc.location.y,
+      locationZ: gc.location.z,
+      penetrationMm: gc.penetrationMm,
+      viewState: { modelAId: models.modelAId, modelBId: models.modelBId, extentConfidence: gc.extentConfidence, kind: gc.kind },
+      proposedOptions: null,
+      chosenOptionIndex: null,
+      decidedBy: null,
+      decidedAt: null,
+    });
+  }
+
   /** Read endpoints — used by the controller. */
   listByProject(projectBusinessKey: string): Promise<ClashItem[]> {
     if (!projectBusinessKey) {
@@ -242,6 +425,39 @@ export class ClashIngestionService {
     if (!row) throw new NotFoundException(`No clash item with id ${id}`);
     await this.ownership?.assertOwns(row.projectBusinessKey); // multi-tenant ownership
     return row;
+  }
+
+  /**
+   * Per-clash detail payload (Req 2). Returns the full row plus a `detail`
+   * projection lifting the typed columns (elementGuids, world XYZ, grid,
+   * penetration, snapshot, viewer URN/state, linked activity, responsible
+   * party) to first-class fields — the UI no longer re-parses `description`.
+   */
+  async getDetailById(id: string): Promise<ClashDetail> {
+    const row = await this.getById(id);
+    return {
+      ...row,
+      detail: {
+        clashRef: row.clashRef,
+        severity: row.severity,
+        disciplinesInvolved: row.disciplinesInvolved,
+        elementGuidA: row.elementGuidA,
+        elementGuidB: row.elementGuidB,
+        location:
+          row.locationX != null && row.locationY != null && row.locationZ != null
+            ? { x: row.locationX, y: row.locationY, z: row.locationZ }
+            : null,
+        gridLocation: row.gridLocation,
+        penetrationMm: row.penetrationMm,
+        snapshotImagePath: row.snapshotImagePath,
+        viewUrn: row.viewUrn,
+        viewState: row.viewState,
+        linkedActivityKeys: row.linkedActivityBusinessKey
+          ? [row.linkedActivityBusinessKey]
+          : [],
+        responsibleParty: row.responsibleParty,
+      },
+    };
   }
 
   /**
@@ -264,6 +480,14 @@ export class ClashIngestionService {
       disciplinesInvolved: row.disciplinesInvolved,
       severity,
       description,
+      // Per-clash typed detail (Req 2) — first-class fields so the detail
+      // view does not re-parse `description`. The Excel path has no world
+      // XYZ (Navisworks ships grid + distance, not raw coords), so coords
+      // stay null here; the native detect path fills them.
+      elementGuidA: row.element1Guid,
+      elementGuidB: row.element2Guid,
+      gridLocation: row.gridLocation,
+      penetrationMm: row.distanceMm,
       proposedOptions: null, // populated by `ClashSolutionProposer` later
       chosenOptionIndex: null,
       decidedBy: null,

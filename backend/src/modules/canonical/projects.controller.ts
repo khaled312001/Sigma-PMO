@@ -1,4 +1,4 @@
-import { Body, ConflictException, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, Post } from '@nestjs/common';
+import { Body, ConflictException, Controller, Delete, Get, HttpCode, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'node:crypto';
@@ -16,6 +16,7 @@ export interface ProjectSummary {
   status: string | null;
   clientName: string | null;
   dataDate: string | null;
+  scenarioType: string | null;
 }
 
 /** ProjectSummary plus the additive deterministic score bundle (Agent A). */
@@ -31,6 +32,8 @@ interface CreateProjectDto {
   plannedStart?: string | null;
   plannedFinish?: string | null;
   budgetAtCompletion?: string | null;
+  /** Demo archetype: new-from-sketch | stalled | disputed. */
+  scenarioType?: string | null;
 }
 
 /** DTO for updating an existing project. */
@@ -42,6 +45,7 @@ interface UpdateProjectDto {
   plannedStart?: string | null;
   plannedFinish?: string | null;
   budgetAtCompletion?: string | null;
+  scenarioType?: string | null;
 }
 
 /**
@@ -66,9 +70,14 @@ export class ProjectsController {
 
   @Get()
   @RequiresCapability('canRead')
-  async list(): Promise<ProjectSummaryWithScores[]> {
+  async list(
+    @Query('scenarioType') scenarioType?: string,
+  ): Promise<ProjectSummaryWithScores[]> {
+    const where = { isCurrent: true, ...companyScope() } as Record<string, unknown>;
+    // Optional project-types filter (new-from-sketch | stalled | disputed).
+    if (scenarioType) where.scenarioType = scenarioType;
     const rows = await this.projects.find({
-      where: { isCurrent: true, ...companyScope() },
+      where,
       order: { name: 'ASC' },
     });
 
@@ -88,6 +97,7 @@ export class ProjectsController {
       status: p.status,
       clientName: p.clientName,
       dataDate: p.dataDate,
+      scenarioType: p.scenarioType ?? null,
       ...(scoreMap.get(p.businessKey) ?? {}),
     }));
   }
@@ -163,6 +173,7 @@ export class ProjectsController {
         plannedStart: body.plannedStart || null,
         plannedFinish: body.plannedFinish || null,
         budgetAtCompletion: body.budgetAtCompletion || null,
+        scenarioType: body.scenarioType?.trim() || null,
       }),
     );
 
@@ -173,6 +184,7 @@ export class ProjectsController {
       status: project.status,
       clientName: project.clientName,
       dataDate: project.dataDate,
+      scenarioType: project.scenarioType ?? null,
     };
   }
 
@@ -198,6 +210,7 @@ export class ProjectsController {
     if (body.plannedStart !== undefined) project.plannedStart = body.plannedStart || null;
     if (body.plannedFinish !== undefined) project.plannedFinish = body.plannedFinish || null;
     if (body.budgetAtCompletion !== undefined) project.budgetAtCompletion = body.budgetAtCompletion || null;
+    if (body.scenarioType !== undefined) project.scenarioType = body.scenarioType?.trim() || null;
 
     await this.projects.save(project);
 
@@ -208,6 +221,7 @@ export class ProjectsController {
       status: project.status,
       clientName: project.clientName,
       dataDate: project.dataDate,
+      scenarioType: project.scenarioType ?? null,
     };
   }
 

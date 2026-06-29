@@ -13,6 +13,8 @@ import { Throttle } from '@nestjs/throttler';
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { ClashItem } from '../canonical/entities';
 import {
+  ClashDetail,
+  ClashDetectOutcome,
   ClashIngestionOutcome,
   ClashIngestionService,
 } from './clash-ingestion.service';
@@ -34,6 +36,18 @@ interface UploadClashReportBody {
   contentBase64: string;
   /** `Project.businessKey` the clashes belong to. */
   projectKey: string;
+}
+
+/** POST body for `/clashes/detect` (native geometric clash, Task 1). */
+interface DetectClashBody {
+  /** `Project.businessKey` the clashes belong to. */
+  projectKey: string;
+  /** ProjectRecord id of the first uploaded IFC bim-model. */
+  modelAId: string;
+  /** ProjectRecord id of the second uploaded IFC bim-model. */
+  modelBId: string;
+  /** Optional clearance tolerance in mm (soft-clash threshold). */
+  clearanceMm?: number;
 }
 
 /**
@@ -72,6 +86,28 @@ export class ClashesController {
     return this.ingestion.ingest(body.filename, buffer, body.projectKey);
   }
 
+  /**
+   * Native geometric clash detection over two uploaded IFC models (Task 1).
+   * Produces real ClashItem rows from file geometry (resolved world XYZ +
+   * AABB overlap), which then drive the existing propose → simulate → apply
+   * chain unchanged. Requires `canIngest` (it writes canonical clash rows).
+   */
+  @Post('detect')
+  @HttpCode(200)
+  @Throttle({ ingest: { limit: 10, ttl: 60_000 } })
+  @RequiresCapability('canIngest')
+  detect(@Body() body: DetectClashBody): Promise<ClashDetectOutcome> {
+    if (!body?.projectKey) throw new BadRequestException('projectKey is required');
+    if (!body?.modelAId) throw new BadRequestException('modelAId is required');
+    if (!body?.modelBId) throw new BadRequestException('modelBId is required');
+    return this.ingestion.detectFromModels({
+      projectBusinessKey: body.projectKey,
+      modelAId: body.modelAId,
+      modelBId: body.modelBId,
+      clearanceMm: body.clearanceMm,
+    });
+  }
+
   @Get()
   @RequiresCapability('canRead')
   list(@Query('projectKey') projectKey?: string): Promise<ClashItem[]> {
@@ -83,7 +119,7 @@ export class ClashesController {
 
   @Get(':id')
   @RequiresCapability('canRead')
-  get(@Param('id') id: string): Promise<ClashItem> {
-    return this.ingestion.getById(id);
+  get(@Param('id') id: string): Promise<ClashDetail> {
+    return this.ingestion.getDetailById(id);
   }
 }

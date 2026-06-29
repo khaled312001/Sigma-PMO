@@ -83,4 +83,13 @@ export class Project extends TraceableEntity {
   @Index()
   @Column({ type: 'char', length: 36, nullable: true })
   journeyCorrelationId!: string | null;
+
+  /**
+   * Demo scenario archetype for the project-types story (Mr. Ayham): one of
+   * `new-from-sketch` | `stalled` | `disputed`. Nullable — projects ingested
+   * normally leave it null and the `?scenarioType=` filter ignores them.
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  scenarioType!: 'new-from-sketch' | 'stalled' | 'disputed' | string | null;
 }

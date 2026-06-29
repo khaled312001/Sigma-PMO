@@ -9,6 +9,7 @@ import { EvidenceFile } from '../evidence/evidence-file.entity';
 import { EvidenceItem } from '../evidence/evidence-item.entity';
 import { EvidenceRoom } from '../evidence/evidence-room.entity';
 import { OutboxModule } from '../outbox/outbox.module';
+import { ScheduleModule } from '../schedule/schedule.module';
 import { ClaimsAgentService } from './claims-agent.service';
 import { ClaimsExtrasService } from './claims-extras.service';
 import { ClaimsController } from './claims.controller';
@@ -29,7 +30,7 @@ import { ForensicDelayService } from './forensic-delay.service';
  * EvidenceModule.
  */
 @Module({
-  imports: [AgentsModule, CanonicalModule, ContractRulesModule, OutboxModule, TypeOrmModule.forFeature([Letter, EvidenceRoom, EvidenceFile, EvidenceItem])],
+  imports: [AgentsModule, CanonicalModule, ContractRulesModule, OutboxModule, ScheduleModule, TypeOrmModule.forFeature([Letter, EvidenceRoom, EvidenceFile, EvidenceItem])],
   controllers: [ClaimsController],
   providers: [DelayAnalysisService, ClaimsAgentService, EntitlementService, ClaimsExtrasService, ForensicDelayService],
   exports: [ClaimsAgentService, DelayAnalysisService, EntitlementService, ClaimsExtrasService, ForensicDelayService],

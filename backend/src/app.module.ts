@@ -74,6 +74,7 @@ import { ProjectMemoryModule } from './modules/project-memory/project-memory.mod
 import { RiskModule } from './modules/risk/risk.module';
 import { RulesModule } from './modules/rules/rules.module';
 import { SigmaGovernanceModule } from './modules/sigma-governance/sigma-governance.module';
+import { ScheduleModule as ScheduleAnalyticsModule } from './modules/schedule/schedule.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SimulationModule } from './modules/simulation/simulation.module';
 import { SourcesModule } from './modules/sources/sources.module';
@@ -151,6 +152,7 @@ import { SummaryModule } from './modules/summary/summary.module';
     SummaryModule,
     PersonasModule,
     SimulationModule,
+    ScheduleAnalyticsModule,
     // Wave 2 — AI infrastructure foundation. SourcesModule before ClaudeModule
     // so the catalogue is seeded by the time any Claude call resolves a
     // persona that wants to cite from it.

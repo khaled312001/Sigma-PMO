@@ -56,4 +56,19 @@ describe('ForensicDelayService', () => {
     expect(r.classification.concurrentNonCompensableDays).toBeGreaterThan(r.classification.compensableCandidateDays);
     expect(r.entitlement.strength).toBe('weak');
   });
+
+  it('restricts drivers to the CPM critical path and switches the caveat when logic links are present', () => {
+    const rows: ScheduleActivity[] = [
+      // Both slip and exceed their float-to-completion, but only A is on the CPM
+      // critical path per the supplied logic-network result.
+      { businessKey: 'A', name: 'Fit-out', plannedStart: '2026-01-01', plannedFinish: '2026-03-31', actualStart: '2026-01-01', actualFinish: '2026-04-30' },
+      { businessKey: 'B', name: 'Landscaping', plannedStart: '2026-01-01', plannedFinish: '2026-03-30', actualStart: '2026-01-01', actualFinish: '2026-04-29' },
+    ];
+    const r = svc.compute('P5', 'Project 5', '2026-04-30', '2026-01-01', rows, new Set(['A']));
+    // B slipped but is OFF the critical path → not a driver.
+    expect(r.criticalDrivers.map((d) => d.name)).toContain('Fit-out');
+    expect(r.criticalDrivers.map((d) => d.name)).not.toContain('Landscaping');
+    // Caveat now states the CPM forward/backward pass was used.
+    expect(r.caveats[0]).toMatch(/full CPM forward\/backward pass/);
+  });
 });

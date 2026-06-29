@@ -156,6 +156,7 @@ export class ScheduleRevisionService {
 
       const revisedKeys: string[] = [];
       let revisionNumber = 0;
+      const responsibleParty = deriveResponsibleParty(freshClash, option);
       for (const row of affected) {
         // Append-only: retire the current row, clone with version+1.
         row.isCurrent = false;
@@ -184,6 +185,13 @@ export class ScheduleRevisionService {
         revisedKeys.push(saved.businessKey);
         revisionNumber = Math.max(revisionNumber, saved.version);
       }
+
+      // 2b. Record the link from the clash to the revised activity + the
+      //     responsible party as first-class typed columns (Req 2) — no
+      //     longer implicit in the revised Activity's rawSource.clashId.
+      freshClash.linkedActivityBusinessKey = revisedKeys[0] ?? null;
+      freshClash.responsibleParty = responsibleParty;
+      await clashRepo.save(freshClash);
 
       // 3. Commit the what-if scenario when one was referenced.
       let scenarioId: string | null = null;
@@ -284,4 +292,29 @@ function addDaysIso(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Derive the resolution-responsible party for a clash. Deterministic: the
+ * discipline whose element is most often the one to re-route (MEP before
+ * structural before architectural) is named as responsible, falling back to
+ * the disciplines on the clash. The chosen option's `scopeImpact` text is
+ * preferred when it explicitly names a discipline.
+ */
+function deriveResponsibleParty(
+  clash: ClashItem,
+  option: { scopeImpact?: string | null },
+): string | null {
+  const scope = (option.scopeImpact ?? '').toLowerCase();
+  const order = ['mechanical', 'electrical', 'plumbing', 'fire', 'hvac', 'architectural', 'structural'];
+  const disciplines = (clash.disciplinesInvolved ?? []).map((d) => d.toLowerCase());
+  // If the option text names a discipline, that party owns the re-route.
+  for (const d of order) {
+    if (scope.includes(d)) return `${d} discipline`;
+  }
+  // Else: the most "movable" discipline involved (MEP re-routes around structure).
+  for (const d of order) {
+    if (disciplines.includes(d)) return `${d} discipline`;
+  }
+  return disciplines.length ? `${disciplines.join(' / ')} coordination` : null;
 }

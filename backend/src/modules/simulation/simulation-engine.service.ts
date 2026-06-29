@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Activity, BoQ, Project, Scenario } from '../canonical/entities';
+import { CpmService } from '../schedule/cpm.service';
 
 /**
  * Input to {@link SimulationEngineService.projectClashImpact}. Carries the
@@ -100,6 +101,7 @@ export class SimulationEngineService {
     @InjectRepository(Activity) private readonly activities: Repository<Activity>,
     @InjectRepository(BoQ) private readonly boqs: Repository<BoQ>,
     @InjectRepository(Scenario) private readonly scenarios: Repository<Scenario>,
+    @Optional() private readonly cpm?: CpmService,
   ) {}
 
   /** Project the impact of one clash-resolution option. Persists a Scenario. */
@@ -170,10 +172,32 @@ export class SimulationEngineService {
       };
     });
 
-    const projectSlipDays =
-      d <= 0
-        ? 0
-        : impacts.reduce((worst, i) => Math.max(worst, Math.max(0, d - i.floatDays)), 0);
+    // Prefer a true CPM re-pass over the logic network when predecessors exist
+    // (Mr. Ayham acceptance 2026-06-28). The total-float heuristic remains the
+    // fallback when the schedule carries no logic links — disclosed in
+    // `assumptions`.
+    const hasLogic = this.cpm ? rows.some((a) => (a.predecessors?.length ?? 0) > 0) : false;
+    let cpmCriticalChanged: boolean | null = null;
+    let projectSlipDays: number;
+    if (this.cpm && hasLogic && d > 0 && affected.length > 0) {
+      const impact = this.cpm.computeImpact(
+        input.projectKey,
+        rows,
+        affected.map((a) => a.businessKey),
+        d,
+      );
+      projectSlipDays = Math.max(0, impact.projectSlipDays);
+      cpmCriticalChanged = impact.criticalPathChanged;
+      assumptions.push(
+        'Project slip computed by a CPM re-pass over the persisted predecessor logic network ' +
+          '(forward/backward pass), not the float-to-completion heuristic.',
+      );
+    } else {
+      projectSlipDays =
+        d <= 0
+          ? 0
+          : impacts.reduce((worst, i) => Math.max(worst, Math.max(0, d - i.floatDays)), 0);
+    }
     const projectedFinishIso =
       baselineFinish !== null ? addDaysIso(baselineFinish, projectSlipDays) : null;
     const projectedDurationDays =
@@ -198,7 +222,10 @@ export class SimulationEngineService {
       );
     }
 
-    const criticalPathChanged = impacts.some((i) => !i.absorbedByFloat) && d > 0;
+    const criticalPathChanged =
+      cpmCriticalChanged !== null
+        ? cpmCriticalChanged
+        : impacts.some((i) => !i.absorbedByFloat) && d > 0;
 
     // Persist the what-if as a Scenario so the approval can reference it.
     const scenario = await this.scenarios.save(

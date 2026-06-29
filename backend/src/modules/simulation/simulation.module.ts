@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { LettersModule } from '../letters/letters.module';
 import { OutboxModule } from '../outbox/outbox.module';
+import { ScheduleModule } from '../schedule/schedule.module';
 import { PortfolioScenarioService } from './portfolio-scenario.service';
 import { ScheduleRevisionService } from './schedule-revision.service';
 import { SimulationController } from './simulation.controller';
@@ -32,7 +33,7 @@ import { SimulationService } from './simulation.service';
  * import simulation.
  */
 @Module({
-  imports: [CanonicalModule, OutboxModule, LettersModule],
+  imports: [CanonicalModule, OutboxModule, LettersModule, ScheduleModule],
   controllers: [SimulationController],
   providers: [
     SimulationService,

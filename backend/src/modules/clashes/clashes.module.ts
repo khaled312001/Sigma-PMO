@@ -12,6 +12,8 @@ import { ClashIngestionService } from './clash-ingestion.service';
 import { ClashSolutionProposer } from './clash-solution-proposer.service';
 import { ClashSolutionProposerController } from './clash-solution-proposer.controller';
 import { ClashesController } from './clashes.controller';
+import { GeometricClashService } from './geometric-clash.service';
+import { IfcGeometryService } from './ifc-geometry.service';
 import { ClashExcelParser } from './parsers/clash-excel.parser';
 
 /**
@@ -51,7 +53,14 @@ import { ClashExcelParser } from './parsers/clash-excel.parser';
 @Module({
   imports: [CanonicalModule, OutboxModule, ClaudeModule, BoqModule, SimulationModule, IngestionModule],
   controllers: [ClashesController, ClashSolutionProposerController, BimController],
-  providers: [ClashIngestionService, ClashExcelParser, ClashSolutionProposer, BimModelService],
+  providers: [
+    ClashIngestionService,
+    ClashExcelParser,
+    ClashSolutionProposer,
+    BimModelService,
+    IfcGeometryService,
+    GeometricClashService,
+  ],
   exports: [ClashIngestionService, ClashSolutionProposer, BimModelService],
 })
 export class ClashesModule {}

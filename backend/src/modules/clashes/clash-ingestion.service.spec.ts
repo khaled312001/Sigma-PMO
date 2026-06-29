@@ -2,9 +2,12 @@ import { Workbook } from 'exceljs';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 
 import { Layer, IngestionStatus } from '../../common/enums';
-import { ClashItem, IngestionRun, SourceFile } from '../canonical/entities';
+import { ClashItem, IngestionRun, ProjectRecord, SourceFile } from '../canonical/entities';
+import { StorageService } from '../ingestion/storage/storage.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { ClashIngestionService } from './clash-ingestion.service';
+import { GeometricClashService } from './geometric-clash.service';
+import { IfcGeometryService } from './ifc-geometry.service';
 import {
   ClashExcelParser,
   composeDescription,
@@ -42,8 +45,10 @@ async function buildGoldenClashWorkbook(): Promise<Buffer> {
     'Distance (mm)',
     'Grid Location',
     'Item 1',
+    'Item 1 GUID',
     'Item 1 Discipline',
     'Item 2',
+    'Item 2 GUID',
     'Item 2 Discipline',
   ]);
 
@@ -54,8 +59,10 @@ async function buildGoldenClashWorkbook(): Promise<Buffer> {
     72.5,
     'A-3',
     'Duct DC-101',
+    '0XncT9aQ1A$ABC000000001',
     'Mechanical',
     'Cable Tray CT-22',
+    '0XncT9aQ1A$ABC000000002',
     'Electrical',
   ]);
   sheet.addRow([
@@ -64,8 +71,10 @@ async function buildGoldenClashWorkbook(): Promise<Buffer> {
     18.2,
     'B-5',
     'Pipe PP-08',
+    '',
     '', // no discipline — parser falls back to name-sniff ("pipe" → plumbing)
     'Beam B-12',
+    '',
     '', // name-sniff → "beam" → structural
   ]);
   sheet.addRow([
@@ -74,8 +83,10 @@ async function buildGoldenClashWorkbook(): Promise<Buffer> {
     5.0,
     'C-1',
     'Wall W-1',
+    '',
     'Architectural',
     'Column C-1',
+    '',
     'Structural',
   ]);
   sheet.addRow([
@@ -84,12 +95,14 @@ async function buildGoldenClashWorkbook(): Promise<Buffer> {
     120.0,
     'D-2',
     'Cable Tray CT-99',
+    '',
     'Electrical',
     'Beam B-77',
+    '',
     'Structural',
   ]);
   // Malformed row — no clash name. Parser must reject this without failing.
-  sheet.addRow(['', 'New', 10.0, 'X-1', 'Mystery Element', 'Unknown', 'Other', 'Unknown']);
+  sheet.addRow(['', 'New', 10.0, 'X-1', 'Mystery Element', '', 'Unknown', 'Other', '', 'Unknown']);
 
   const ab = await wb.xlsx.writeBuffer();
   return Buffer.from(ab as ArrayBuffer);
@@ -284,6 +297,8 @@ describe('composeDescription', () => {
       gridLocation: 'A-3',
       element1Name: 'Duct DC-101',
       element2Name: 'Cable Tray CT-22',
+      element1Guid: null,
+      element2Guid: null,
       __raw: {},
     });
     expect(desc).toContain('Duct DC-101');
@@ -302,6 +317,8 @@ describe('composeDescription', () => {
       gridLocation: null,
       element1Name: '',
       element2Name: '',
+      element1Guid: null,
+      element2Guid: null,
       __raw: {},
     });
     // No "X clashes with Y", no grid, no overlap — only the bare frame.
@@ -412,5 +429,137 @@ describe('ClashIngestionService', () => {
 
   it('getById throws NotFound for an unknown id', async () => {
     await expect(service.getById('does-not-exist')).rejects.toThrow();
+  });
+
+  it('populates typed detail columns (grid, penetration, element GUIDs) on ingest', async () => {
+    const buf = await buildGoldenClashWorkbook();
+    await service.ingest('clashes.xlsx', buf, 'P-1');
+    const rows = [...clashes.store.values()];
+    const c1 = rows.find((r) => r.clashRef === 'Clash-001')!;
+    expect(c1.gridLocation).toBe('A-3');
+    expect(c1.penetrationMm).toBeCloseTo(72.5);
+    expect(c1.elementGuidA).toBe('0XncT9aQ1A$ABC000000001');
+    expect(c1.elementGuidB).toBe('0XncT9aQ1A$ABC000000002');
+    // World coords stay null on the Excel path (Navisworks ships grid, not XYZ).
+    expect(c1.locationX).toBeUndefined();
+  });
+
+  it('getDetailById lifts typed columns into a first-class detail payload', async () => {
+    const buf = await buildGoldenClashWorkbook();
+    await service.ingest('clashes.xlsx', buf, 'P-1');
+    const anyRow = [...clashes.store.values()].find((r) => r.clashRef === 'Clash-001')!;
+    const detail = await service.getDetailById(anyRow.id);
+    expect(detail.detail.clashRef).toBe('Clash-001');
+    expect(detail.detail.gridLocation).toBe('A-3');
+    expect(detail.detail.penetrationMm).toBeCloseTo(72.5);
+    expect(detail.detail.elementGuidA).toBe('0XncT9aQ1A$ABC000000001');
+    expect(detail.detail.linkedActivityKeys).toEqual([]);
+    expect(detail.detail.location).toBeNull();
+  });
+});
+
+// ── Native geometric clash detect path (Task 1) ──
+
+/** Two crafted IFC models whose duct + beam AABBs overlap (300 mm on X). */
+const MECH_IFC = `ISO-10303-21;
+DATA;
+#1=IFCPROJECT('0prj',$,'MEP',$,$,$,$,$,$);
+#10=IFCCARTESIANPOINT((1000.,2000.,3000.));
+#11=IFCAXIS2PLACEMENT3D(#10,$,$);
+#12=IFCLOCALPLACEMENT($,#11);
+#13=IFCCARTESIANPOINT((-200.,-200.,-200.));
+#14=IFCBOUNDINGBOX(#13,400.,400.,400.);
+#15=IFCSHAPEREPRESENTATION(#16,'Box','BoundingBox',(#14));
+#17=IFCPRODUCTDEFINITIONSHAPE($,$,(#15));
+#18=IFCFLOWSEGMENT('mecGuid00000001',$,'HVAC Duct DN400',$,$,#12,#17,$);
+ENDSEC;
+END-ISO-10303-21;`;
+const STR_IFC = `ISO-10303-21;
+DATA;
+#1=IFCPROJECT('0prj',$,'STR',$,$,$,$,$,$);
+#10=IFCCARTESIANPOINT((1100.,2000.,3000.));
+#11=IFCAXIS2PLACEMENT3D(#10,$,$);
+#12=IFCLOCALPLACEMENT($,#11);
+#13=IFCCARTESIANPOINT((-200.,-200.,-200.));
+#14=IFCBOUNDINGBOX(#13,400.,400.,400.);
+#15=IFCSHAPEREPRESENTATION(#16,'Box','BoundingBox',(#14));
+#17=IFCPRODUCTDEFINITIONSHAPE($,$,(#15));
+#18=IFCBEAM('strGuid00000001',$,'RC Beam B-12',$,$,#12,#17,$);
+ENDSEC;
+END-ISO-10303-21;`;
+
+describe('ClashIngestionService.detectFromModels (native geometric clash)', () => {
+  function buildDetectService() {
+    const clashes = makeClashRepo();
+    const sourceFiles = makeGenericRepo<SourceFile>('source');
+    const recordsStore = new Map<string, ProjectRecord>([
+      ['rec-A', { id: 'rec-A', recordType: 'bim-model', projectBusinessKey: 'P-1', details: { storedPath: '/A.ifc' } } as unknown as ProjectRecord],
+      ['rec-B', { id: 'rec-B', recordType: 'bim-model', projectBusinessKey: 'P-1', details: { storedPath: '/B.ifc' } } as unknown as ProjectRecord],
+    ]);
+    const records = {
+      findOne: jest.fn(async ({ where }: { where: { id: string } }) => recordsStore.get(where.id) ?? null),
+    };
+    const storage = {
+      read: jest.fn(async (p: string) => Buffer.from(p === '/A.ifc' ? MECH_IFC : STR_IFC, 'utf8')),
+    } as unknown as StorageService;
+
+    const routeRepo = (entity: unknown) => {
+      if (entity === SourceFile) return sourceFiles;
+      if (entity === ClashItem) return clashes;
+      throw new Error('unmocked');
+    };
+    const dataSource = {
+      getRepository: jest.fn(routeRepo),
+      transaction: jest.fn(async (cb: (m: unknown) => Promise<unknown>) => cb({ getRepository: routeRepo })),
+    } as unknown as DataSource;
+    const outbox = makeOutbox();
+
+    const service = new ClashIngestionService(
+      dataSource,
+      clashes as unknown as Repository<ClashItem>,
+      new ClashExcelParser(),
+      outbox,
+      undefined,
+      records as unknown as Repository<ProjectRecord>,
+      storage,
+      new IfcGeometryService(),
+      new GeometricClashService(),
+    );
+    return { service, clashes, outbox };
+  }
+
+  it('persists ClashItem rows with real coords + GUIDs from file geometry', async () => {
+    const { service, clashes, outbox } = buildDetectService();
+    const outcome = await service.detectFromModels({
+      projectBusinessKey: 'P-1',
+      modelAId: 'rec-A',
+      modelBId: 'rec-B',
+    });
+
+    expect(outcome.clashesPersisted).toBeGreaterThan(0);
+    expect(outcome.stats.hardClashes).toBe(1);
+
+    const rows = [...clashes.store.values()];
+    expect(rows).toHaveLength(outcome.clashesPersisted);
+    const c = rows[0];
+    // Coordinates + GUIDs are computed from the IFC geometry, not Excel.
+    expect(c.elementGuidA).toBe('mecGuid00000001');
+    expect(c.elementGuidB).toBe('strGuid00000001');
+    expect(c.locationX).toBeCloseTo(1050, 0);
+    expect(c.penetrationMm).toBeCloseTo(300, 0);
+    expect(c.severity).toBe('critical');
+    expect(c.disciplinesInvolved.sort()).toEqual(['mechanical', 'structural']);
+
+    // One engineering.clash.ingested event per persisted row → drives the
+    // existing propose/simulate/apply chain unchanged.
+    expect(outbox.pushes).toHaveLength(outcome.clashesPersisted);
+    expect(outbox.pushes[0].eventType).toBe('engineering.clash.ingested');
+  });
+
+  it('rejects when the two model ids are identical', async () => {
+    const { service } = buildDetectService();
+    await expect(
+      service.detectFromModels({ projectBusinessKey: 'P-1', modelAId: 'rec-A', modelBId: 'rec-A' }),
+    ).rejects.toThrow(/two different models/);
   });
 });

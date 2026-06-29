@@ -38,6 +38,10 @@ export interface ClashRow {
   element1Name: string;
   /** Best-effort element name on side 2. */
   element2Name: string;
+  /** Element GUID on side 1 (IFC GlobalId / Revit element id), or `null`. */
+  element1Guid: string | null;
+  /** Element GUID on side 2, or `null`. */
+  element2Guid: string | null;
   /** Untouched key/value dump of the source row, for traceability. */
   __raw: Record<string, unknown>;
 }
@@ -66,6 +70,8 @@ const HEADER_ALIASES: Record<keyof Omit<ClashRow, '__raw'> | 'element1Discipline
   gridLocation: ['gridlocation', 'grid', 'location', 'griduvw'],
   element1Name: ['item1', 'element1', 'item1name', 'element1name', 'a', 'itemaname'],
   element2Name: ['item2', 'element2', 'item2name', 'element2name', 'b', 'itembname'],
+  element1Guid: ['item1guid', 'element1guid', 'guid1', 'item1id', 'element1id', 'itemaguid'],
+  element2Guid: ['item2guid', 'element2guid', 'guid2', 'item2id', 'element2id', 'itembguid'],
   element1Discipline: ['item1discipline', 'element1discipline', 'discipline1', 'category1'],
   element2Discipline: ['item2discipline', 'element2discipline', 'discipline2', 'category2'],
 };
@@ -172,6 +178,8 @@ export class ClashExcelParser {
       const gridLocation = this.coerceString(this.pickField(raw, headerMap.gridLocation));
       const element1Name = this.coerceString(this.pickField(raw, headerMap.element1Name)) ?? '';
       const element2Name = this.coerceString(this.pickField(raw, headerMap.element2Name)) ?? '';
+      const element1Guid = this.coerceString(this.pickField(raw, headerMap.element1Guid));
+      const element2Guid = this.coerceString(this.pickField(raw, headerMap.element2Guid));
       const element1Discipline = this.coerceString(this.pickField(raw, headerMap.element1Discipline));
       const element2Discipline = this.coerceString(this.pickField(raw, headerMap.element2Discipline));
 
@@ -190,6 +198,8 @@ export class ClashExcelParser {
         gridLocation,
         element1Name,
         element2Name,
+        element1Guid,
+        element2Guid,
         __raw: raw,
       });
     }
