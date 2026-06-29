@@ -152,11 +152,13 @@ monthly drill: `docs/BACKUP-RESTORE.md`.
 - AI prose features are skipped without `ANTHROPIC_API_KEY` (deterministic-only mode).
 - Point-in-time DB recovery (binlog shipping) is a documented future step on top of nightly dumps.
 
-## 12. Release stamp & proof (refreshed at the tagged build)
-- **Commit:** `<filled at final build — see git log>`
+## 12. Release stamp & proof
+- **Commit (production):** `7cfcda4` (deployed to `system.sigma-pmo.com` + `system-api.sigma-pmo.com`, 2026-06-29).
 - **Toolchain:** Node ≥ 20, npm ≥ 10 (prod image `node:20-alpine`). Reference build host: Node 24 / npm 11.
 - **Clean-room proof** (`git archive HEAD` → `npm ci` → `npm run build` → `npm test`):
-  - `npm ci` → exit 0
-  - `npm run build` → exit 0
-  - `npm test` → **69 suites passed · 997 passed · 1 skipped** → exit 0
-- The captured log is reproduced in the final demo report and re-runnable via `RUNBOOK.md` §3.
+  - `npm ci` → exit 0 (901 packages, lockfile-only)
+  - `npm run build` (`nest build`) → exit 0
+  - `npm test` (`jest`) → **75 suites passed · 1034 passed · 1 skipped** → exit 0
+- **Deploy verified on prod:** migrations `BoqItemProvenance` + `GovernanceDecisionCategory` applied; every
+  endpoint live (Autodesk APS status, clash detail + PDF export, BOQ traceability, governance decision
+  envelope, site-evidence capture→alert). Re-runnable via `RUNBOOK.md` §3.
