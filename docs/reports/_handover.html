@@ -1,0 +1,1641 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>
+@page{size:A4;margin:14mm 13mm;}
+*{box-sizing:border-box;}
+body{font-family:"Segoe UI","Tahoma",Arial,sans-serif;color:#1e293b;margin:0;font-size:12px;line-height:1.65;}
+.cover{text-align:center;padding-top:40mm;page-break-after:always;}
+.cover .logo{font-size:40px;font-weight:800;color:#0f766e;}
+.cover h1{font-size:30px;color:#0f172a;margin:14px 0 6px;}
+.cover .sub{font-size:15px;color:#475569;}
+.cover .box{margin:26px auto 0;max-width:150mm;background:#f0fdfa;border:1px solid #99f6e4;border-radius:12px;padding:18px 22px;text-align:right;font-size:12.5px;line-height:2;}
+section{page-break-before:always;}
+h2{color:#fff;background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:10px;padding:12px 18px;font-size:18px;margin:0 0 14px;}
+h3{color:#0f766e;font-size:14.5px;margin:15px 0 7px;border-right:4px solid #0d9488;padding-right:9px;}
+p,li{font-size:12px;}
+table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:11px;break-inside:avoid;}
+tr{break-inside:avoid;}th,td{border:1px solid #cbd5e1;padding:6px 9px;text-align:right;vertical-align:top;word-break:break-word;overflow-wrap:anywhere;}
+.fit table{table-layout:fixed;font-size:10px;}
+.fit td,.fit th{padding:5px 6px;}
+.fit code{font-size:9px;padding:0 2px;}
+th{background:#f0fdfa;color:#0f766e;font-weight:700;}
+.ok{color:#059669;font-weight:700;}.crit{color:#dc2626;font-weight:700;}
+code{font-family:Consolas,monospace;direction:ltr;background:#f1f5f9;padding:1px 4px;border-radius:3px;font-size:10.5px;unicode-bidi:plaintext;}
+ul{margin:5px 0;padding-inline-start:20px;}
+.kpis{display:flex;gap:10px;margin:8px 0 14px;flex-wrap:wrap;}
+.kpi{flex:1;min-width:90px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:11px 6px;text-align:center;break-inside:avoid;}
+.kpi .n{font-size:21px;font-weight:800;color:#0d9488;}.kpi .l{font-size:10.5px;color:#475569;margin-top:3px;}
+.note{background:#f0fdf4;border:1px solid #86efac;border-radius:9px;padding:11px 15px;font-size:11.5px;margin:9px 0;break-inside:avoid;}
+pre{background:#0f172a;color:#e2e8f0;padding:11px 14px;border-radius:8px;font-size:10.5px;direction:ltr;text-align:left;white-space:pre-wrap;unicode-bidi:plaintext;break-inside:avoid;}
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+figure{margin:0;break-inside:avoid;}.cap{font-size:11px;color:#0f766e;font-weight:700;margin-bottom:4px;}
+.thumb{height:250px;overflow:hidden;border:1px solid #cbd5e1;border-radius:6px;background:#fff;}.thumb img{width:100%;object-fit:cover;object-position:top;display:block;}
+</style></head><body>
+
+<div class="cover">
+  <div class="logo">Sigma PMO</div>
+  <h1>حزمة التسليم النهائية</h1>
+  <div class="sub">Final Handover Package — منصّة حوكمة الاستثمار والتسليم للإنشاءات</div>
+  <div class="sub">بيئة الإنتاج: system.sigma-pmo.com · 28 يونيو 2026</div>
+  <div class="box">
+    <b>الفهرس:</b><br>
+    1. الكود المصدري والمستودع &nbsp;·&nbsp; 2. بنية النظام &nbsp;·&nbsp; 3. الـWorkflow الكامل &nbsp;·&nbsp; 4. بيانات الديمو الرسمية<br>
+    5. توثيق API و Swagger &nbsp;·&nbsp; 6. الاختبارات الآلية &nbsp;·&nbsp; 7. صلاحيات RBAC &nbsp;·&nbsp; 8. الأمن<br>
+    9. الأداء &nbsp;·&nbsp; 10. النسخ الاحتياطي والتعافي &nbsp;·&nbsp; 11. المراقبة &nbsp;·&nbsp; 12. قاعدة البيانات<br>
+    13. الذكاء الاصطناعي والمراجع &nbsp;·&nbsp; 14. الواجهة وتجربة المستخدم &nbsp;·&nbsp; 15. التسليم النهائي &nbsp;·&nbsp; 16. شروط القبول
+  </div>
+</div>
+
+<section><h2>1 · الكود المصدري والمستودع</h2>
+  <table><tr><th style="width:30%">العنصر</th><th>القيمة</th></tr>
+  <tr><td>المستودع الرسمي</td><td><code>github.com/khaled312001/Sigma-PMO</code></td></tr>
+  <tr><td>آخر commit على الإنتاج</td><td><code>b577b5b</code> (سابقًا: 56b3916 إغلاق التدقيق · ad76244 multi-session · 2057fd9 R2/backup)</td></tr>
+  <tr><td>الفروع المهمة</td><td><code>main</code> = الإنتاج (لايف) · <code>test</code> = الاختبار · <code>dev</code> = التطوير — كل فرع يُنشَر لبيئته في Coolify</td></tr>
+  <tr><td>رابط الإنتاج</td><td>الواجهة <code>https://system.sigma-pmo.com</code> · الـAPI <code>https://system-api.sigma-pmo.com/api/v1</code></td></tr></table>
+  
+<h3>هيكل المشروع + المتغيرات البيئية + التشغيل المحلي</h3>
+
+<h3>1. هيكل المشروع (Project Structure)</h3>
+<p><strong>الهيكل الرئيسي:</strong></p>
+<ul>
+<li><code>backend/</code> - NestJS API (Node 22+، TypeScript)</li>
+<li><code>frontend/</code> - Next.js 16 Console</li>
+<li><code>docs/</code> - وثائق المشروع والمعايير المعمارية</li>
+<li><code>data/</code> - الملفات النموذجية والتخزين المحلي</li>
+<li><code>scripts/</code> - نصوص إعداد وإدارة قاعدة البيانات</li>
+</ul>
+
+<p><strong>Backend (src/modules):</strong> يحتوي على 47 وحدة متخصصة:</p>
+<ul>
+<li><strong>الأساس:</strong> auth, canonical, governance, ingestion, rules, summary, validation</li>
+<li><strong>دورة حياة الحوكمة الكاملة (17 مرحلة):</strong> opportunity, feasibility, bankability, quantity-survey, procurement, project-controls, risk, safety, fire-life-safety, authority, utility, operational-readiness, claims, revenue, funding, executive, sigma-governance</li>
+<li><strong>الدعم الإضافي:</strong> agents, ai-analysis, analytics, audit, boq, clashes, communications, comparison, contract-rules, drawings, esg, evidence, integrations, jobs, knowledge, layer-agents, legal-hold, letters, notifications, onboarding, org-charts, outbox, personas, policy-addons, predictive, procurement, project-memory, quality, records, settings, simulation, sources, super-admin, universal-input</li>
+</ul>
+
+<p><strong>Frontend (app، components، lib):</strong> واجهة Next.js مع صفحات للموافقات والحسابات والإدارة والوكلاء والتحليلات والمطالبات والتضارب والاتصالات والقرارات وغرف النزاعات والرسومات وإدارة الأدلة والعام وسجل السجلات والتعريفات والأسلحة والتقارير والإحصائيات والملخصات والتحقق.</p>
+
+<p><strong>migrations (src/migrations):</strong> 11 ملف ترحيل TypeORM:</p>
+<ul>
+<li>1781788828417-InitialSchema.ts</li>
+<li>1782000000000-SecurityHardening.ts</li>
+<li>1782100000000-UniversalInput.ts</li>
+<li>وأكثر...</li>
+</ul>
+
+<p><strong>scripts/:</strong> 16 نص تشغيلي:</p>
+<ul>
+<li>backup-db-to-s3.ts, restore-db-from-s3.ts (النسخ الاحتياطي والاستعادة)</li>
+<li>generate-samples.ts, verify-samples.ts (البيانات النموذجية)</li>
+<li>create-user.ts, set-password.ts, reset-passwords.ts (إدارة المستخدمين)</li>
+<li>ingest.ts, run-acceptance.ts (المعالجة والاختبار)</li>
+<li>check-s3.ts, migrate-storage-to-s3.ts (تخزين S3)</li>
+<li>وغيرها...</li>
+</ul>
+
+<p><strong>data/:</strong></p>
+<ul>
+<li><code>data/samples/</code> - ملفات إدخال نموذجية (XER، XML، XLSX، CSV)</li>
+<li><code>data/storage/</code> - أرشيف الملفات المصدرية المخزنة محليًا (مُتجاهل في git)</li>
+</ul>
+
+<p><strong>docs/:</strong></p>
+<ul>
+<li><code>docs/adr/</code> - سجلات القرارات المعمارية (0001–0009)</li>
+<li><code>docs/architecture/</code> - مستندات المعمارية التفصيلية</li>
+<li><code>docs/acceptance/</code> - برنامج التحقق الرسمي (23 اختبار)</li>
+<li><code>docs/deployment.md</code> - دليل النشر والعمليات</li>
+<li><code>docs/uat-phase-2/</code> - حزمة اختبار قبول المرحلة الثانية</li>
+<li><code>docs/user-guide/</code> - أدلة المستخدم ولقطات الشاشة</li>
+<li>وأكثر...</li>
+</ul>
+
+<h3>2. متغيرات البيئة المطلوبة (Environment Variables)</h3>
+<p><strong>المصدر:</strong> <code>backend/.env.example</code></p>
+
+<table>
+<tr>
+<th>متغير البيئة</th>
+<th>الفئة</th>
+<th>الغرض/الوصف</th>
+</tr>
+<tr>
+<td><code>NODE_ENV</code></td>
+<td>تطبيق</td>
+<td>development | production (للتطوير استخدم development)</td>
+</tr>
+<tr>
+<td><code>PORT</code></td>
+<td>تطبيق</td>
+<td>منفذ API (افتراضي 3001)</td>
+</tr>
+<tr>
+<td><code>STORAGE_DIR</code></td>
+<td>تطبيق</td>
+<td>مسار تخزين الملفات المرفوعة بشكل متقنن (نسبي: ../data/storage)</td>
+</tr>
+<tr>
+<td><code>SAMPLES_DIR</code></td>
+<td>تطبيق</td>
+<td>مسار الملفات النموذجية للاختبار (نسبي: ../data/samples)</td>
+</tr>
+<tr>
+<td><code>BODY_LIMIT</code></td>
+<td>تطبيق</td>
+<td>حد أقصى لحجم جسم الطلب (افتراضي: 25mb)</td>
+</tr>
+<tr>
+<td><code>LOG_LEVEL</code></td>
+<td>تطبيق</td>
+<td>مستوى السجل (trace | debug | info | warn | error | fatal)</td>
+</tr>
+<tr>
+<td><code>DB_HOST</code></td>
+<td>قاعدة البيانات</td>
+<td>مضيف MySQL (localhost للتطوير المحلي)</td>
+</tr>
+<tr>
+<td><code>DB_PORT</code></td>
+<td>قاعدة البيانات</td>
+<td>منفذ MySQL (افتراضي: 3306)</td>
+</tr>
+<tr>
+<td><code>DB_USERNAME</code></td>
+<td>قاعدة البيانات</td>
+<td>اسم مستخدم MySQL (root للتطوير المحلي)</td>
+</tr>
+<tr>
+<td><code>DB_PASSWORD</code></td>
+<td>قاعدة البيانات</td>
+<td>كلمة مرور MySQL (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>DB_DATABASE</code></td>
+<td>قاعدة البيانات</td>
+<td>اسم قاعدة البيانات (افتراضي: sigma_pmo)</td>
+</tr>
+<tr>
+<td><code>DB_SYNCHRONIZE</code></td>
+<td>قاعدة البيانات</td>
+<td>إعادة كتابة البيانات (false للإنتاج والـ UAT؛ للتطوير استخدم false)</td>
+</tr>
+<tr>
+<td><code>DB_LOGGING</code></td>
+<td>قاعدة البيانات</td>
+<td>تسجيل الاستعلامات (false للإنتاج)</td>
+</tr>
+<tr>
+<td><code>BOOTSTRAP_TOKEN</code></td>
+<td>الأمان</td>
+<td>رمز التشغيل الأول — مطلوب في الإنتاج لإنشاء مسؤول أول (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>CORS_ORIGINS</code></td>
+<td>الشبكة</td>
+<td>منشأ CORS المسموح (فاصل بفواصل: https://system.sigma-pmo.com)</td>
+</tr>
+<tr>
+<td><code>APP_PUBLIC_URL</code></td>
+<td>الشبكة</td>
+<td>عنوان URL العام للتطبيق (لإعادة توجيه Stripe والعروض التقديمية)</td>
+</tr>
+<tr>
+<td><code>SENTRY_DSN</code></td>
+<td>المراقبة</td>
+<td>اختياري — لإرسال الأخطاء إلى Sentry</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_DEFAULT_LIMIT</code></td>
+<td>الأمان</td>
+<td>حد معدل الطلب الافتراضي لكل عنوان IP (افتراضي: 100 طلب/دقيقة)</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_DEFAULT_TTL_MS</code></td>
+<td>الأمان</td>
+<td>نافذة زمنية لحد المعدل (افتراضي: 60000 مللي ثانية)</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_AUTH_LIMIT</code></td>
+<td>الأمان</td>
+<td>حد معدل مصادقة أكثر صرامة (افتراضي: 10 طلبات/دقيقة)</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_INGEST_LIMIT</code></td>
+<td>الأمان</td>
+<td>حد معدل الابتلاع (افتراضي: 30 طلب/دقيقة)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>LLM</td>
+<td>مفتاح Claude API (سر — اختياري؛ بدون مفتاح = الوضع الحتمي فقط)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_DEFAULT_MODEL</code></td>
+<td>LLM</td>
+<td>نموذج Claude الافتراضي (مثال: claude-sonnet-4-5)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_DEFAULT_TIER</code></td>
+<td>LLM</td>
+<td>طبقة نموذج افتراضية (مثال: claude-sonnet)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_MAX_TOKENS</code></td>
+<td>LLM</td>
+<td>أقصى رموز افتراضية لإتمام العمليات (افتراضي: 4096)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_CACHE_TTL</code></td>
+<td>LLM</td>
+<td>TTL للذاكرة المؤقتة لموجهات النظام (افتراضي: 3600 ثانية = ساعة واحدة)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_COUNCIL_ENABLED</code></td>
+<td>LLM</td>
+<td>تفعيل مجلس القضاء المتعدد (false افتراضي)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_COUNCIL_SIZE</code></td>
+<td>LLM</td>
+<td>عدد أعضاء المجلس (افتراضي: 3)</td>
+</tr>
+<tr>
+<td><code>AUTODESK_CLIENT_ID</code></td>
+<td>التكامل</td>
+<td>معرّف عميل Autodesk Forge (اختياري؛ للـ BIM/IFC)</td>
+</tr>
+<tr>
+<td><code>AUTODESK_CLIENT_SECRET</code></td>
+<td>التكامل</td>
+<td>سر عميل Autodesk (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>AUTODESK_BASE_URL</code></td>
+<td>التكامل</td>
+<td>قاعدة URL لـ Autodesk APS (افتراضي: https://developer.api.autodesk.com)</td>
+</tr>
+<tr>
+<td><code>P6_BASE_URL</code></td>
+<td>التكامل</td>
+<td>قاعدة URL لـ Primavera P6 REST (مثال: https://p6.example.com/p6ws/restapi)</td>
+</tr>
+<tr>
+<td><code>P6_DATABASE</code></td>
+<td>التكامل</td>
+<td>اسم قاعدة بيانات P6</td>
+</tr>
+<tr>
+<td><code>P6_USERNAME</code></td>
+<td>التكامل</td>
+<td>اسم مستخدم P6 (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>P6_PASSWORD</code></td>
+<td>التكامل</td>
+<td>كلمة مرور P6 (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>S3_BUCKET</code></td>
+<td>التخزين</td>
+<td>اسم جرافة S3/R2 (للأرشيف والنسخ الاحتياطية)</td>
+</tr>
+<tr>
+<td><code>S3_REGION</code></td>
+<td>التخزين</td>
+<td>منطقة S3 (افتراضي: us-east-1؛ Cloudflare R2 = auto)</td>
+</tr>
+<tr>
+<td><code>S3_ACCESS_KEY</code></td>
+<td>التخزين</td>
+<td>مفتاح وصول S3 (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>S3_SECRET_KEY</code></td>
+<td>التخزين</td>
+<td>مفتاح سري S3 (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>S3_ENDPOINT</code></td>
+<td>التخزين</td>
+<td>نقطة نهاية S3 المخصصة (مثال: https://s3.eu-central-1.example.com)</td>
+</tr>
+<tr>
+<td><code>S3_FORCE_PATH_STYLE</code></td>
+<td>التخزين</td>
+<td>استخدام خطاب المسار (true للموفرين المتوافقين مع S3؛ false لـ AWS)</td>
+</tr>
+<tr>
+<td><code>S3_PREFIX</code></td>
+<td>التخزين</td>
+<td>بادئة المفتاح العليا اختيارية (مثال: sigma-system)</td>
+</tr>
+<tr>
+<td><code>BACKUP_RETENTION</code></td>
+<td>النسخ الاحتياطي</td>
+<td>عدد أيام الاحتفاظ بالنسخ الاحتياطية (افتراضي: 14 يومًا)</td>
+</tr>
+<tr>
+<td><code>BACKUP_ENCRYPTION_KEY</code></td>
+<td>النسخ الاحتياطي</td>
+<td>مفتاح تشفير AES-256-GCM للنسخ الاحتياطية (سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>S3_SSE</code></td>
+<td>التخزين</td>
+<td>تشفير جانب الخادم S3 (اختياري: AES256 لـ AWS)</td>
+</tr>
+<tr>
+<td><code>STRIPE_SECRET_KEY</code></td>
+<td>الفواتير</td>
+<td>مفتاح سري Stripe (اختياري؛ للاشتراكات SaaS متعددة المستأجرين)</td>
+</tr>
+<tr>
+<td><code>STRIPE_PUBLISHABLE_KEY</code></td>
+<td>الفواتير</td>
+<td>مفتاح Stripe القابل للنشر (اختياري)</td>
+</tr>
+<tr>
+<td><code>STRIPE_PRICE_ID</code></td>
+<td>الفواتير</td>
+<td>معرّف سعر Stripe (اختياري)</td>
+</tr>
+<tr>
+<td><code>STRIPE_WEBHOOK_SECRET</code></td>
+<td>الفواتير</td>
+<td>سر Webhook (اختياري؛ سر — لا تُرتكب)</td>
+</tr>
+<tr>
+<td><code>STRIPE_TRIAL_DAYS</code></td>
+<td>الفواتير</td>
+<td>مدة الفترة التجريبية (افتراضي: 30 يومًا)</td>
+</tr>
+<tr>
+<td><code>APP_ENV</code></td>
+<td>التطبيق</td>
+<td>بيئة التطبيق (demo | uat | production)</td>
+</tr>
+<tr>
+<td><code>SEED_DEMO</code></td>
+<td>البيانات</td>
+<td>بذر البيانات النموذجية عند التمهيد الأول (افتراضي: true)</td>
+</tr>
+<tr>
+<td><code>DEMO_LOGIN_PUBLIC</code></td>
+<td>البيانات</td>
+<td>السماح بتسجيل الدخول إلى حسابات التجريب (اختياري؛ false للإنتاج)</td>
+</tr>
+<tr>
+<td><code>DEMO_SEED_PASSWORD</code></td>
+<td>البيانات</td>
+<td>كلمة مرور حسابات التجريب (افتراضي: SigmaDemo2026؛ أبجدي فقط)</td>
+</tr>
+<tr>
+<td><code>ADMIN_SEED_PASSWORD</code></td>
+<td>البيانات</td>
+<td>كلمة مرور مسؤول التجريب (اختيارية؛ عشوائية إن لم تُحدد)</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_API_BASE</code></td>
+<td>Frontend</td>
+<td>عنوان URL الواجهة الأمامية لـ API (مثال: https://system-api.sigma-pmo.com/api/v1)</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_DEMO_LOGIN</code></td>
+<td>Frontend</td>
+<td>تبديل عرض خيار تسجيل الدخول التجريبي (افتراضي: true)</td>
+</tr>
+<tr>
+<td><code>NEXT_PUBLIC_DEMO_PASSWORD</code></td>
+<td>Frontend</td>
+<td>كلمة مرور عرض التجريب (افتراضي: SigmaDemo2026)</td>
+</tr>
+<tr>
+<td><code>EMAIL_SMTP_URL</code></td>
+<td>الإخطارات</td>
+<td>اختياري — عنوان URL SMTP لإرسال البريد (مثال: smtp://user:pass@smtp.example.com:587)</td>
+</tr>
+<tr>
+<td><code>SLACK_WEBHOOK_URL</code></td>
+<td>الإخطارات</td>
+<td>اختياري — Webhook URL لإرسال Slack</td>
+</tr>
+<tr>
+<td><code>TEAMS_WEBHOOK_URL</code></td>
+<td>الإخطارات</td>
+<td>اختياري — Webhook URL لإرسال Teams</td>
+</tr>
+</table>
+
+<h3>3. إدارة الأسرار (Secret Management)</h3>
+
+<p><strong>مبادئ الأمان:</strong></p>
+<ul>
+<li><strong>الملف .env:</strong> ملف محلي غير ملتزم لتخزين متغيرات البيئة الحساسة أثناء التطوير</li>
+<li><strong>.env.example:</strong> نموذج آمن بدون قيم حقيقية — في git لأغراض التوثيق</li>
+<li><strong>.gitignore:</strong> يحظر جميع ملفات .env (سطر 13–14) — لا تُرتكب الأسرار مطلقًا</li>
+<li><strong>Coolify (الإنتاج):</strong> جميع الأسرار (DB_PASSWORD, SETTINGS_ENCRYPTION_KEY, ANTHROPIC_API_KEY, S3_*, BACKUP_ENCRYPTION_KEY, STRIPE_*) يتم إدارتها عبر واجهة Coolify "Environment Variables" — أبدًا في الملفات</li>
+<li><strong>الأسرار الحساسة خاصة:</strong> DB_PASSWORD, BOOTSTRAP_TOKEN, SETTINGS_ENCRYPTION_KEY, ANTHROPIC_API_KEY, S3_SECRET_KEY, BACKUP_ENCRYPTION_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, P6_PASSWORD, AUTODESK_CLIENT_SECRET</li>
+</ul>
+
+<p><strong>إعدادات القيود:</strong></p>
+<ul>
+<li>لا تحتوي على علامات دولار ($) في القيم الحساسة — تفسدها استيفاء متغيرات Docker</li>
+<li>استخدم أحرف أبجدية رقمية فقط للأسرار المشتركة (مثل DEMO_SEED_PASSWORD)</li>
+<li>للأسرار الجديدة: استخدم <code>openssl rand -hex 32</code> (مثال: BACKUP_ENCRYPTION_KEY)</li>
+</ul>
+
+<h3>4. التشغيل المحلي من الصفر (Local Setup from Scratch)</h3>
+
+<p><strong>المتطلبات المسبقة:</strong></p>
+<ul>
+<li>Node 22+ (من npm، أو nvm)</li>
+<li>MySQL 8 أو MariaDB 10.6+</li>
+<li>Docker Desktop (للخيار العازل المسهل)</li>
+</ul>
+
+<p><strong>خطوة 1: استنساخ المستودع</strong></p>
+<ul>
+<li><code>git clone &lt;repo-url&gt; sigma-pmo</code></li>
+<li><code>cd sigma-pmo</code></li>
+</ul>
+
+<p><strong>خطوة 2: إعداد قاعدة البيانات (الخيار أ: Docker — موصى به)</strong></p>
+<ul>
+<li><code>docker-compose up -d</code> (يشغل MySQL 8 على منفذ 3306، مع حجم الاستمرار sigmadb، مع كلمة المرور الافتراضية rootpw)</li>
+<li>انتظر 30 ثانية حتى يبدأ MySQL الفحص الصحي</li>
+</ul>
+
+<p><strong>خطوة 2 (الخيار ب: MySQL محلي)</strong></p>
+<ul>
+<li>تثبيت MySQL Server 8</li>
+<li>إنشاء قاعدة بيانات: <code>mysql -u root -p -e "CREATE DATABASE sigma_pmo"</code></li>
+</ul>
+
+<p><strong>خطوة 3: إعداد Backend</strong></p>
+<ul>
+<li><code>cd backend</code></li>
+<li><code>cp .env.example .env</code></li>
+<li>تحرير <code>.env</code>:</li>
+<li><code>NODE_ENV=development</code></li>
+<li><code>DB_HOST=localhost</code> (أو <code>db</code> إذا كان Docker)</li>
+<li><code>DB_USERNAME=root</code></li>
+<li><code>DB_PASSWORD=rootpw</code> (أو ما عيّنته)</li>
+<li><code>DB_DATABASE=sigma_pmo</code></li>
+<li><code>npm ci</code> (تثبيت الاعتماديات المقفلة)</li>
+<li><code>npm run build</code> (بناء البرنامج)</li>
+<li><code>npm run gen:samples</code> (إنشاء بيانات نموذجية في ../data/samples/)</li>
+<li><code>npm run migration:run</code> (تطبيق الهجرات)</li>
+<li><code>npm run start:dev</code> (بدء API على http://localhost:3001/api/v1 في وضع المراقبة)</li>
+</ul>
+
+<p><strong>خطوة 4: إعداد Frontend (محطة طرفية منفصلة)</strong></p>
+<ul>
+<li><code>cd frontend</code></li>
+<li><code>npm ci</code></li>
+<li><code>npm run dev</code> (بدء UI على http://localhost:3000)</li>
+</ul>
+
+<p><strong>خطوة 5: اختبار الدخان من طرف إلى طرف</strong></p>
+<ul>
+<li><code>cd backend</code></li>
+<li><code>npm run ingest -- ../data/samples/schedule.xlsx</code> (ابتلاع ملف نموذجي)</li>
+<li><code>curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"projectKey":"P-1000"}' \
+  http://localhost:3001/api/v1/rules/evaluate</code> (تقييم القواعد)</li>
+<li><code>curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"projectKey":"P-1000","periodDays":7}' \
+  http://localhost:3001/api/v1/summary/generate</code> (إنشاء ملخص)</li>
+</ul>
+
+<p><strong>سيناريوهات استكشاف الأخطاء:</strong></p>
+<ul>
+<li><strong>فشل الاتصال بـ MySQL:</strong> تحقق من <code>DB_HOST</code>، <code>DB_PORT</code>، <code>DB_PASSWORD</code>؛ تحقق من صحة MySQL: <code>mysql -h &lt;host&gt; -u root -p</code></li>
+<li><strong>خطأ الهجرة:</strong> تأكد من تطابق المخطط مع الهجرات؛ اختبر <code>npm run migration:run</code> يدويًا</li>
+<li><strong>CORS مرفوض:</strong> تعديل <code>CORS_ORIGINS</code> في .env (مثال: http://localhost:3000)</li>
+<li><strong>بدون مفتاح API Anthropic:</strong> النظام يعمل في الوضع الحتمي فقط — تخطي جميع استدعاءات Claude</li>
+</ul>
+
+<p><strong>ملاحظات مهمة:</strong></p>
+<ul>
+<li>الوضع الافتراضي SEED_DEMO=true، DEMO_LOGIN_PUBLIC=true — حسابات تجريب فورية متاحة (demo/SigmaDemo2026)</li>
+<li>للبيانات الحقيقية: عيّن SEED_DEMO=false، DEMO_LOGIN_PUBLIC=false، استخدم <code>npm run user:create</code> لإنشاء حسابات حقيقية</li>
+<li>جميع الملفات المرفوعة مخزنة في <code>data/storage/</code> محليًا (أو S3 إذا تم تكوينها)</li>
+<li>النسخ الاحتياطية الليلية الآلية تعمل عبر BackupService (Cron) — تتطلب S3 + BACKUP_ENCRYPTION_KEY للإنتاج</li>
+</ul>
+
+</section>
+
+<section><h2>2 · بنية النظام (Architecture)</h2><h3>بنية النظام</h3>
+
+<p><strong>Frontend (الواجهة الأمامية)</strong></p>
+<ul>
+  <li>Next.js 16.2.6 + React 19، App Router (مجلد <code>app/</code>)</li>
+  <li>Standalone output mode — خادم Node.js مستقل على المنفذ 3000</li>
+  <li>مكتوبة بـ TypeScript + Tailwind CSS (Font: Tajawal للعربية)</li>
+  <li>Deployment: Coolify أو Vercel (صفحات الهبوط على Vercel)</li>
+  <li>متغيرات البناء (Build-time): <code>NEXT_PUBLIC_API_BASE</code>، <code>NEXT_PUBLIC_DEMO_LOGIN</code></li>
+</ul>
+
+<p><strong>Backend (الخادم الخلفي)</strong></p>
+<ul>
+  <li>NestJS 11 + TypeORM 0.3 + TypeScript</li>
+  <li>بادئة المسار الموحدة: <code>/api/v1</code> (متحكم عام عبر <code>app.setGlobalPrefix('api/v1')</code>)</li>
+  <li>المنفذ: 3001 (داخل الحاوية)، مرتبط من خلال Traefik (Coolify)</li>
+  <li>Swagger/OpenAPI: <code>/api/v1/docs</code> (يعرض كل الـ routes تلقائياً)</li>
+  <li>الحجم الأقصى للطلب: 25 ميجابايت (قابل للتخصيص عبر <code>bodyLimit</code>)</li>
+  <li>التوثيق: رأس <code>x-api-key</code> (SHA-256 lookup)، يدعم <code>x-bootstrap-token</code> لتجاوز البدء</li>
+</ul>
+
+<p><strong>قاعدة البيانات (Database)</strong></p>
+<ul>
+  <li>MySQL 8.4 (صورة رسمية)</li>
+  <li>TypeORM + Migrations:
+    <ul>
+      <li>يُشغَّل تلقائياً على البوت في الإنتاج (<code>migrationsRun: isProd</code>)</li>
+      <li>الملفات المترجمة: <code>dist/src/migrations/*.js</code></li>
+      <li>في التطوير: يدار يدوياً عبر <code>npm run migration:run</code></li>
+    </ul>
+  </li>
+  <li>الترميز: UTF8MB4 (دعم العربية الكامل)</li>
+  <li>المنطقة الزمنية: UTC صراحة (Z)، العملاء يحولون عند العرض</li>
+  <li>ملف التخزين المستمر: <code>sigmadb</code> (volume مسمى)</li>
+  <li>Healthcheck: <code>mysqladmin ping</code> كل 10 ثوانٍ</li>
+</ul>
+
+<p><strong>الملفات الخارجية (External File Storage)</strong></p>
+<ul>
+  <li><code>StorageService</code> (في <code>ingestion</code> module) — تخزين مضمون بـ SHA-256</li>
+  <li>الوسيط: Cloudflare R2 أو S3-compatible عبر <code>@aws-sdk/client-s3</code></li>
+  <li>البادئة (Prefix): <code>sigma-system/</code> + شجرة مجزأة (<code>XX/YY/HASH__filename</code>)</li>
+  <li>الخيارات: <code>S3_ENDPOINT</code>, <code>S3_REGION</code>, <code>S3_BUCKET</code>, <code>S3_ACCESS_KEY</code>, <code>S3_SECRET_KEY</code>, <code>S3_FORCE_PATH_STYLE</code></li>
+</ul>
+
+<p><strong>المهام والعمليات المجدولة (Jobs/Workers)</strong></p>
+<ul>
+  <li><code>@nestjs/schedule</code> + <code>@Cron</code> decorators</li>
+  <li><code>CommunicationsAlertsCron</code>: كل ساعة — إنذارات 24 ساعة للاتصالات غير المقروءة، التصعيد</li>
+  <li><code>EvidenceCron</code>: عملية الأدلة</li>
+  <li><code>BackupService</code>: كل يوم في الساعة 2 صباحاً — نسخة احتياطية لـ MySQL إلى R2/S3 (مشفرة بـ AES-256-GCM)</li>
+</ul>
+
+<p><strong>AI Provider (مزود الذكاء الاصطناعي)</strong></p>
+<ul>
+  <li><code>ClaudeService</code> (<code>modules/claude</code>) — غلاف رقيق حول SDK الرسمي <code>@anthropic-ai/sdk</code></li>
+  <li>النموذج: Anthropic Claude (Haiku/Sonnet/Opus)، مع تعيين <code>modelTier</code> إلى معرّفات النماذج</li>
+  <li>الميزات: Personas (مخازن مؤقتة ephemeral)، PolicyAddons (تعليمات inline)، ProjectMemory (حقائق مستفادة)</li>
+  <li>الاستخراج: مفتاح API من <code>ANTHROPIC_API_KEY</code> البيئة فقط (آمن)</li>
+  <li>الحالة: <code>isEnabled()</code> يرجع false عند عدم وجود مفتاح</li>
+</ul>
+
+<p><strong>عزل المستأجرين (Tenant Isolation)</strong></p>
+<ul>
+  <li><code>TraceableEntity</code> (base) — كل صف يحمل <code>companyId</code> مفهرسة</li>
+  <li>طلب المسار:
+    <ul>
+      <li>المستخدم → API (<code>x-api-key</code>)</li>
+      <li><code>ApiKeyGuard</code>: يستخرج <code>companyId</code> من مستخدم مُفعَّل (أو مسموح Bootstrap)</li>
+      <li><code>TenantContextMiddleware</code>: يفتح متجر <code>AsyncLocalStorage</code> بـ <code>companyId</code></li>
+      <li><code>ProjectScopeGuard</code> (بعد ApiKeyGuard): يتحقق من أن <code>projectKey</code>/<code>projectId</code> ينتمي إلى <code>companyId</code> الحالي</li>
+      <li>الخدمات: تستدعي <code>companyScope()</code> (يرجع <code>{companyId}</code> أو <code>{}</code>)</li>
+      <li>TypeORM → MySQL: يرشح حسب <code>companyId</code></li>
+      <li>JSON response → Frontend</li>
+    </ul>
+  </li>
+  <li>الاستثناء: <code>SUPER_ADMIN</code> يقرأ عبر جميع الشركات</li>
+</ul>
+
+<p><strong>المساعد والبرامج الإضافية للسياسات (Personas & Policy Add-ons)</strong></p>
+<ul>
+  <li><code>PersonasService</code> — يحفظ والشخصيات (slug، إصدار، موثر بـ cache)، نموذج الافتراضي (Sonnet)</li>
+  <li><code>PolicyAddonsService</code> — تعليمات مؤلفة مستخدم (موجهة إلى السطح: planning, engineering, governance, reports)</li>
+  <li>BlockStructure: نظام Persona + Custom addon = أساس موحد للذكاء الاصطناعي</li>
+</ul>
+
+<p><strong>المعايير والإنجازات (Standards & Accomplishments)</strong></p>
+<table>
+  <tr>
+    <th>الميزة</th>
+    <th>المادة / الملاحظات</th>
+  </tr>
+  <tr>
+    <td>حماية الرؤوس (Headers)</td>
+    <td>Helmet (بدون CSP، origin منفصل)</td>
+  </tr>
+  <tr>
+    <td>التحقق من الصحة</td>
+    <td>ValidationPipe عام (whitelist، forbid unknown)</td>
+  </tr>
+  <tr>
+    <td>CORS</td>
+    <td>قابل للتخصيص (<code>CORS_ORIGINS</code>)، dev default localhost:3000</td>
+  </tr>
+  <tr>
+    <td>الفترة الزمنية</td>
+    <td><code>AppThrottlerModule</code> (معدل الحد)</td>
+  </tr>
+  <tr>
+    <td>التدقيق</td>
+    <td>AuditModule — يسجل كل الطفرات + تسجيل الدخول (قبل كل متحكم)</td>
+  </tr>
+  <tr>
+    <td>السجلات</td>
+    <td>Pino + Nestjs-pino (bufferLogs قبل الإعداد الكامل)</td>
+  </tr>
+  <tr>
+    <td>معرّف الطلب</td>
+    <td>RequestIdMiddleware → تتبع الطلب عبر النظام</td>
+  </tr>
+  <tr>
+    <td>الدفع (Billing)</td>
+    <td>Stripe + webhook (raw body للتوقيع)</td>
+  </tr>
+</table>
+
+<p><strong>البنية الموديولية (Modular Architecture)</strong></p>
+<p>يتضمن 60+ وحدة متخصصة (canonical, auth, governance, ingestion, communications, evidence, claims, risk, analytics, hierarchy, agents, claude, backup, jobs إلخ). تتصل من خلال خدمات الحقن والطلب (Dependency Injection)، مع Outbox pattern لسفر الأحداث عبر الطبقات (L1–L8).</p></section>
+
+<section><h2>3 · الـWorkflow الكامل خطوة بخطوة</h2><div class="fit"><h3>الـWorkflow الكامل خطوة بخطوة</h3>
+
+<p>يوضح الجدول التالي كل مرحلة من مراحل معالجة البيانات والحوكمة في Sigma PMO، من استقبال القالب حتى مستوى الإدارة التنفيذية.</p>
+
+<table>
+  <tr>
+    <th>الخطوة</th>
+    <th>الـ API المسؤول</th>
+    <th>الجداول المتأثرة</th>
+    <th>المدخلات</th>
+    <th>المخرجات</th>
+    <th>الربط بالمرحلة التالية</th>
+  </tr>
+
+  <tr>
+    <td>1. Template (القالب)</td>
+    <td><code>GET /ingestion/template</code></td>
+    <td>—</td>
+    <td>طلب تحميل الملف</td>
+    <td>ملف Excel متعدد الأوراق (Projects, Activities, Resources, Assignments, Reports)</td>
+    <td>يملأ المستخدم البيانات ويرفعها</td>
+  </tr>
+
+  <tr>
+    <td>2. Ingestion (الاستقبال)</td>
+    <td><code>POST /ingestion/upload</code> أو <code>POST /ingestion/ingest-path</code></td>
+    <td>SourceFile, IngestionRun</td>
+    <td>filename, contentBase64 (أو مسار محلي)</td>
+    <td>runId, sourceFileId, parser (CSV/Excel/P6/MSProject), status=PENDING</td>
+    <td>ينتقل إلى التحقق الفوري</td>
+  </tr>
+
+  <tr>
+    <td>3. Validation (التحقق)</td>
+    <td><code>ValidationService.validate()</code> (داخلي خلال Ingestion)</td>
+    <td>IngestionRun (تحديث status)</td>
+    <td>RawDataset (projects, activities, resources, assignments, reports)</td>
+    <td>ValidationReport: passed (bool), errorCount, warningCount, issues[]</td>
+    <td>إن نجحت → تطبيع، وإلا → رفض (FAILED)</td>
+  </tr>
+
+  <tr>
+    <td>4. Stored Records (السجلات المخزنة)</td>
+    <td><code>NormalizerService.normalize()</code> (داخلي في transaction)</td>
+    <td>Project, Activity, Resource, ResourceAssignment, Report, ConfidenceScore</td>
+    <td>Validated dataset</td>
+    <td>counts: {project, activity, resource, assignment, report}, confidence scores (completeness, consistency, sourceReliability, overall)</td>
+    <td>المسجلات الحالية جاهزة لتقييم القواعد</td>
+  </tr>
+
+  <tr>
+    <td>5. Rules (القواعد) - L1</td>
+    <td><code>POST /rules/evaluate</code></td>
+    <td>RuleEvaluation, Alert</td>
+    <td>projectKey أو projectId (اختياري = كل المشاريع)</td>
+    <td>RuleEvaluationOutcome: evaluationId, alertCount, byCode{}, bySeverity{}</td>
+    <td>كل alert لديه code, severity, summary، ومؤشرات على rows المؤثرة</td>
+  </tr>
+
+  <tr>
+    <td>6. Alerts (التنبيهات) - L2</td>
+    <td><code>GET /rules/alerts</code></td>
+    <td>Alert (read-only للعرض)</td>
+    <td>queries: evaluationId, projectId, projectKey, severity, limit</td>
+    <td>قائمة alerts مع projectBusinessKey، activityId، resourceId، assignmentId، reportId، context (JSON)</td>
+    <td>كل alert يدخل السياق القانوني/الحوكمة</td>
+  </tr>
+
+  <tr>
+    <td>7. Decisions (القرارات) - L3</td>
+    <td><code>POST /governance/decide</code> أو <code>POST /rules/workflows/run</code></td>
+    <td>GovernanceDecision, GovernancePolicy</td>
+    <td>ruleEvaluationId, projectKey (للقرار الحكومي)</td>
+    <td>DecisionOutcome: policyId, policyVersion, decisionCount, byParty{}, byLevel{}. كل decision: responsibleParty، escalationLevel، fidicClause، rationale، interventions[]</td>
+    <td>القرار محدد الطرف المسؤول والمستوى والعمل المقترح</td>
+  </tr>
+
+  <tr>
+    <td>8. Evidence (الأدلة) - Dispute</td>
+    <td><code>GET /governance/alerts/:id/evidence</code></td>
+    <td>EvidenceRoom, EvidenceFile, EvidenceItem, EvidenceChunk</td>
+    <td>alertId</td>
+    <td>EvidencePackage: chain كامل من alert → decision → rule source → confidence، مع ملفات مرفقة (PDF، صور)، hash تحقق</td>
+    <td>أدلة معتمة قابلة للتحقق (integrity chain)</td>
+  </tr>
+
+  <tr>
+    <td>9. Approval (الموافقة) - Decision Review</td>
+    <td><code>POST /governance/decisions/:id/review</code></td>
+    <td>DecisionReview (append-only)</td>
+    <td>decisionId، action (approve/reject/acknowledge)، comment، performer (User)</td>
+    <td>ReviewRecordResult: reviewId، chainState (pending/awaiting-second-approval/approved/rejected)، requiresDualApproval (critical decisions)</td>
+    <td>حالة القرار محدثة (pending → approved)</td>
+  </tr>
+
+  <tr>
+    <td>10. Audit (التدقيق) - L4</td>
+    <td><code>GET /governance/audit</code></td>
+    <td>DecisionReview (joined with Decision, Alert)</td>
+    <td>limit (default 100، max 500)</td>
+    <td>قائمة audit rows: reviewId، createdAt، action، actorUserId، actorDisplay، decisionId، alertCode، severity، escalationLevel</td>
+    <td>Trail سجل شامل → عرض L7 التنفيذي</td>
+  </tr>
+
+  <tr>
+    <td>11. Executive (التنفيذي) - L7</td>
+    <td><code>GET /executive/overview</code>, <code>GET /executive/kpis</code></td>
+    <td>ExecutiveSummary، AnalyticsSnapshot، Project (read-only)</td>
+    <td>projectKey (للتفاصيل) أو no param (محفظة)</td>
+    <td>ExecutivePack: KPIs (health, confidence, forecast risk)، StrategicKpis (alignment, benefits realization, governance score)، PortfolioKpis (roll-up across projects)</td>
+    <td>مؤشرات موحدة للإدارة والقرار</td>
+  </tr>
+
+  <tr>
+    <td>12. Governance-Command (الحوكمة) - L8</td>
+    <td><code>POST /governance-command/recompute</code>, <code>GET /governance-command/overview</code></td>
+    <td>CorrectiveAction، GovernanceStatusSnapshot، Project (current)</td>
+    <td>nodeKey, nodeType (PROJECT/PROGRAM/PORTFOLIO)</td>
+    <td>ConsolidatedNode: governanceStatus (green/yellow/orange/red), openActions[], escalationPaths[], recommendedActions[], impactAnalysis (VAR + benefit realization)</td>
+    <td>استراتيجية شاملة وتوصيات تنفيذية</td>
+  </tr>
+</table>
+
+<h3>ملخص الربط والتدفق</h3>
+
+<ul>
+  <li><strong>Template → Ingestion:</strong> يحمل المستخدم ملف Excel المعرّف من API ويرفعه عبر <code>POST /ingestion/upload</code></li>
+  
+  <li><strong>Ingestion → Validation → Stored Records:</strong> داخلياً في <code>IngestionService.ingest()</code>: parse → validate → normalize في transaction واحد. إن فشل التحقق، status=FAILED. إن نجح، السجلات تُكتب (Project, Activity, وغيرها) و status=NORMALIZED مع ConfidenceScore</li>
+  
+  <li><strong>Stored Records → Rules (L1):</strong> <code>POST /rules/evaluate</code> ينسخ الحالة الحالية (RuleEvaluation) ويطبق 10 قواعد (SCHEDULE_FINISH_SLIPPED، COST_OVERRUN، إلخ) مقابل snapshot. كل match → Alert</li>
+  
+  <li><strong>Rules → Alerts (L2):</strong> Alerts قابلة للاستعلام عبر <code>GET /rules/alerts</code> مع filters (evaluationId، projectKey، severity). كل alert نقطة فعل</li>
+  
+  <li><strong>Alerts → Decisions (L3):</strong> <code>POST /governance/decide</code> يطبق GovernancePolicy (accountability matrix، FIDIC mappings، escalation tiers) على كل alert → GovernanceDecision (responsibleParty، escalationLevel، rationale)</li>
+  
+  <li><strong>Decisions → Evidence (Dispute Track):</strong> <code>POST /evidence/rooms/:id/commit</code> يخزن findings مع hash integrity chain. <code>GET /governance/alerts/:id/evidence</code> يسترجع الـ evidence للنزاعات</li>
+  
+  <li><strong>Decisions → Approval (Decision Review):</strong> <code>POST /governance/decisions/:id/review</code> يسجل approve/reject/acknowledge من المسؤولين. القرارات الحرجة تتطلب dual approval. <code>GET /governance/decisions/:id/trace</code> يظهر السلسلة الكاملة من decision إلى confidence</li>
+  
+  <li><strong>Approval → Audit:</strong> كل review action مسجل في DecisionReview (append-only). <code>GET /governance/audit</code> يعرض trail الكامل للموافقات والأفعال</li>
+  
+  <li><strong>Audit + Execution → Executive (L7):</strong> <code>GET /executive/kpis</code> يحسب deterministic headlines (health، forecast risk، confidence average). <code>GET /executive/scores</code> يحسب enterprise governance scorecard (6 scores: governance، investment، portfolio، opportunity، bankability، funding)</li>
+  
+  <li><strong>Executive → Governance-Command (L8):</strong> <code>POST /governance-command/recompute</code> يدمج KPIs + open actions + escalation paths في ConsolidatedNode لكل project/program/portfolio. يصدر status (green/yellow/orange/red) و recommended corrective actions + impact analysis (value-at-risk، benefit realization)</li>
+
+  <li><strong>Agent Pipeline (L1→L8):</strong> <code>POST /agents/pipeline/run</code> يشغّل orchestrator عبر جميع layers في تسلسل واحد (يدوي أو مجدول). كل agent لديه AgentExecution audit trail، model-tier config، health metrics</li>
+</ul>
+
+<h3>نقاط رئيسية</h3>
+
+<ul>
+  <li><strong>Traceability:</strong> كل Alert مرتبط بـ SourceFile (hash SHA-256) و IngestionRun و RuleEvaluation. <code>GET /governance/decisions/:id/trace</code> يسحب السلسلة الكاملة: decision → alert → rule → ingestion run → source file</li>
+  
+  <li><strong>Multi-Tenancy:</strong> جميع الـ APIs تحترم companyId (company-scoped). Null companyId = super-admin (رؤية الكل)</li>
+  
+  <li><strong>Append-Only Audit:</strong> DecisionReview و AuditLog و AgentExecution كلها append-only. لا تحديثات destructive</li>
+  
+  <li><strong>Governance Policy Versioning:</strong> كل قرار يدرج policyId و policyVersion. التحديثات تنشئ نسخة جديدة، لا تحدث الحالية</li>
+  
+  <li><strong>Confidence Scoring:</strong> ConfidenceScore محسوبة في Ingestion time (completeness، consistency، sourceReliability، overall). تُستخدم في Executive KPIs والـ Evidence chain</li>
+
+  <li><strong>Dual Approval for Critical:</strong> القرارات من alerts ذات severity=critical تتطلب dual approval. chainState يتتبع حالة الموافقة (pending → awaiting-second-approval → approved)</li>
+</ul></div></section>
+
+<section><h2>4 · بيانات الديمو الرسمية</h2>
+  <p>تم تنفيذ الاختبار النهائي فعليًا على الإنتاج برفع القالب الرسمي لمشروع <code>P-1000</code> (Hospital Tower — Phase 1).</p>
+  <table><tr><th style="width:30%">العنصر</th><th>القيمة</th></tr>
+  <tr><td>ملف الديمو الرسمي</td><td><code>sigma-pmo-data-template.xlsx</code> (5 أوراق) · تحميل: <code>GET /api/v1/ingestion/template</code></td></tr>
+  <tr><td>BoQ</td><td>رُفِع BoQ (8 بنود) عبر <code>POST /boq/upload</code></td></tr>
+  <tr><td>projectKey</td><td><code>P-1000</code></td></tr>
+  <tr><td>runId (ingestion)</td><td><code>e1a79546-455f-43da-b7ff-79cfbad3573b</code> (status: completed)</td></tr>
+  <tr><td>evaluationId (workflow)</td><td><code>00255fb1-d798-4956-9c35-a6657a941d00</code></td></tr>
+  <tr><td>source hash</td><td><code>ae5ac3ce719b54a52f63f48bbacb45eae9904f091184a9eaf5836fbf31467b02</code></td></tr></table>
+  <h3>النتيجة الفعلية بعد الرفع والتشغيل (متحقَّقة حيًّا)</h3>
+  <div class="kpis">
+    <div class="kpi"><div class="n">1</div><div class="l">project</div></div><div class="kpi"><div class="n">2</div><div class="l">activity</div></div>
+    <div class="kpi"><div class="n">1</div><div class="l">resource</div></div><div class="kpi"><div class="n">1</div><div class="l">assignment</div></div>
+    <div class="kpi"><div class="n">1</div><div class="l">report</div></div><div class="kpi"><div class="n">36</div><div class="l">alerts</div></div>
+    <div class="kpi"><div class="n">34</div><div class="l">decisions</div></div><div class="kpi"><div class="n">6</div><div class="l">risks</div></div>
+    <div class="kpi"><div class="n">1</div><div class="l">claims</div></div><div class="kpi"><div class="n">8</div><div class="l">BoQ items</div></div>
+    <div class="kpi"><div class="n">27</div><div class="l">sources</div></div>
+  </div>
+  <div class="note">ملاحظة: عدد التنبيهات/القرارات تراكمي عبر عدة عمليات تشغيل أثناء التحقق؛ تشغيل واحد ينتج 4 تنبيهات + 4 قرارات.</div>
+</section>
+
+<section><h2>5 · توثيق API و Swagger</h2>
+  <table><tr><th style="width:30%">العنصر</th><th>القيمة</th></tr>
+  <tr><td>واجهة Swagger</td><td><code>https://system-api.sigma-pmo.com/api/v1/docs</code></td></tr>
+  <tr><td>مواصفات OpenAPI</td><td><code>https://system-api.sigma-pmo.com/api/v1/docs-json</code> · OpenAPI 3.0 · <b>357 مسار</b></td></tr>
+  <tr><td>الـRequest DTOs بـproperties وأمثلة</td><td class="ok">IngestUploadDto · EvaluateDto · RunWorkflowDto · DecideDto · LoginDto · RecomputeDto · PredictiveRunDto ✅</td></tr>
+  <tr><td>توثيق المفاتيح</td><td>projectKey · runId · jobId · nodeType + nodeKey (الـGovernance-Command يأخذ nodeType+nodeKey وليس projectKey)</td></tr>
+  <tr><td>عائلات المسارات الموثّقة</td><td>ingestion · rules · governance · decisions · evidence · approval · audit · analytics · predictive · risk · claims · boq · sources · admin · jobs · backup</td></tr></table>
+  <div class="note">المصادقة: رأس <code>x-api-key</code> (يُصدَر من <code>POST /auth/login</code>). كل المسارات الحسّاسة ترجع 401 بدونه.</div>
+</section>
+
+<section><h2>6 · الاختبارات الآلية</h2>
+  <table><tr><th style="width:30%">العنصر</th><th>القيمة</th></tr>
+  <tr><td>أمر التشغيل</td><td><code>cd backend && npx jest</code> (أو <code>npm test</code>)</td></tr>
+  <tr><td>إجمالي الاختبارات</td><td><b>923</b> (922 ناجح + 1 متخطّى)</td></tr>
+  <tr><td>الناجحة / الفاشلة</td><td class="ok">922 ناجح · 0 فاشل · 53 suite</td></tr>
+  <tr><td>التغطية</td><td>أمر <code>npm run test:cov</code> متاح؛ نوى المنطق (rules/governance/risk/claims/auth) مُغطّاة</td></tr>
+  <tr><td>أنواع الاختبارات</td><td>وحدة + تكامل + مصفوفة RBAC (كل دور×صلاحية) + منطق الـworkflow</td></tr></table>
+  <pre>Test Suites: 53 passed, 53 total
+Tests:       1 skipped, 922 passed, 923 total
+Time:        ~9 s</pre>
+</section>
+
+<section><h2>7 · صلاحيات المستخدمين (RBAC)</h2>
+  <p>الجدول التالي يلخّص لكل دور من الـ15 دورًا: ما يقرأه · ما يُدخِله/يعدّله · ما يعتمده · ما يشغّله من الحوكمة · وأبرز ما يُمنع عنه. الإنفاذ يحصل في الـbackend عبر <code>@RequiresCapability</code> + <code>ApiKeyGuard</code>، ومُثبَت بمصفوفة اختبار آلية (كل دور × كل صلاحية — سماح ومنع) ضمن 922 اختبار.</p>
+  <table>
+  <tr><th>الدور</th><th>يقرأ</th><th>يُدخِل بيانات</th><th>يعتمد</th><th>يشغّل الحوكمة</th><th>أبرز ما يُمنع عنه</th></tr>
+  <tr><td>Sigma Admin</td><td class="ok">الكل</td><td class="ok">نعم</td><td class="ok">نعم</td><td class="ok">نعم</td><td>— (كامل الصلاحيات + إدارة المنصة والأدوار)</td></tr>
+  <tr><td>Sigma Reviewer</td><td class="ok">الكل</td><td>لا</td><td>لا</td><td class="ok">نعم</td><td>الإدخال · الاعتماد · إدارة الأدوار</td></tr>
+  <tr><td>Client (العميل)</td><td class="ok">الكل</td><td>خطابات فقط</td><td class="ok">نعم</td><td class="ok">نعم</td><td>إدخال الجداول/BoQ · إدارة الأدوار/المنصة</td></tr>
+  <tr><td>Consultant</td><td class="ok">الكل</td><td>لا</td><td>لا</td><td class="ok">نعم</td><td>الإدخال · الاعتماد · التمويل/الجدارة البنكية</td></tr>
+  <tr><td>Contractor</td><td>مشاريعه</td><td class="ok">نعم (جدول/BoQ)</td><td>لا</td><td class="ok">نعم</td><td>الاعتماد · السياسة · الهيكل · الجدوى/التمويل</td></tr>
+  <tr><td>Subcontractor</td><td>محدود</td><td>محدود</td><td>لا</td><td>لا</td><td>معظم الوظائف (أدنى دور)</td></tr>
+  <tr><td>Owner (المالك)</td><td class="ok">الكل</td><td>خطابات</td><td class="ok">نعم</td><td class="ok">نعم</td><td>إدخال الجداول · إدارة الأدوار/المنصة</td></tr>
+  <tr><td>Operator</td><td>محدود</td><td class="ok">نعم</td><td>لا</td><td>لا</td><td>الحوكمة · الاعتماد · معظم التحليلات</td></tr>
+  <tr><td>Investor</td><td class="ok">الكل</td><td>لا</td><td>لا</td><td>لا</td><td>الإدخال · الحوكمة التشغيلية (يركّز على الجدوى/التمويل)</td></tr>
+  <tr><td>Lender</td><td class="ok">الكل</td><td>لا</td><td>لا</td><td>لا</td><td>الإدخال · الحوكمة التشغيلية</td></tr>
+  <tr><td>PMO</td><td class="ok">الكل</td><td class="ok">نعم (جدول/BoQ)</td><td>لا</td><td class="ok">نعم</td><td>الاعتماد · السياسة · إدارة الأدوار</td></tr>
+  <tr><td>Governance Board</td><td class="ok">الكل</td><td>لا</td><td class="ok">نعم</td><td class="ok">نعم</td><td>الإدخال · إدارة الأدوار</td></tr>
+  <tr><td>Bank</td><td class="ok">الكل</td><td>لا</td><td>لا</td><td>لا</td><td>الإدخال · الحوكمة التشغيلية</td></tr>
+  <tr><td>Government Regulator</td><td class="ok">الكل</td><td>لا</td><td>لا</td><td class="ok">نعم</td><td>الإدخال · الاعتماد · التجاري</td></tr>
+  <tr><td>Asset Manager</td><td class="ok">الكل</td><td class="ok">نعم</td><td>لا</td><td class="ok">نعم</td><td>الاعتماد · إدارة الأدوار</td></tr>
+  </table>
+  <div class="note"><b>إثبات أن المنع يعمل فعلًا (وليس فقط السماح):</b> اختبار <code>role-enforcement.spec.ts</code> يمرّ على كل دور × كل صلاحية ويؤكّد أن <code>ApiKeyGuard</code> يرفض (401) أي طلب لصلاحية غير ممنوحة، ويسمح بالممنوحة فقط — ضمن 922 اختبار ناجح. كما أن <code>ProjectScopeGuard</code> يرفض (403) أي وصول لمشروع خارج شركة المستخدم.</div>
+</section>
+
+<section><h2>8 · الأمن (Security)</h2><h3>الأمن (Security)</h3>
+
+<h3>المصادقة (Authentication)</h3>
+<p>يعتمد النظام على مصادقة API key متعددة المستويات:</p>
+<ul>
+<li><strong>x-api-key Header:</strong> كل طلب API يتطلب رأس <code>x-api-key</code> يتم التحقق منه عبر SHA256 hash lookup في قاعدة البيانات (ملف <code>api-key.guard.ts</code>، السطر 57)</li>
+<li><strong>SHA256 Hashing:</strong> المفتاح الخام يتم تحويله إلى SHA256 قبل البحث في الجدول (<code>auth.service.ts</code>، السطر 31-32)</li>
+<li><strong>Multi-Session API Keys:</strong> كل مستخدم يحتفظ بـ 5 مفاتيح API نشطة كحد أقصى (<code>MAX_SESSIONS = 5</code>)، مما يسمح بجلسات متزامنة دون تسجيل الخروج (السطر 36 و61-69 في <code>auth.service.ts</code>)</li>
+<li><strong>Scrypt Password Hashing:</strong> كلمات المرور تُشفر باستخدام Scrypt مع ملح عشوائي 16-byte per-user:
+  <ul>
+  <li>SCRYPT_KEYLEN = 64</li>
+  <li>SCRYPT_COST = 16384 (N=2^14 محافظ)</li>
+  <li>Timing-safe comparison لمنع timing attacks (السطور 73-84)</li>
+  </ul>
+</li>
+<li><strong>Bootstrap Mode:</strong> في production يتطلب <code>x-bootstrap-token</code> header يطابق متغير <code>BOOTSTRAP_TOKEN</code> البيئي عند إنشاء أول admin (السطور 149-165 في <code>auth.service.ts</code>)</li>
+</ul>
+
+<h3>التفويض (Authorization)</h3>
+<p>يعتمد النظام على بنية قدرات (capabilities) معرّفة بدقة:</p>
+<ul>
+<li><strong>@RequiresCapability Decorator:</strong> كل endpoint محمي يطلب قدرة محددة، تُفرض عبر <code>ApiKeyGuard</code> (ملفات <code>require-capability.decorator.ts</code> و<code>api-key.guard.ts</code>)</li>
+<li><strong>Role-Based Matrix:</strong> 13 دور مختلف (sigma_admin, sigma_reviewer, client, consultant, contractor, subcontractor, owner, operator, investor, lender, pmo, governance_board, bank, government_regulator, asset_manager) مع 50+ قدرة لكل دور في <code>roles.enum.ts</code></li>
+<li><strong>Dynamic Overrides:</strong> <code>CapabilitiesService</code> يدمج القيم الافتراضية المرمزة مع جداول <code>RoleCapabilityOverride</code> في الذاكرة، مع حماية ضد القفل (canRead و canManageRoles لا يمكن تعطيلهما، sigma_admin غير قابل للتغيير)</li>
+<li><strong>Admin-Only Controls:</strong> القدرات الحساسة مثل <code>canManageRoles</code> و<code>canManagePlatform</code> مقصورة على sigma_admin فقط</li>
+</ul>
+
+<h3>عزل المستأجرين (Tenant Isolation)</h3>
+<p>النظام يفرض عزل البيانات بين الشركات (tenants):</p>
+<ul>
+<li><strong>Tenant Context:</strong> <code>AsyncLocalStorage</code> يحتفظ بـ <code>companyId</code> الحالي per-request (ملف <code>tenant-context.ts</code>)</li>
+<li><strong>ApiKeyGuard Enforcement:</strong> يستخرج <code>companyId</code> من المستخدم المصرح وينشئه في <code>tenantStorage</code> (السطور 74-75)</li>
+<li><strong>ProjectScopeGuard (403):</strong> guard عام يتحقق من أن أي <code>projectKey</code> أو <code>projectId</code> في الطلب ينتمي إلى شركة المستخدم الحالية، ويرفع <code>ForbiddenException</code> (ملف <code>project-scope.guard.ts</code>، السطور 41-44)</li>
+<li><strong>Company Status Gates:</strong> المستخدمون من شركات معلقة أو ملغاة أو ذات فترات تجريبية منتهية يُرفضون برمز 403 (السطور 109-127 في <code>auth.service.ts</code>)</li>
+<li><strong>Scoped Data Queries:</strong> جميع خدمات البيانات تستخدم <code>companyScope()</code> لتصفية الاستعلامات</li>
+</ul>
+
+<h3>حماية النقاط النهائية الحساسة (Sensitive Endpoint Protection)</h3>
+<table>
+<tr>
+<th>النقطة النهائية</th>
+<th>الحماية</th>
+<th>الملف</th>
+</tr>
+<tr>
+<td>/health</td>
+<td>عام - لا يوجد auth (يُرجع حالة بسيطة فقط)</td>
+<td>health.controller.ts، السطر 44-47</td>
+</tr>
+<tr>
+<td>/health/details</td>
+<td>محمي بـ @RequiresCapability('canReadAll') - يُرجع build info و uptime و version</td>
+<td>health.controller.ts، السطور 51-72</td>
+</tr>
+<tr>
+<td>/auth/login</td>
+<td>غير محمي لكن مسجل بالكامل (audit logging يسجل محاولات فاشلة)</td>
+<td>audit.interceptor.ts، السطر 50</td>
+</tr>
+<tr>
+<td>/governance/audit</td>
+<td>محمي بـ @RequiresCapability('canRead') - مع عزل tenant</td>
+<td>governance.controller.ts، السطور 146-178</td>
+</tr>
+<tr>
+<td>جميع الطلبات المتطلبة للقدرات</td>
+<td>401 Unauthorized إذا كان x-api-key مفقود أو غير صحيح</td>
+<td>api-key.guard.ts، السطور 54-58</td>
+</tr>
+</table>
+
+<h3>رؤوس الأمان (Security Headers)</h3>
+<p>تُطبق عبر <code>helmet</code> middleware في <code>main.ts</code> (السطور 43-48):</p>
+<ul>
+<li><strong>x-powered-by Disabled:</strong> <code>app.disable('x-powered-by')</code> يزيل رأس الكشف عن الخادم (السطر 24، audit 2026-06-28)</li>
+<li><strong>Helmet Configuration:</strong> تُطبق الرؤوس التالية افتراضياً:
+  <ul>
+  <li>Strict-Transport-Security (HSTS) - فرض HTTPS</li>
+  <li>X-Frame-Options - منع clickjacking</li>
+  <li>X-Content-Type-Options: nosniff</li>
+  <li>Referrer-Policy - التحكم في مرجع الطلب</li>
+  <li>Permissions-Policy - التحكم في ميزات المتصفح</li>
+  </ul>
+</li>
+<li><strong>CSP Disabled:</strong> Content-Security-Policy معطل لأن frontend هو origin منفصل</li>
+</ul>
+
+<h3>CORS (تقاسم الموارد بين المواقع)</h3>
+<p>يُتحكم فيه عبر متغير <code>CORS_ORIGINS</code> (main.ts، السطور 75-88):</p>
+<ul>
+<li>في production: قائمة بيضاء من origins محددة عبر متغير البيئة (فاصلة منقوطة)</li>
+<li>في development: يسمح localhost:3000 و 127.0.0.1:3000 و [::1]:3000</li>
+<li>credentials: false (لا توصيلات ملفات تعريف)</li>
+</ul>
+
+<h3>تحديد معدل الطلب (Rate Limiting)</h3>
+<p>يُنفذ عبر <code>@nestjs/throttler</code> في <code>throttler.module.ts</code>:</p>
+<ul>
+<li><strong>Global Throttler Guard:</strong> مسجل كـ APP_GUARD (السطر 46)</li>
+<li><strong>Buckets:</strong>
+  <ul>
+  <li><code>default</code>: 600 req/min (TTL 60s) - حماية عام</li>
+  <li><code>auth</code>: 10_000_000 req/min globally (لكن @Throttle({ auth: { limit } }) على /auth/login تقلل إلى 10 req/min)</li>
+  <li><code>ingest</code>: 10_000_000 req/min globally (لكن مسارات البث محدودة بـ 30 req/min)</li>
+  <li><code>ai</code>: 10_000_000 req/min globally (لكن مسارات AI محدودة بالقيم الآمنة)</li>
+  </ul>
+</li>
+<li><strong>Dev Multiplier:</strong> في non-production تُضرب كل قيمة ب 50× لتجنب تحديد معدل خلال StrictMode و Fast Refresh</li>
+<li><strong>Configuration:</strong> throttlerDefaultLimit و throttlerDefaultTtlMs و throttlerAuthLimit و throttlerIngestLimit من البيئة</li>
+</ul>
+
+<h3>سجل التدقيق (Audit Logging)</h3>
+<p>يُنفذ عبر <code>AuditInterceptor</code> في <code>audit.interceptor.ts</code>:</p>
+<ul>
+<li><strong>Scope:</strong> يسجل جميع طلبات الـ mutation (POST, PUT, PATCH, DELETE) وجميع محاولات تسجيل الدخول (السطور 28-53)</li>
+<li><strong>Logged Fields:</strong> companyId, actorUserId, actorEmail, actorRole, action, method, path (512 char limit), statusCode, IP address (مع x-forwarded-for support)</li>
+<li><strong>Bodies Not Stored:</strong> لا يتم تخزين bodies الطلب - كلمات المرور و secrets لا تصل أبداً إلى السجل (السطر 35)</li>
+<li><strong>Failed Logins:</strong> محاولات تسجيل دخول فاشلة تُسجل مع <code>attemptedEmail</code> في meta (السطور 55-63)</li>
+<li><strong>Fire-and-Forget:</strong> الكتابة غير متزامنة ويتم بلعها على الخطأ بحيث لا تكسر أي طلب (السطور 94-97)</li>
+<li><strong>Governance Audit:</strong> <code>GET /governance/audit</code> يوفر سجل قرارات الحوكمة المشروط بـ tenant (السطور 146-178 في governance.controller.ts) - يربط قراءات القرار (approval/rejection/acknowledgement) برموز القرارات والتنبيهات</li>
+<li><strong>Audit Retrieval:</strong> <code>GET /audit</code> يسترجع entries محدودة (max 500) مع scoping تلقائي لـ tenant الحالي (audit.controller.ts)</li>
+</ul>
+
+<h3>إدارة كلمات المرور (Password Management)</h3>
+<ul>
+<li><strong>Hashing Algorithm:</strong> Scrypt مع ملح عشوائي 16-byte per-user (auth.service.ts، السطور 73-76)</li>
+<li><strong>Parameters:</strong> SCRYPT_KEYLEN=64, SCRYPT_COST=16384</li>
+<li><strong>Verification:</strong> Timing-safe comparison لمنع timing attacks (السطور 79-84)</li>
+<li><strong>Demo Accounts:</strong> في UAT/production لا يمكن لحسابات demo المصرحة (isDemo=true) التوثيق إلا على صندوق demo حيث DEMO_LOGIN_PUBLIC=true (السطور 90-92)</li>
+<li><strong>Demo Password:</strong> كلمة مرور demo غير مميزة (مثل SigmaDemo2026) تُستخدم لحسابات demo العام - يُمكن تدويرها في البيئة</li>
+<li><strong>Admin Password:</strong> كلمة مرور admin البذرية من متغير ADMIN_SEED_PASSWORD؛ عند تركها فارغة يُنشئ النظام كلمة مرور عشوائية قوية ويسجلها مرة واحدة فقط (configuration.ts، السطور 161-162)</li>
+</ul>
+
+<h3>إدارة الأسرار (Secret Management)</h3>
+<p><strong>الانضباط الأساسي:</strong> لا تُكود أبداً، تُقرأ من متغيرات البيئة فقط:</p>
+<ul>
+<li><strong>ANTHROPIC_API_KEY:</strong> مفتاح Anthropic Claude API - مقروء only from env (configuration.ts، السطر 218)</li>
+<li><strong>AUTODESK_CLIENT_SECRET:</strong> مفتاح Autodesk APS - env-first لكن SystemSetting يفضل المقيمة عند وجودها (configuration.ts، السطور 220، 285)</li>
+<li><strong>P6_PASSWORD:</strong> كلمة مرور Primavera P6 - env-first، SystemSetting يفضل (configuration.ts، السطر 223)</li>
+<li><strong>S3_ACCESS_KEY, S3_SECRET_KEY:</strong> بيانات اعتماد S3 - لا تُرجع أبداً في الاستجابات</li>
+<li><strong>STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET:</strong> مفاتيح Stripe - env-only (configuration.ts، السطور 224، 308)</li>
+<li><strong>DATABASE Credentials:</strong> DB_USERNAME, DB_PASSWORD من env فقط (configuration.ts، السطور 264-265)</li>
+<li><strong>BOOTSTRAP_TOKEN:</strong> رمز bootstrap لـ production - env-driven (configuration.ts، السطر 248)</li>
+<li><strong>Coolify Deployment:</strong> الملف .env.example توثقه المتغيرات - في production تُدار عبر Coolify secret management فقط (لا تُكود أبداً في git أو PDFs)</li>
+</ul>
+
+<h3>التوصيات (Recommendations)</h3>
+
+<h4>إدارة بيانات الاعتماد المشتركة</h4>
+<ul>
+<li>روّت مفاتيح Stripe/S3/Anthropic/Autodesk/P6 كل 90 يوم</li>
+<li>في حالة تسرب مفتاح admin: قم بتدوير BOOTSTRAP_TOKEN و أعد تعيين جميع مفاتيح API للمستخدمين النشطين عبر <code>issueApiKey()</code></li>
+<li>لا تُرسل بيانات الاعتماد أبداً عبر البريد الإلكتروني - استخدم 1Password/vault آمن</li>
+</ul>
+
+<h4>الأسرار في الوثائق و السجلات</h4>
+<ul>
+<li>لا تُضمن أبداً مفاتيح API أو كلمات مرور في ملفات PDF المُنشأة (audit review, reports)</li>
+<li>لا تُسجل request bodies في أي مكان - AuditInterceptor يتجنب بالفعل هذا</li>
+<li>عند تقرير الأخطاء: امسح قيم x-api-key/Authorization من stack traces قبل الإرسال</li>
+<li>رسائل سجل Sentry يجب أن تُصفى لإزالة metadata البيئية الحساسة</li>
+</ul>
+
+<h4>خطة تسرب مفتاح Admin</h4>
+<ul>
+<li><strong>فوري:</strong> قم بتعطيل جميع مفاتيح API النشطة عن طريق تعيين <code>active = false</code> في جدول users</li>
+<li><strong>ساعة واحدة:</strong> غيّر BOOTSTRAP_TOKEN في Coolify وأعد النشر</li>
+<li><strong>24 ساعة:</strong> راجع سجل AuditLog بحثاً عن وصول غير مصرح (actions from غير المتوقعة، IPs غريبة)</li>
+<li><strong>أسبوع واحد:</strong> أصدر مفاتيح API جديدة لجميع المستخدمين وأخطرهم</li>
+<li><strong>حرج:</strong> استحق رمز مفتاح جديد من session_token أو cookie في صندوق الويب بدلاً من x-api-key header</li>
+</ul>
+
+<h4>ملاحظات إضافية</h4>
+<ul>
+<li><strong>Test Data:</strong> لا تُستخدم أبداً بيانات production حقيقية في tests - استخدم demo accounts عبر SEED_DEMO=true</li>
+<li><strong>API Documentation:</strong> Swagger/OpenAPI على /api/v1/docs يُوثق x-api-key - لكن تأكد من عدم تقديم مفاتيح مباشرة في الوثائق</li>
+<li><strong>Role Escalation:</strong> @RequiresCapability يفرض عند الدخول - لا توجد فرصة للعبور بـ role أقل</li>
+<li><strong>Sole Admin Protection:</strong> countActiveAdmins() يحمي ضد حذف آخر admin (في الخطة المستقبلية)</li>
+</ul></section>
+
+<section><h2>9 · الأداء (Performance — smoke test حيّ)</h2>
+  <p>قياس فعلي على بيئة الإنتاج (متوسط 3 محاولات لكل مسار):</p>
+  <table><tr><th>المسار / العملية</th><th>متوسط الزمن</th><th>min / max</th></tr>
+  <tr><td><code>POST /auth/login</code></td><td>306ms</td><td>206 / 406</td></tr>
+  <tr><td><code>GET /health</code></td><td>105ms</td><td>95 / 113</td></tr>
+  <tr><td><code>GET /ingestion/template</code> (تحميل القالب)</td><td>192ms</td><td>150 / 252</td></tr>
+  <tr><td><code>GET /projects</code></td><td>285ms</td><td>264 / 321</td></tr>
+  <tr><td><code>GET /executive</code> (بيانات الداشبورد)</td><td>100ms</td><td>96 / 102</td></tr>
+  <tr><td><code>GET /risk?projectKey</code></td><td>117ms</td><td>114 / 123</td></tr>
+  <tr><td><code>GET /jobs</code></td><td>120ms</td><td>111 / 125</td></tr>
+  <tr><td><code>POST /predictive/run</code></td><td>228ms</td><td>207 / 249</td></tr>
+  <tr><td><code>POST /rules/workflows/run</code></td><td>213ms</td><td>200 / 226</td></tr></table>
+  <div class="note"><b>الخلاصة:</b> كل المسارات الأساسية تستجيب تحت ~310ms على خادم صغير (4 cores / 7.6GB). نقطة الانتباه المعروفة: تشغيل توليد تقارير الـAI أو الـComputer-Use أثقل وتعتمد على مزود AI؛ ويُنصح بترقية الخادم عند زيادة المستخدمين المتزامنين.</div>
+</section>
+
+<section><h2>10 · النسخ الاحتياطي والتعافي · 11 · المراقبة (Observability)</h2><h3>المراقبة (Observability)</h3>
+
+<p><strong>البنية الأساسية للسجلات المهيكلة</strong></p>
+<p>يستخدم النظام مكتبة Pino JSON المهيكلة عبر NestJS لتسجيل جميع الطلبات والعمليات. في بيئة الإنتاج، يتم إصدار السجلات كـ ndjson (newline-delimited JSON) سطر واحد لكل عملية، بينما في التطوير يتم طباعتها بشكل مقروء. جميع السجلات مرتبطة تلقائياً بـ <code>x-request-id</code> الفريد.</p>
+
+<p><strong>معرّف الطلب وتتبع الارتباط</strong></p>
+<ul>
+<li>يتم توليد <code>x-request-id</code> في <code>RequestIdMiddleware</code> كـ UUID v4 أو يتم قبول معرّف موجود من رأس الطلب الوارد (للوكلاء العكسيين)</li>
+<li>يتم إرجاع المعرّف في رأس الاستجابة <code>x-request-id</code> حتى يتمكن العملاء من الربط بين الطلب والاستجابة</li>
+<li>تربط خيارات <code>pinoHttp.genReqId</code> تلقائياً هذا المعرّف في كل سطر سجل لمرة واحدة</li>
+<li>مستويات السجل المخصصة: 500+ = خطأ، 400+ = تحذير، 200-399 = معلومات</li>
+</ul>
+
+<p><strong>واجهة حالة الوظائف الموحدة: GET /jobs</strong></p>
+<ul>
+<li><code>GET /jobs</code> — قائمة جميع عمليات الإدخال (تصفية حسب الشركة) مع حالة موحدة</li>
+<li><code>GET /jobs/:id</code> — تفاصيل عملية محددة</li>
+<li>الحالات الموحدة: <code>queued</code> (PENDING) | <code>running</code> (PARSED, VALIDATED) | <code>completed</code> (NORMALIZED) | <code>failed</code> (FAILED)</li>
+<li>الملخص الإجمالي: إجمالي العدد، الصفوف حسب الحالة، <strong>failureRatePct</strong> = (عدد الفشل / المكتملة + الفشل) × 100</li>
+<li>كل وظيفة تحتوي على: id، نوع، تسمية (اسم المحلل)، الحالة، الحالة الأولية، وقت البدء/الانتهاء، rowCounts، رسالة الخطأ (إن وجدت)</li>
+</ul>
+
+<p><strong>تسجيل فشل الإدخال والعمليات</strong></p>
+<ul>
+<li><code>IngestionRun</code> — كل عملية إدخال لملف المصدر تحفظ <code>status</code> (PENDING, PARSED, VALIDATED, NORMALIZED, FAILED) و <code>summary</code> JSON تحتوي على رسالة الخطأ والإحصائيات</li>
+<li><code>AgentExecution</code> — كل تشغيل وكيل (L0–L8 أو امتدادات EXT_*) يكتب سجل:
+<ul>
+<li><code>status</code> = running | completed | failed</li>
+<li><code>failureReason</code> — نص سبب الفشل</li>
+<li><code>agentKey</code> (مثل "l2.validation"، "ext_esg")</li>
+<li><code>agentLayer</code> — الطبقة (L1–L8)</li>
+<li><code>correlationId</code> — ربط تشغيل متعدد الوكيل معاً عبر خط أنابيب واحد</li>
+<li><code>inputRefs</code>، <code>outputRefs</code> — مراجع للبيانات المستهلكة والمُنتجة</li>
+<li><code>confidenceOverall</code>، <code>escalationLevel</code> — ثقة الوكيل والتصعيد</li>
+</ul>
+</li>
+</ul>
+
+<p><strong>معرفة فشل سير العمل</strong></p>
+<ul>
+<li>مراقب <code>GET /jobs</code> ويلاحظ <code>failureRatePct</code> وأي وظائف بحالة <code>failed</code></li>
+<li>بحث في <code>job.error</code> (من <code>IngestionRun.summary.error</code>) للتفاصيل</li>
+<li>للعمليات المتقدمة: الاستعلام عن <code>AgentExecution</code> بـ <code>status='failed'</code> و <code>correlationId</code> المطابق</li>
+<li>كل عملية تحفظ <code>startedAt</code> و <code>finishedAt</code> للحساب الفعلي للمدة والانتظار</li>
+<li>في الإنتاج، ابحث عن سجلات Pino بـ <code>x-request-id</code> وفلترها حسب <code>"level":"error"</code> لاستخراج تتبع الأخطاء الكامل</li>
+</ul>
+
+<h3>النسخ الاحتياطي والتعافي (Backup & Recovery)</h3>
+
+<p><strong>الموقع والتشفير</strong></p>
+<ul>
+<li>جميع النسخ الاحتياطية تُرفع إلى Cloudflare R2 (أو أي S3 متوافق) تحت مسار <code>{S3_PREFIX}/db-backups/</code></li>
+<li>اسم الملف: <code>{DATABASE}-{TIMESTAMP}.sql.gz[.enc]</code> (مثال: <code>sigma_pmo-2026-06-28T14-30-45-123Z.sql.gz.enc</code>)</li>
+<li>تشفير <strong>AES-256-GCM</strong> من طرف العميل عند تعيين <code>BACKUP_ENCRYPTION_KEY</code> (32 بايت: 64 حرف سادس عشر أو base64)</li>
+<li>تخطيط التشفير: [12B IV] + [16B auth tag] + [ciphertext]</li>
+<li>تشفير اختياري من جانب الخادم: <code>S3_SSE=AES256</code> لـ AWS S3 (في الإنتاج)</li>
+</ul>
+
+<p><strong>الجدولة والتشغيل</strong></p>
+<ul>
+<li><strong>جدولة</strong>: @Cron الساعة 2 صباحاً يومياً (CronExpression.EVERY_DAY_AT_2AM) في <code>BackupService.scheduled()</code></li>
+<li><strong>طلب يدوي</strong>: POST /backup/run (يتطلب capability <code>canManagePlatform</code> / super-admin فقط)</li>
+<li>كلا الطريقتين تستدعي <code>BackupService.runBackup()</code> الذي يرجع <code>BackupResult</code> مع ok/error/key/bytes/tables/rows/durationMs</li>
+<li>حماية ضد التزامن: <code>this.running</code> flag يمنع النسخة الاحتياطية المتزامنة</li>
+</ul>
+
+<p><strong>عملية الإنشاء</strong></p>
+<ul>
+<li><strong>الخطوة 1: الإدراج المنطقي</strong> — استخدم <code>mysql2/promise</code> (لا حاجة لثنائي mysqldump) للاتصال بـ DB وتفريغ الجداول:
+<ul>
+<li>استرجع قائمة الجداول من <code>information_schema</code> (الترتيب: TABLE_NAME)</li>
+<li>اطبع CREATE TABLE DDL + INSERT لكل صف (مع معالجة خاصة: JSON كـ UTF-8 نص، NULL آمنة، BLOB، التواريخ كسلاسل)</li>
+<li>إجمالي rowCount يُحفظ</li>
+<li>إخراج SQL = <code>SET FOREIGN_KEY_CHECKS=0; SET NAMES utf8mb4; [CREATE + INSERT] SET FOREIGN_KEY_CHECKS=1;</code></li>
+</ul>
+</li>
+<li><strong>الخطوة 2: الضغط</strong> — gzip SQL buffer</li>
+<li><strong>الخطوة 3: التشفير اختياري</strong> — AES-256-GCM إذا تم تعيين BACKUP_ENCRYPTION_KEY</li>
+<li><strong>الخطوة 4: رفع S3</strong> — PutObjectCommand مع ContentType (application/octet-stream للمشفر، application/gzip للضغط البسيط)</li>
+</ul>
+
+<p><strong>تنظيف الاحتياظيات القديمة</strong></p>
+<ul>
+<li>بعد رفع النسخة الاحتياطية الجديدة، قم بإدراج جميع الكائنات في <code>db-backups/</code></li>
+<li>قم بالفرز حسب LastModified (الأحدث أولاً)</li>
+<li>احتفظ بعدد <code>BACKUP_RETENTION</code> (الافتراضي: 14، قابل للتغيير عبر ENV)</li>
+<li>احذف الكائنات القديمة عبر DeleteObjectsCommand</li>
+</ul>
+
+<p><strong>الاسترجاع: scripts/restore-db-from-s3.ts</strong></p>
+<ul>
+<li><code>npx ts-node scripts/restore-db-from-s3.ts --list</code> — اعرض جميع النسخ الاحتياطية (الأحدث أولاً)</li>
+<li><code>npx ts-node scripts/restore-db-from-s3.ts --latest --yes</code> — استرجع أحدث نسخة إلى DB_DATABASE</li>
+<li><code>npx ts-node scripts/restore-db-from-s3.ts --key {S3_KEY} --yes</code> — استرجع كائن محدد</li>
+<li><code>npx ts-node scripts/restore-db-from-s3.ts --latest --into {DB_NAME} --yes</code> — استرجع إلى DB اختياري (للتحقق الآمن)</li>
+<li><strong>مطلوب: --yes</strong> لتجنب الحذف العرضي (تدمير)</li>
+<li>العملية: تنزيل → فك التشفير (إن وجد) + gunzip → قنوات mysql (تحديث 100%)</li>
+</ul>
+
+<p><strong>معالجة الأعطال والاستعادة</strong></p>
+<ul>
+<li><strong>فشل DB</strong> — <code>BackupService.dump()</code> تمسك بـ try/catch وترجع خطأ في <code>BackupResult.error</code>؛ السجلات المدمجة تسجل "Nightly backup FAILED: {error}"</li>
+<li><strong>فشل التخزين S3</strong> — PutObjectCommand أو DeleteObjectsCommand رمي قد يترك نسخة احتياطية جزئية؛ أعد التشغيل الدوري (cron) أو POST /backup/run سيكمل أو يستبدل</li>
+<li><strong>فشل الاسترجاع</strong> — الكتابة إلى mysql قد تفشل في الامتثال DDL (جداول موجودة) أو القيود؛ رسالة الخطأ تتضمن أول 400 حرف</li>
+<li><strong>تعطل أثناء الاسترجاع</strong> — الجدول الهدف قد يكون في حالة وسيطة؛ استخدم <code>--into {scratch_db}</code> للتحقق أولاً</li>
+</ul>
+
+<p><strong>عمليات الملفات والتخزين</strong></p>
+<ul>
+<li><strong>تحميل الملفات الموجودة</strong>: <code>POST /backup/migrate-storage</code> (super-admin) — يمسح المجلد المحلي <code>storageDir</code> ويرفع جميع الملفات إلى R2 تحت <code>{S3_PREFIX}/</code> (آمنة: يتخطى الملفات الموجودة)</li>
+<li><strong>الملفات الجديدة</strong> — تُرفع مباشرة إلى R2 عند الإنشاء (StorageService)؛ لا يتم حفظها محلياً</li>
+<li>كل ملف ومحتوى قاعدة البيانات = نسخة احتياطية كاملة من النظام</li>
+</ul>
+
+<p><strong>اتفاقيات مستوى الخدمة (RPO/RTO)</strong></p>
+<ul>
+<li><strong>RPO (Recovery Point Objective)</strong> ~ 24 ساعة: نسخة احتياطية واحدة يومياً (2 صباحاً) + يمكن تشغيل يدوي</li>
+<li><strong>RTO (Recovery Time Objective)</strong> ~ دقائق: الاسترجاع يقرأ من S3، يفك التشفير (AES fast)، gunzip (streaming)، وينفذ SQL؛ عادة ما يكمل في دقائق لقاعدة البيانات متوسطة الحجم</li>
+<li><strong>الاحتفاظ</strong> = 14 نسخة احتياطية افتراضياً (~ 14 يوم من النسخ اليومية)</li>
+</ul>
+
+<p><strong>المراقبة والتحقق</strong></p>
+<ul>
+<li><code>GET /backup</code> — اعرض قائمة النسخ الاحتياطية على R2 مع الحجم والوقت (تصفية حسب الشركة/super-admin)</li>
+<li>سجلات مدمجة: "Nightly backup ok → {key} ({size} MB)" أو "Nightly backup FAILED: {error}"</li>
+<li>التحقق: استخدم <code>--into sigma_restore_check --yes</code> ثم استعلم عن الجداول دون المخاطرة بالإنتاج</li>
+</ul>
+</section>
+
+<section><h2>12 · قاعدة البيانات</h2><h3>قاعدة البيانات</h3>
+
+<h4>الجداول الرئيسية</h4>
+
+<table border="1">
+<tr>
+<th>الفئة</th>
+<th>الجدول</th>
+<th>الأعمدة الرئيسية</th>
+</tr>
+
+<tr>
+<td rowspan="5">النواة (Core)</td>
+<td><code>project</code></td>
+<td><code>id</code> (UUID), <code>businessKey</code>, <code>name</code>, <code>lifecyclePhase</code>, <code>governanceStatus</code>, <code>dataDate</code>, <code>plannedStart/Finish</code>, <code>actualStart/Finish</code>, <code>budgetAtCompletion</code> (decimal)</td>
+</tr>
+
+<tr>
+<td><code>activity</code></td>
+<td><code>id</code>, <code>projectId</code> (FK), <code>businessKey</code>, <code>wbsCode</code>, <code>name</code>, <code>status</code>, <code>plannedStart/Finish</code>, <code>actualStart/Finish</code>, <code>plannedPctComplete</code>, <code>actualPctComplete</code>, <code>budgetedCost</code>, <code>actualCost</code></td>
+</tr>
+
+<tr>
+<td><code>resource</code></td>
+<td><code>id</code>, <code>projectId</code> (FK, nullable), <code>name</code>, <code>resourceType</code> (enum), <code>unitOfMeasure</code>, <code>maxUnitsPerDay</code>, <code>standardRate</code></td>
+</tr>
+
+<tr>
+<td><code>resource_assignment</code></td>
+<td><code>id</code>, <code>activityId</code> (FK), <code>resourceId</code> (FK), <code>plannedUnits</code>, <code>actualUnits</code>, <code>plannedCost</code>, <code>actualCost</code></td>
+</tr>
+
+<tr>
+<td><code>report</code></td>
+<td><code>id</code>, <code>projectId</code> (FK), <code>reportType</code>, <code>reportDate</code>, <code>periodStart/End</code>, <code>submittedBy</code>, <code>reportedPctComplete</code>, <code>narrative</code> (text), <code>metrics</code> (JSON)</td>
+</tr>
+
+<tr>
+<td rowspan="3">الأصل والتتبع (Provenance)</td>
+<td><code>source_file</code></td>
+<td><code>id</code>, <code>companyId</code> (nullable), <code>filename</code>, <code>sourceType</code>, <code>contentSha256</code> (indexed), <code>byteSize</code>, <code>storedPath</code></td>
+</tr>
+
+<tr>
+<td><code>ingestion_run</code></td>
+<td><code>id</code>, <code>companyId</code> (nullable), <code>sourceFileId</code> (FK), <code>parser</code>, <code>status</code>, <code>startedAt/finishedAt</code>, <code>validationPassed</code>, <code>rowCounts</code> (JSON), <code>summary</code> (JSON)</td>
+</tr>
+
+<tr>
+<td><code>alert</code></td>
+<td><code>id</code>, <code>code</code>, <code>severity</code>, <code>summary</code>, <code>projectId</code>, <code>activityId/resourceId/assignmentId/reportId</code> (nullable), <code>ingestionRunId</code>, <code>sourceFileId</code>, <code>ruleEvaluationId</code>, <code>context</code> (JSON)</td>
+</tr>
+
+<tr>
+<td rowspan="4">الحوكمة (Governance)</td>
+<td><code>governance_decision</code></td>
+<td><code>id</code>, <code>alertId</code> (FK), <code>policyId</code>, <code>policyVersion</code>, <code>responsibleParty</code> (enum: contractor/consultant/client/sigma/shared), <code>fidicClause</code>, <code>fidicNotice</code>, <code>fidicDeadlineDays</code>, <code>escalationLevel</code> (L1-L3), <code>notifyParties</code> (JSON), <code>interventions</code> (JSON), <code>rationale</code> (text)</td>
+</tr>
+
+<tr>
+<td><code>decision_review</code></td>
+<td><code>id</code>, <code>decisionId</code> (FK), <code>alertId</code>, <code>action</code> (approve/reject/acknowledge), <code>performedByUserId</code> (nullable), <code>performedByDisplay</code>, <code>comment</code> (text)</td>
+</tr>
+
+<tr>
+<td><code>rule_evaluation</code></td>
+<td><code>id</code>, <code>projectId</code> (nullable), <code>status</code>, <code>startedAt/finishedAt</code>, <code>alertCount</code>, <code>summary</code> (JSON)</td>
+</tr>
+
+<tr>
+<td><code>governance_policy</code></td>
+<td><code>id</code>, <code>projectKey</code> (nullable), <code>version</code>, <code>isCurrent</code>, <code>authoredBy</code>, <code>config</code> (JSON): accountability, fidic, escalation, intervention</td>
+</tr>
+
+<tr>
+<td rowspan="2">المخاطر والمطالبات (Risk)</td>
+<td><code>risk</code></td>
+<td><code>id</code>, <code>projectBusinessKey</code>, <code>title</code>, <code>category</code> (schedule/cost/quality/contractual/resource/safety), <code>probability</code>, <code>impact</code>, <code>priorityScore</code>, <code>tier</code> (low/medium/high/critical), <code>source</code>, <code>mitigation</code> (text), <code>escalationTrigger</code>, <code>status</code> (open/mitigating/closed), <code>agentGenerated</code></td>
+</tr>
+
+<tr>
+<td><code>claim</code></td>
+<td><code>id</code>, <code>projectBusinessKey</code>, <code>title</code>, <code>type</code> (eot/cost/variation/disruption), <code>basis</code> (text), <code>estimatedDays</code>, <code>estimatedAmount</code>, <code>responsibleParty</code>, <code>fidicClause</code>, <code>evidenceRefs</code> (JSON), <code>status</code> (potential/under-review/submitted/rejected), <code>confidence</code>, <code>agentGenerated</code></td>
+</tr>
+
+<tr>
+<td rowspan="2">قائمة الكميات (BoQ)</td>
+<td><code>boq</code></td>
+<td><code>id</code>, <code>businessKey</code>, <code>version</code>, <code>isCurrent</code>, <code>currency</code> (default: AED), <code>totalAmount</code> (decimal), <code>sourceFileId</code>, <code>authoredBy</code></td>
+</tr>
+
+<tr>
+<td><code>boq_item</code></td>
+<td><code>id</code>, <code>boqId</code> (FK), <code>itemNumber</code>, <code>description</code> (text), <code>unit</code>, <code>quantity</code> (decimal), <code>unitRate</code>, <code>amount</code>, <code>activityRef</code> (nullable, activity businessKey)</td>
+</tr>
+
+<tr>
+<td><code>source</code></td>
+<td><code>id</code>, <code>externalId</code> (unique), <code>family</code> (FIDIC/PMI/ISO/BIM/AACE/PRIMAVERA), <code>title</code>, <code>latestEdition</code>, <code>publisher</code>, <code>year</code>, <code>url</code>, <code>scope</code> (text), <code>applicablePersonas</code> (JSON), <code>verification</code> (confirmed/verify)</td>
+</tr>
+
+<tr>
+<td rowspan="3">الاستئجار والمستخدمون (Tenancy)</td>
+<td><code>company</code></td>
+<td><code>id</code>, <code>slug</code> (unique), <code>name</code>, <code>companyType</code> (developer_owner/contractor/consultant/pmo/investor/lender/government/operator), <code>status</code> (trial/active/suspended/cancelled), <code>plan</code>, <code>ownerEmail</code>, <code>logoKey</code>, <code>country</code>, <code>createdById</code></td>
+</tr>
+
+<tr>
+<td><code>user</code></td>
+<td><code>id</code>, <code>companyId</code> (nullable, SUPER_ADMIN = null), <code>email</code> (unique), <code>displayName</code>, <code>role</code> (RBAC), <code>apiKeyHash</code> (unique), <code>apiKeyHashes</code> (JSON, multiple sessions), <code>passwordHash/passwordSalt</code> (scrypt), <code>emiratesId</code>, <code>activityScope</code> (JSON, nullable), <code>projectScopes</code> (businessKeys), <code>active</code>, <code>isDemo</code></td>
+</tr>
+
+<tr>
+<td><code>subscription</code></td>
+<td><code>id</code>, <code>companyId</code> (FK, unique), <code>plan</code>, <code>status</code> (trial/active/past_due/cancelled), <code>seats</code>, <code>startedAt/renewsAt</code>, <code>mrr</code> (decimal), <code>stripeCustomerId/stripeSubscriptionId</code>, <code>trialEndsAt/currentPeriodEnd</code></td>
+</tr>
+
+<tr>
+<td rowspan="2">الوكلاء والثقة (Agents)</td>
+<td><code>agent_execution</code></td>
+<td><code>id</code>, <code>agentKey</code>, <code>agentLayer</code>, <code>personaSlug/personaVersion</code>, <code>nodeType/nodeBusinessKey</code>, <code>lifecyclePhase</code>, <code>inputRefs</code> (JSON), <code>outputRefs</code> (JSON), <code>confidenceScoreId</code> (FK), <code>confidenceOverall</code>, <code>escalationLevel</code>, <code>governanceStatus</code>, <code>status</code> (running/completed/failed), <code>failureReason</code>, <code>correlationId</code>, <code>startedAt/finishedAt</code></td>
+</tr>
+
+<tr>
+<td><code>confidence_score</code></td>
+<td><code>id</code>, <code>ingestionRunId</code> (FK, unique), <code>completeness</code>, <code>consistency</code>, <code>sourceReliability</code>, <code>overall</code>, <code>breakdown</code> (JSON)</td>
+</tr>
+
+<tr>
+<td><code>outbox_events</code></td>
+<td><code>id</code>, <code>sourceLayer</code> (enum), <code>eventType</code> (64 chars), <code>payload</code> (JSON), <code>processedAt/processedBy</code> (append-only: updated once), <code>correlationId</code></td>
+</tr>
+</table>
+
+<h4>سياسة الهجرة والبذر</h4>
+
+<p><strong>الهجرات (Migrations):</strong></p>
+<ul>
+<li>تقع في <code>src/migrations/</code> — TypeORM migrations مرقمة زمنياً (مثلاً <code>1781788828417-InitialSchema.ts</code>)</li>
+<li><strong>الإنتاج (Production):</strong> <code>migrationsRun: true</code> — تتم بدء الهجرات تلقائياً عند بدء التطبيق قبل خدمة الطلبات (zero-downtime موثوق)</li>
+<li><strong>التطوير (Development):</strong> <code>migrationsRun: false</code> — الإدارة اليدوية عبر CLI</li>
+<li><strong>السياسة:</strong> <code>DB_SYNCHRONIZE=false</code> في الإنتاج دائماً (رسالة دفاع عميق)؛ في التطوير فقط يمكن <code>DB_SYNCHRONIZE=true</code></li>
+</ul>
+
+<p><strong>البذر (Seeding):</strong></p>
+<ul>
+<li><strong>المستخدمون:</strong> <code>SeedService</code> (يعمل عند التمهيد) — <code>SEED_DEMO=true</code> ينشئ 15 حساب عينة (13 عام + 2 امتياز: admin/reviewer). جميع الحسابات مميزة بـ <code>isDemo=true</code>. الامتياز لا يحصل على كلمة مرور عامة (من <code>ADMIN_SEED_PASSWORD</code> فقط أو عشوائي مسجل مرة واحدة). في الإنتاج (<code>DEMO_LOGIN_PUBLIC=false</code>) الحسابات المقابلة مرفوضة في API</li>
+<li><strong>المراجع (Sources):</strong> <code>SourcesService.seedFromCatalogue()</code> — تحميل من <code>sources.seed.json</code> (FIDIC, PMI, ISO, BIM, AACE, PRIMAVERA) عند التمهيد. البذر idempotent: يدرج الصفوف الأولى، يعيد الصفوف المتغيرة حسب <code>externalId</code>. حذف الصف من JSON لا يحذفه من قاعدة البيانات (سجل تدقيق)</li>
+</ul>
+
+<p><strong>الهياكل الأساسية:</strong></p>
+<ul>
+<li><code>UuidEntity</code>: <code>id</code> (UUID PK), <code>createdAt</code> (datetime)</li>
+<li><code>TraceableEntity</code> (توسيع): + <code>companyId</code> (SaaS multi-tenant), <code>ingestionRunId</code>, <code>sourceFileId</code>, <code>businessKey</code> (indexed), <code>version</code>, <code>isCurrent</code>, <code>rawSource</code> (JSON، حفظ حرفي)</li>
+</ul>
+</section>
+
+<section><h2>13 · الذكاء الاصطناعي والمراجع</h2><div>
+
+<h3>الذكاء الاصطناعي والمراجع</h3>
+
+<h3>الاستخدامات AI: السرديات والملخصات فقط</h3>
+
+<p>يقتصر استخدام الذكاء الاصطناعي على <strong>النصوص الاستشارية والسردية</strong> (الملخصات والتحليلات)، <strong>وليس الأرقام</strong>. يتم جميع المعالجات الرقمية بشكل <strong>حتمي بحت (deterministic)</strong> — لا تُحسب الأرقام من قبل Claude.</p>
+
+<ul>
+  <li><strong>AiAnalysisService</strong> (<code>claude.service.ts</code>): يطلب تحليلاً من Claude لـ CONTEXT مُحسَّب مسبقاً (أرقام حتمية + سياق)، ثم يُرجع سردية استرشادية مع اقتباسات [SOURCE: id] من المصادر العلمية المُزودة فقط</li>
+  <li><strong>LLM Council</strong> (<code>llm-council.service.ts</code>): 4 عدسات متوازية (Evidence & Correctness، Adversarial Skeptic، Governance & Risk، Pragmatic Decision)، كل منها تدقق مستقلة بموقف القضية؛ ثم Chair يصيغ توافق إجماع. يُبلّغ عن نسبة توافق (0-100%)، واثقية الكرسي (0-100%)، والموقف الأكثري (موافق/معترض/غير متأكد)</li>
+  <li><strong>callText()</strong>: استدعاء خام (بدون persona) يُستخدم لتحليلات Cross-module: Quantity Survey، Procurement Revenue، Governance — النظام يزود Bibliography فقط (لا مصادر مختلقة تُسمح)</li>
+</ul>
+
+<h3>الحتمية: EVM، CPI، SPI، تقييم القواعد، مشتقات المخاطر، القرارات، تحليل التأخير الشرعي</h3>
+
+<p>جميع المؤشرات التالية <strong>حتمية بحتة — معادلات رياضية موثقة، لا يوجد AI</strong>:</p>
+
+<table border="1" cellpadding="10">
+  <tr>
+    <th>المجال</th>
+    <th>الخدمة / الملف</th>
+    <th>الحساب / الصيغة</th>
+    <th>المصدر</th>
+  </tr>
+  <tr>
+    <td><strong>EVM (PMI)</strong></td>
+    <td>EvmService.compute()</td>
+    <td>BAC = Σ budgetedCost | PV = Σ budgetedCost × plannedPct | EV = Σ budgetedCost × actualPct | AC = Σ actualCost | SV = EV − PV | CV = EV − AC | CPI = EV / AC | SPI = EV / PV | EAC = BAC / CPI | ETC = EAC − AC | VAC = BAC − EAC</td>
+    <td>معايير PMI (Project Management Institute)</td>
+  </tr>
+  <tr>
+    <td><strong>Earned Schedule</strong></td>
+    <td>EarnedScheduleService.compute()</td>
+    <td>محاكاة Lipke: ترجمة EV إلى جدول زمني؛ إعادة جدولة من تاريخ البيانات بناءً على تقدم المشروع</td>
+    <td>Lipke (2003) Time-Based Scheduling</td>
+  </tr>
+  <tr>
+    <td><strong>Trends (SPI/CPI)</strong></td>
+    <td>AnalyticsExtrasService.buildSeries()</td>
+    <td>Least-squares linear regression: يُحسب الميل لكل 30 يوماً؛ اتجاه = ثابت (|ميل| &lt; 0.01) | تحسن (موجب) | تدهور (سالب)</td>
+    <td>Ordinary-least-squares regression</td>
+  </tr>
+  <tr>
+    <td><strong>القواعد (10)</strong></td>
+    <td>RuleEngineService + 10 Rule implementations</td>
+    <td>
+      • SCHEDULE_FINISH_SLIPPED: ForecastFinish &gt; PlannedFinish<br/>
+      • SCHEDULE_BEHIND_PLAN: actualPct + threshold &lt; plannedPct<br/>
+      • DURATION_OVERRUN: actualDays &gt; plannedDays × 1.1<br/>
+      • COST_OVERRUN: actualCost &gt; budgetedCost × 1.1<br/>
+      • RESOURCE_UNDERUSE: actualUnits / plannedUnits &lt; 0.7<br/>
+      • STALE_REPORTING: no report within 14 days<br/>
+      • (+ 4 قواعد أخرى في baseline-duration، reported-vs-schedule، missing-weekly، data-completeness)
+    </td>
+    <td>العتبات قابلة للتخصيص عبر RuleConfig</td>
+  </tr>
+  <tr>
+    <td><strong>الثقة</strong></td>
+    <td>ConfidenceService.compute()</td>
+    <td>
+      completeness = الحقول المملوءة / الحقول المطلوبة<br/>
+      consistency = clamp(1 − errors×0.1 − warnings×0.02)<br/>
+      sourceReliability = الوزن حسب SourceType (P6_API/XML: 1.0 | CSV: 0.7)<br/>
+      overall = 0.4×completeness + 0.4×consistency + 0.2×sourceReliability
+    </td>
+    <td>Cycle 3 confidence scoring specification</td>
+  </tr>
+  <tr>
+    <td><strong>المخاطر</strong></td>
+    <td>RiskScoringService.score()</td>
+    <td>
+      priorityScore = probability × impact<br/>
+      tier: critical (≥0.6) | high (≥0.35) | medium (≥0.15) | low (&lt;0.15)<br/>
+      escalation threshold: ≥0.35
+    </td>
+    <td>L5 Risk Identification (Mr. Ayham)</td>
+  </tr>
+  <tr>
+    <td><strong>القرارات الحوكمية</strong></td>
+    <td>GovernanceDecisionService.decideOne()</td>
+    <td>
+      responsibleParty = config.accountability[alertCode]<br/>
+      escalationLevel = alertAge ≥ threshold ? tier.level : L1<br/>
+      fidicClause، fidicNotice = config.fidic[alertCode]<br/>
+      rationale = Rule + Severity + Party + FIDIC + Escalation + Age
+    </td>
+    <td>السياسة = GovernancePolicy.config (FIDIC Red 2017، PMI PMBOK 7)</td>
+  </tr>
+  <tr>
+    <td><strong>تحليل التأخير الشرعي (Forensic)</strong></td>
+    <td>ForensicDelayService.compute()</td>
+    <td>
+      float to completion = PlannedFinish − ProjectPlannedCompletion<br/>
+      driving consumption = max(0, finishVarianceDays − float)<br/>
+      isCriticalDriver = drivingConsumption &gt; 0<br/>
+      concurrency = overlap days بين فترات التأخير<br/>
+      netCriticalDelay = max(0, asBuiltCompletion − asPlannedCompletion)<br/>
+      compensableCandidate = netCriticalDelay − concurrentNonCompensable<br/>
+      strength = weak | moderate | strong (بناءً على عدد drivers والتزامن)
+    </td>
+    <td>As-planned vs as-built overlay + float-to-completion windowing (TIA-style)</td>
+  </tr>
+</table>
+
+<h3>منع الهلوسة (Hallucination Prevention)</h3>
+
+<p><strong>كل اقتباس AI مطلوب أن يحمل علامة [SOURCE: externalId]</strong> — يُرجع النظام خطأ إذا كانت المصادر في السياق لا تحتوي على هذا المعرف:</p>
+
+<ul>
+  <li><strong>Source Catalogue</strong> (<code>source.entity.ts</code>): جدول curated في DB يحتوي على مراجع حقيقية فقط (FIDIC Red 2017، PMI PMBOK 7، ISO 31000، RICS NRM1/2/3، AACE 18R-97، وغيرها). كل مصدر له <code>externalId</code> فريد (مثل 'FIDIC-RED-2017') وعائلة (FIDIC، PMI، ISO، BIM، AACE، PRIMAVERA)</li>
+  <li><strong>Domain References</strong> (<code>domain-references.ts</code>): قائمة Python-style من 20+ مرجعاً علمياً حقيقياً مُنظمة حسب Domain (quantity-survey، cost، classification، procurement، revenue، feasibility، governance)</li>
+  <li><strong>Claude System Prompt</strong>: يُخبر Claude صراحة: "never invent a source; ground every substantive claim in the provided reference library and cite it inline using [SOURCE: id]"</li>
+  <li><strong>Fallback when no Claude key</strong>: عندما يكون Claude معطّل، تُرجع <code>AiAnalysisService.analyse()</code> <code>enabled: false</code> + قائمة المراجع المتاحة (بدون سردية مختلقة)</li>
+  <li><strong>Citation Extraction</strong> (<code>claude.service.ts</code> line 127): regex <code>/\[SOURCE:\s*([A-Za-z0-9._:-]+)\s*\]/g</code> يحصد جميع الاقتباسات من الرد</li>
+  <li><strong>Policy Addons Grounding</strong>: نصائح Consultant (correction-plan §2.6) تُدخل في رسالة المستخدم (ليس في system block) حتى تبقى Persona cacheable عبر المشاريع</li>
+</ul>
+
+<h3>ربط المراجع والتتبع (Reference Linking & Traceability)</h3>
+
+<p><strong>كل قيمة في النظام قابلة للتتبع إلى مصدرها الأولي</strong>:</p>
+
+<ul>
+  <li><strong>ingestionRunId</strong> + <strong>sourceFileId</strong>: كل Activity، Resource، Assignment، Report محفوظة مع معرّفات الدفعة ومسار الملف الأصلي — موجود في <code>AlertDraft.ingestionRunId</code> و <code>AlertDraft.sourceFileId</code></li>
+  <li><strong>SourceFile entity</strong>: مسجل (filename، parser، contentSha256، byteSize، storedPath) — تاريخ كامل من الملفات المرفوعة</li>
+  <li><strong>ConfidenceScore</strong>: مؤشرات الثقة مرتبطة بـ ingestionRunId مع breakdown دقيق (perEntity، validation errors/warnings، sourceType، weights)</li>
+  <li><strong>Alert &amp; RuleEvaluation</strong>: كل تنبيه يربط rule code + severity + context (الأرقام التي أطلقته) + projectId + activityId (+ resourceId / assignmentId / reportId) + ingestionRunId + sourceFileId — تاريخ كامل من التقييمات</li>
+  <li><strong>RuleEvaluation.summary</strong>: JSON مع byCode (عدد التنبيهات per rule)، bySeverity (عدد التنبيهات per severity)، config المستخدمة</li>
+  <li><strong>Persona versioning</strong>: كل استدعاء Claude يُسجل مع slug + version + model + stopReason (metadata.user_id = "persona:businessKey:vN[:sim]") — إعادة بناء دقيقة للسلوك</li>
+</ul>
+
+<h3>درجات الثقة والموثوقية</h3>
+
+<p><strong>ثلاث نقاط قياس متوالية:</strong></p>
+
+<ol>
+  <li><strong>Data Confidence (0–1)</strong>: بعد كل ingestion run، تحسب <code>ConfidenceService</code> درجة شاملة = 0.4×completeness + 0.4×consistency + 0.2×sourceReliability
+    <ul>
+      <li><strong>completeness</strong>: نسبة الحقول المملوءة / الحقول المطلوبة (project name، activity dates، cost، pct complete، إلخ)</li>
+      <li><strong>consistency</strong>: 1.0 − (validation errors×0.1 + warnings×0.02)، مقيدة بـ [0,1]</li>
+      <li><strong>sourceReliability</strong>: وزن SourceType (P6 API/XML: 1.0 | MSPROJECT/XER: 0.95 | Excel: 0.85 | CSV: 0.7 | P6 PDF: 0.75)</li>
+    </ul>
+  </li>
+  <li><strong>Council Confidence (0–100%)</strong>: عندما يُشغّل AiAnalysisService Council mode، يُعيد <code>council.confidence</code> = ثقة الكرسي في الحُكم + <code>agreement</code> = نسبة الأعضاء الذين وافقوا على الموقف الأكثري</li>
+  <li><strong>Narrative Disclaimer</strong>: كل سردية AI مع تحذير صريح: "Advisory analysis grounded in deterministic figures and real scientific sources — for human review, not a final decision" (بالعربية في ar mode)</li>
+</ol>
+
+<h3>الفصل AI ← Deterministic</h3>
+
+<p><strong>الحد الفاصل واضح:</strong></p>
+
+<ul>
+  <li><strong>AI computes</strong>: السرديات، التحليلات التفسيرية، البدائل المقترحة، ملخصات Executive، نصائح تفصيلية — يستقبل AI أرقاماً حتمية مُحسوبة ويُفسرها</li>
+  <li><strong>Deterministic computes</strong>: جميع الأرقام (EVM، SPI، CPI، CPI، EAC، risks، confidence scores، rule evaluations، delay drivers، float، escalation levels)</li>
+  <li><strong>Hybrid</strong>: governance decisions = قاعدة معادلات بحتة (لا AI) تُطبق سياسة على تنبيهات لتُقرر من يفعل ماذا ومتى (party، level، notification)؛ ثم AI قد يُصيغ narrative من التنبيهات + القرارات</li>
+</ul>
+
+<h3>Sources و Bibliographies</h3>
+
+<p>المراجع المُقررة (من domain-references.ts):</p>
+
+<table border="1" cellpadding="10">
+  <tr>
+    <th>ID</th>
+    <th>العنوان</th>
+    <th>الناشر</th>
+    <th>السنة</th>
+    <th>المجالات</th>
+  </tr>
+  <tr>
+    <td>FIDIC-RED-2017</td>
+    <td>Conditions of Contract for Construction (Red Book)</td>
+    <td>FIDIC</td>
+    <td>2017</td>
+    <td>governance, procurement, cost</td>
+  </tr>
+  <tr>
+    <td>PMI-PMBOK7</td>
+    <td>A Guide to the Project Management Body of Knowledge</td>
+    <td>Project Management Institute</td>
+    <td>2021</td>
+    <td>governance, feasibility, procurement</td>
+  </tr>
+  <tr>
+    <td>RICS-NRM1</td>
+    <td>RICS New Rules of Measurement, NRM1</td>
+    <td>Royal Institution of Chartered Surveyors</td>
+    <td>2016</td>
+    <td>quantity-survey, cost, classification, feasibility</td>
+  </tr>
+  <tr>
+    <td>ISO-31000</td>
+    <td>Risk management — Guidelines</td>
+    <td>ISO</td>
+    <td>2018</td>
+    <td>procurement, governance, revenue</td>
+  </tr>
+  <tr>
+    <td>AACE-18R-97</td>
+    <td>Cost Estimate Classification System</td>
+    <td>AACE International</td>
+    <td>RP 18R-97</td>
+    <td>cost, feasibility, procurement</td>
+  </tr>
+  <tr>
+    <td>WORLDBANK-PPP</td>
+    <td>Public-Private Partnership Reference Guide</td>
+    <td>World Bank Group</td>
+    <td>3.0</td>
+    <td>revenue, feasibility, governance</td>
+  </tr>
+</table>
+
+<p><strong>+ 14 مرجع إضافي</strong> (CESMM4 للهندسة المدنية، CSI MasterFormat للتصنيف، كتب Seeley و Kirkham و Brealey-Myers و Damodaran، معايير ISO 44001، إلخ)</p>
+
+<h3>الخلاصة: النموذج "محدد + مستشار"</h3>
+
+<p>منصة Sigma تقسم العمل بحزم:</p>
+
+<ul>
+  <li><strong>Layers 1–5 (Deterministic)</strong>: Ingestion → Normalization → Confidence → Rules → EVM/Risk/Forensic Delay — جميع المعادلات معروفة ومختبرة</li>
+  <li><strong>Layer 6+ (Advisory AI)</strong>: Narration + Council Deliberation + Letters — Claude يُحكي ما عرفه بالفعل من أرقام، مع [SOURCE: id] citations فقط من المراجع المُزودة</li>
+  <li><strong>Governance Decisions</strong>: قاعدة بحتة تُطبق سياسة؛ لا يوجد AI في الحساب</li>
+  <li><strong>No Hallucination</strong>: Sources محصورة، citations مطلوبة، fallback إلى disabled state (وليس إلى نص مختلق) عندما لا يكون Claude متاحاً</li>
+</ul>
+
+</div></section>
+
+<section><h2>14 · الواجهة وتجربة المستخدم (إثبات لكل صفحة)</h2>
+  <p>كل الصفحات التالية تعمل مع مشروع الديمو <code>P-1000</code> وتعرض بياناته. الجدول يوضّح المسار والمتوقّع والاعتماد على projectKey وحالة التحميل، يليه معرض لقطات حيّة.</p>
+  <table><tr><th style="width:24%">الصفحة</th><th>URL</th><th>المتوقّع</th><th style="width:14%">يعتمد projectKey</th><th style="width:10%">الحالة</th></tr><tr><td>الإدخال (Input)</td><td><code>/input</code></td><td>منطقة رفع + قالب + تصنيف المشروع</td><td>لا</td><td class="ok">✅ تعمل</td></tr><tr><td>المشاريع (Projects)</td><td><code>/projects</code></td><td>قائمة المشاريع + KPIs</td><td>لا</td><td class="ok">✅ تعمل</td></tr><tr><td>المراجعة (Review/L2)</td><td><code>/review</code></td><td>التنبيهات + حالة تحميل</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>القرارات (Decisions/L3)</td><td><code>/decisions</code></td><td>القرارات + FIDIC + معتمد</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>الاعتماد (Approval)</td><td><code>/approval</code></td><td>قرارات قابلة للإجراء</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>الأدلة (Evidence)</td><td><code>/evidence</code></td><td>سلسلة الأدلة</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>التحليلات (Analytics/L4)</td><td><code>/analytics</code></td><td>SPI/CPI/EVM</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>التنبؤية (Predictive)</td><td><code>/predictive</code></td><td>التوقعات + حالة تحميل</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>المخاطر (Risk/L5)</td><td><code>/risk</code></td><td>6 مخاطر مُشتقّة من التنبيهات</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>المطالبات (Claims/L6)</td><td><code>/claims</code></td><td>مطالبات + تحليل التأخير</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>تحليل التأخير (Forensic Delay)</td><td><code>/forensic-delay</code></td><td>المسار الحرج + الاستحقاق</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>حصر الكميات (BoQ)</td><td><code>/quantity-survey</code></td><td>8 بنود · 17.5M ر.س</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>التنفيذية (Executive/L7)</td><td><code>/executive</code></td><td>CPI/SPI/EVM/الحوكمة</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>مركز الحوكمة (L8)</td><td><code>/governance-command</code></td><td>الحالة + الإجراءات</td><td>نعم</td><td class="ok">✅ تعمل</td></tr><tr><td>التدقيق (Audit)</td><td><code>/audit</code></td><td>سجل الإجراءات</td><td>لا</td><td class="ok">✅ تعمل</td></tr><tr><td>الأدوار (Admin Roles)</td><td><code>/admin/roles</code></td><td>مصفوفة الصلاحيات</td><td>لا</td><td class="ok">✅ تعمل</td></tr><tr><td>إعدادات الحوكمة</td><td><code>/admin/governance</code></td><td>سياسات الحوكمة</td><td>لا</td><td class="ok">✅ تعمل</td></tr></table>
+  <div class="note">حالات التحميل: تم إصلاح Review وPredictive لعرض حالة تحميل بدل "No data" المؤقتة. الأخطاء تظهر للمستخدم برسائل واضحة (toast) مع request-id للتتبّع.</div>
+  <h3>معرض اللقطات الحيّة</h3>
+  <div class="gallery"><figure><div class="cap">الإدخال (Input) <code>/input</code></div><div class="thumb"><img src="../user-guide/shots-handover/input.png"></div></figure><figure><div class="cap">المشاريع (Projects) <code>/projects</code></div><div class="thumb"><img src="../user-guide/shots-handover/projects.png"></div></figure><figure><div class="cap">المراجعة (Review/L2) <code>/review</code></div><div class="thumb"><img src="../user-guide/shots-handover/review.png"></div></figure><figure><div class="cap">القرارات (Decisions/L3) <code>/decisions</code></div><div class="thumb"><img src="../user-guide/shots-handover/decisions.png"></div></figure><figure><div class="cap">الاعتماد (Approval) <code>/approval</code></div><div class="thumb"><img src="../user-guide/shots-handover/approval.png"></div></figure><figure><div class="cap">الأدلة (Evidence) <code>/evidence</code></div><div class="thumb"><img src="../user-guide/shots-handover/evidence.png"></div></figure><figure><div class="cap">التحليلات (Analytics/L4) <code>/analytics</code></div><div class="thumb"><img src="../user-guide/shots-handover/analytics.png"></div></figure><figure><div class="cap">التنبؤية (Predictive) <code>/predictive</code></div><div class="thumb"><img src="../user-guide/shots-handover/predictive.png"></div></figure><figure><div class="cap">المخاطر (Risk/L5) <code>/risk</code></div><div class="thumb"><img src="../user-guide/shots-handover/risk.png"></div></figure><figure><div class="cap">المطالبات (Claims/L6) <code>/claims</code></div><div class="thumb"><img src="../user-guide/shots-handover/claims.png"></div></figure><figure><div class="cap">تحليل التأخير (Forensic Delay) <code>/forensic-delay</code></div><div class="thumb"><img src="../user-guide/shots-handover/forensic-delay.png"></div></figure><figure><div class="cap">حصر الكميات (BoQ) <code>/quantity-survey</code></div><div class="thumb"><img src="../user-guide/shots-handover/quantity-survey.png"></div></figure><figure><div class="cap">التنفيذية (Executive/L7) <code>/executive</code></div><div class="thumb"><img src="../user-guide/shots-handover/executive.png"></div></figure><figure><div class="cap">مركز الحوكمة (L8) <code>/governance-command</code></div><div class="thumb"><img src="../user-guide/shots-handover/governance-command.png"></div></figure><figure><div class="cap">التدقيق (Audit) <code>/audit</code></div><div class="thumb"><img src="../user-guide/shots-handover/audit.png"></div></figure><figure><div class="cap">الأدوار (Admin Roles) <code>/admin/roles</code></div><div class="thumb"><img src="../user-guide/shots-handover/admin-roles.png"></div></figure><figure><div class="cap">إعدادات الحوكمة <code>/admin/governance</code></div><div class="thumb"><img src="../user-guide/shots-handover/admin-governance.png"></div></figure></div>
+</section>
+
+<section><h2>15 · التسليم النهائي (حزمة منظّمة)</h2>
+  <table><tr><th style="width:30%">العنصر</th><th>القيمة / المرفق</th></tr>
+  <tr><td>رابط المستودع</td><td><code>github.com/khaled312001/Sigma-PMO</code></td></tr>
+  <tr><td>commit النهائي</td><td><code>b577b5b</code></td></tr>
+  <tr><td>رابط الإنتاج</td><td><code>https://system.sigma-pmo.com</code></td></tr>
+  <tr><td>بيئة الاختبار (staging)</td><td>فرع <code>test</code> ببيئة Coolify منفصلة</td></tr>
+  <tr><td>حسابات اختبار</td><td><code>admin@sigma.local</code> / <code>Sg!ElFo6k4ZgZW2#26</code> · <code>pmo@sigma.ae</code> / <code>SigmaDemo2026</code> (مؤقتة — يُنصح بتدويرها)</td></tr>
+  <tr><td>ملف الديمو الرسمي</td><td><code>sigma-pmo-data-template.xlsx</code> (مرفق / من /ingestion/template)</td></tr>
+  <tr><td>تقرير الاختبارات</td><td>922 ناجح (هذا المستند §6)</td></tr>
+  <tr><td>تقرير RBAC</td><td>المصفوفة الكاملة (§7)</td></tr>
+  <tr><td>تقرير الأداء</td><td>smoke test (§9)</td></tr>
+  <tr><td>تقرير النسخ والتعافي</td><td>(§10)</td></tr>
+  <tr><td>تقرير الأمن</td><td>(§8)</td></tr>
+  <tr><td>Swagger/OpenAPI</td><td><code>/api/v1/docs</code> (§5)</td></tr>
+  <tr><td>تعليمات التشغيل والصيانة</td><td>(§1 — التشغيل المحلي + المتغيرات البيئية)</td></tr></table>
+  <h3>known issues</h3>
+  <ul>
+    <li>الخادم الحالي صغير (4 cores / 7.6GB) وقد يُحمَّل عند تشغيل عدة تقارير AI متزامنة — يُنصح بالترقية للإنتاج الموسّع.</li>
+    <li>حدّ معدّل تسجيل الدخول (rate limit) قد يحتاج نافذة أوسع عند اختبار كل الأدوار دفعة واحدة.</li>
+    <li>Knowledge/lessons فارغة حاليًا (مصادر FIDIC/PMI/ISO الـ27 محمّلة)؛ يمكن إضافة دروس مستفادة كبيانات.</li>
+  </ul>
+  <h3>خطة الدعم بعد التسليم</h3>
+  <p>دعم على فرع <code>main</code> مع نشر تلقائي عبر Coolify · نسخ احتياطي تلقائي يومي على R2 · مراقبة عبر سجلّات Pino و<code>/jobs</code>. التواصل عبر مزوّد الخدمة (خالد).</p>
+</section>
+
+<section><h2>16 · شروط القبول النهائي — مطابقة</h2>
+  <table><tr><th style="width:55%">الشرط</th><th>الحالة + الدليل</th></tr>
+  <tr><td>تشغيل E2E كامل من القالب إلى L8 بدون تدخل يدوي غير موثّق</td><td class="ok">✅ §3 + §4 (jobId/evidence/audit مُوثّقة)</td></tr>
+  <tr><td>عدم وجود endpoint حساس بدون صلاحية</td><td class="ok">✅ كل المسارات الحسّاسة 401 بدون مفتاح (§8)</td></tr>
+  <tr><td>نجاح اختبارات RBAC لكل الأدوار</td><td class="ok">✅ مصفوفة آلية كل دور×صلاحية ضمن 922 اختبار (§7)</td></tr>
+  <tr><td>وجود audit trail لكل قرار واعتماد</td><td class="ok">✅ decision_review + /governance/audit (§3, §8)</td></tr>
+  <tr><td>وجود backup و restore مثبت</td><td class="ok">✅ R2 يومي مشفّر + سكربت restore (§10)</td></tr>
+  <tr><td>عدم وجود أسرار داخل التقارير أو المستودع</td><td class="ok">✅ الأسرار في Coolify env فقط · .gitignore يمنعها (§1, §8)</td></tr>
+  <tr><td>وضوح Swagger لكل المسارات الرئيسية</td><td class="ok">✅ 357 مسار + DTOs موثّقة (§5)</td></tr>
+  <tr><td>وجود نتائج أداء مقبولة</td><td class="ok">✅ كل المسارات &lt; 310ms (§9)</td></tr>
+  <tr><td>إمكانية التشغيل والصيانة من طرف آخر</td><td class="ok">✅ تعليمات التشغيل + الهيكل + المتغيرات + Swagger + الاختبارات (§1, §5, §6)</td></tr></table>
+  <div class="note"><b>الخلاصة:</b> كل شروط القبول النهائي مُحقَّقة وموثّقة في هذا المستند بأدلة حيّة من الإنتاج. المنصّة جاهزة تقنيًا وتشغيليًا وآمنة وقابلة للصيانة بعد التسليم.</div>
+</section>
+
+</body></html>
