@@ -7,8 +7,10 @@ import {
   Param,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { ClashItem } from '../canonical/entities';
@@ -18,6 +20,7 @@ import {
   ClashIngestionOutcome,
   ClashIngestionService,
 } from './clash-ingestion.service';
+import { ClashPdfService } from './clash-pdf.service';
 
 /**
  * POST body for `/clashes/upload`. Mirrors the existing
@@ -63,6 +66,9 @@ interface DetectClashBody {
  *  - `GET  /clashes?projectKey=…`
  *                              — list all clash items for one project.
  *  - `GET  /clashes/:id`       — fetch a single clash item.
+ *  - `GET  /clashes/:id/pdf`   — render the full clash-detail to an A4 PDF
+ *                                (Req R4 — "تقرير Clash Detail واضح" +
+ *                                "إمكانية تصدير PDF"). Requires `canRead`.
  *
  * The downstream `ClashSolutionProposer` (which generates the three options
  * per clash via the `revit.clash.analyst` persona) is **not** wired here —
@@ -72,7 +78,10 @@ interface DetectClashBody {
  */
 @Controller('clashes')
 export class ClashesController {
-  constructor(private readonly ingestion: ClashIngestionService) {}
+  constructor(
+    private readonly ingestion: ClashIngestionService,
+    private readonly pdf: ClashPdfService,
+  ) {}
 
   @Post('upload')
   @HttpCode(200)
@@ -121,5 +130,25 @@ export class ClashesController {
   @RequiresCapability('canRead')
   get(@Param('id') id: string): Promise<ClashDetail> {
     return this.ingestion.getDetailById(id);
+  }
+
+  /**
+   * Render the full clash-detail to a downloadable A4 PDF (Req R4). Every
+   * acceptance field — model A/B, GUIDs, location X/Y/Z, grid, penetration,
+   * linked activity, responsible party, cost/time impact, decision audit —
+   * is laid out in `ClashPdfService`. `canRead` matches `GET /clashes/:id`
+   * because the PDF carries the same data, no more. We stream the buffer via
+   * the raw `Response` (same pattern as `LettersController.renderPdf`).
+   */
+  @Get(':id/pdf')
+  @RequiresCapability('canRead')
+  async renderPdf(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    const detail = await this.ingestion.getDetailById(id);
+    const buffer = await this.pdf.render(detail);
+    res
+      .status(200)
+      .setHeader('Content-Type', 'application/pdf')
+      .setHeader('Content-Disposition', `inline; filename="clash-${detail.clashRef}.pdf"`)
+      .send(buffer);
   }
 }

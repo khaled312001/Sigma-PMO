@@ -12,23 +12,46 @@
 import { use, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
-import { api } from '../../../lib/api';
+import { API_BASE, api, getApiKey } from '../../../lib/api';
 import { AuthGate } from '../../../components/AuthGate';
 import { PersonaActiveBadge } from '../../../components/PersonaActiveBadge';
 import { PolicyAddonInline } from '../../../components/PolicyAddonInline';
 import { SimulationModal, SimulationProjectionView } from '../../../components/SimulationModal';
 import { useToast } from '../../../components/ToastProvider';
 import { CAPABILITIES } from '../../../lib/capabilities';
-import { useI18n } from '../../../lib/i18n';
+import { useI18n, type Lang } from '../../../lib/i18n';
 import { useMe } from '../../../lib/me-context';
 import { Button, Card, ErrorBanner, PageHeader, Pill } from '../../../components/ui';
-import { IconSparkles } from '../../../components/Icons';
+import { IconBook, IconSparkles } from '../../../components/Icons';
 
 interface ProposedClashOption {
   label: string;
   timeImpactDays: number;
   costImpactAED: number | null;
   scopeImpact: string;
+}
+
+/**
+ * First-class detail projection lifted by `GET /clashes/:id` (Req 2 + R4).
+ * `modelA` / `modelB` are extracted server-side from `viewState` so the UI
+ * never has to dig into the opaque JSON.
+ */
+interface ClashDetailProjection {
+  clashRef: string;
+  severity: string;
+  disciplinesInvolved: string[];
+  modelA: string | null;
+  modelB: string | null;
+  elementGuidA: string | null;
+  elementGuidB: string | null;
+  location: { x: number; y: number; z: number } | null;
+  gridLocation: string | null;
+  penetrationMm: number | null;
+  snapshotImagePath: string | null;
+  viewUrn: string | null;
+  viewState: Record<string, unknown> | null;
+  linkedActivityKeys: string[];
+  responsibleParty: string | null;
 }
 
 interface ClashItem {
@@ -43,6 +66,8 @@ interface ClashItem {
   chosenOptionIndex: number | null;
   decidedBy: string | null;
   decidedAt: string | null;
+  /** Present on `GET /clashes/:id`; absent on the refetch shapes that don't ask for it. */
+  detail?: ClashDetailProjection;
 }
 
 interface ApplyOutcome {
@@ -91,6 +116,37 @@ function ClashDetailPage({ id }: { id: string }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /**
+   * Stream `GET /clashes/:id/pdf` to a Blob download (Req R4). We bypass the
+   * JSON `api` helper because the response is binary; the same x-api-key
+   * header + Blob-download dance the `/letters` page uses keeps the page
+   * state intact instead of navigating away.
+   */
+  const onDownloadPdf = useCallback(async () => {
+    const key = getApiKey();
+    try {
+      const res = await fetch(`${API_BASE}/clashes/${id}/pdf`, {
+        headers: key ? { 'x-api-key': key } : undefined,
+        cache: 'no-store',
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body.slice(0, 240) || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clash-${clash?.clashRef ?? id.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(lang === 'ar' ? 'تعذّر تنزيل ملف PDF' : 'PDF download failed', (e as Error).message);
+    }
+  }, [id, clash, toast, lang]);
 
   const onPropose = useCallback(async () => {
     setBusy('propose');
@@ -166,15 +222,21 @@ function ClashDetailPage({ id }: { id: string }) {
         title={clash ? (lang === 'ar' ? `التضارب ${clash.clashRef}` : `Clash ${clash.clashRef}`) : (lang === 'ar' ? 'تفاصيل التضارب' : 'Clash detail')}
         description={clash?.description ?? ''}
         actions={
-          <PersonaActiveBadge
-            personaSlug="revit-clash-analyst"
-            expertise={
-              lang === 'ar'
-                ? 'محلّل تضاربات BIM — خبرة 10-20 عاماً في التنسيق عبر Revit / Navisworks.'
-                : 'BIM clash analyst — 10-20 years Revit / Navisworks coordination.'
-            }
-            surface="engineering"
-          />
+          <span className="flex items-center gap-2">
+            <PersonaActiveBadge
+              personaSlug="revit-clash-analyst"
+              expertise={
+                lang === 'ar'
+                  ? 'محلّل تضاربات BIM — خبرة 10-20 عاماً في التنسيق عبر Revit / Navisworks.'
+                  : 'BIM clash analyst — 10-20 years Revit / Navisworks coordination.'
+              }
+              surface="engineering"
+            />
+            <Button variant="ghost" size="sm" disabled={!clash} onClick={() => void onDownloadPdf()}>
+              <IconBook className="h-3.5 w-3.5" />
+              {lang === 'ar' ? 'تنزيل PDF' : 'Download PDF'}
+            </Button>
+          </span>
         }
       />
 
@@ -205,6 +267,8 @@ function ClashDetailPage({ id }: { id: string }) {
                   : (lang === 'ar' ? 'قيد الانتظار' : 'Pending')}
             </Pill>
           </div>
+
+          <ClashDetailSections clash={clash} lang={lang} />
 
           {options.length === 0 ? (
             <Card title={lang === 'ar' ? 'لا توجد خيارات بعد' : 'No options yet'}>
@@ -295,6 +359,144 @@ function ClashDetailPage({ id }: { id: string }) {
           />
         </>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────── detail sections (R4) ───────────────────────────
+
+/**
+ * The full clash-detail evidence surface (Req R4 — "تقرير Clash Detail واضح").
+ * Lays out every acceptance field grouped into sections so a reviewer reads
+ * the proof on screen exactly as it prints in the PDF: Identification,
+ * Geometry, Schedule & responsibility, Impact, Evidence, Decision audit.
+ *
+ * All values come from the `detail` projection lifted by `GET /clashes/:id`
+ * (with `modelA` / `modelB` already extracted from `viewState`). Fields that
+ * are null render an em-dash rather than being hidden, so the reviewer can
+ * see at a glance which data the source export did or did not carry.
+ */
+function ClashDetailSections({ clash, lang }: { clash: ClashItem; lang: Lang }) {
+  const d = clash.detail;
+  if (!d) return null;
+  const isAr = lang === 'ar';
+
+  // Impact draws from the chosen option when decided, else the leading proposal.
+  const options = clash.proposedOptions ?? [];
+  const opt =
+    clash.chosenOptionIndex != null && options[clash.chosenOptionIndex]
+      ? options[clash.chosenOptionIndex]
+      : options[0];
+  const optDecided = clash.chosenOptionIndex != null;
+
+  const loc = d.location;
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Identification */}
+      <Card title={isAr ? 'التعريف' : 'Identification'}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+          <Field label={isAr ? 'مرجع التضارب' : 'Clash reference'} value={d.clashRef} mono />
+          <Field label={isAr ? 'النموذج A' : 'Model A'} value={d.modelA} mono />
+          <Field label={isAr ? 'النموذج B' : 'Model B'} value={d.modelB} mono />
+          <Field label={isAr ? 'التخصصات' : 'Disciplines'} value={d.disciplinesInvolved.join(', ')} />
+          <Field label={isAr ? 'الخطورة' : 'Severity'} value={d.severity} />
+        </dl>
+      </Card>
+
+      {/* Geometry */}
+      <Card title={isAr ? 'الهندسة' : 'Geometry'}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+          <Field label={isAr ? 'معرّف العنصر A' : 'Element GUID A'} value={d.elementGuidA} mono />
+          <Field label={isAr ? 'معرّف العنصر B' : 'Element GUID B'} value={d.elementGuidB} mono />
+          <Field label="X" value={loc ? String(loc.x) : null} mono />
+          <Field label="Y" value={loc ? String(loc.y) : null} mono />
+          <Field label="Z" value={loc ? String(loc.z) : null} mono />
+          <Field label={isAr ? 'موقع المحاور' : 'Grid location'} value={d.gridLocation} />
+          <Field
+            label={isAr ? 'عمق الاختراق / المسافة' : 'Penetration / distance'}
+            value={d.penetrationMm != null ? `${d.penetrationMm} mm` : null}
+            mono
+          />
+        </dl>
+      </Card>
+
+      {/* Schedule & responsibility */}
+      <Card title={isAr ? 'الجدول الزمني والمسؤولية' : 'Schedule & responsibility'}>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+          <Field
+            label={isAr ? 'النشاط المرتبط (CPM/P6)' : 'Linked activity (CPM/P6)'}
+            value={d.linkedActivityKeys.length > 0 ? d.linkedActivityKeys.join(', ') : null}
+            mono
+          />
+          <Field label={isAr ? 'الجهة المسؤولة' : 'Responsible party'} value={d.responsibleParty} />
+        </dl>
+      </Card>
+
+      {/* Impact */}
+      <Card title={isAr ? 'الأثر' : 'Impact'}>
+        {opt ? (
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+            <Field
+              label={isAr ? 'خيار الحل' : 'Resolution option'}
+              value={`${opt.label}${optDecided ? (isAr ? ' (المختار)' : ' (chosen)') : isAr ? ' (مقترح)' : ' (proposed)'}`}
+            />
+            <Field
+              label={isAr ? 'الأثر الزمني' : 'Time impact'}
+              value={`${opt.timeImpactDays >= 0 ? '+' : ''}${opt.timeImpactDays} ${isAr ? 'يوم' : 'day(s)'}`}
+            />
+            <Field
+              label={isAr ? 'الأثر الكلفوي' : 'Cost impact'}
+              value={opt.costImpactAED == null ? (isAr ? '— (خارج جدول الكميات)' : '— (not in BoQ)') : `AED ${opt.costImpactAED.toLocaleString()}`}
+            />
+            <Field label={isAr ? 'أثر النطاق' : 'Scope impact'} value={opt.scopeImpact || null} />
+          </dl>
+        ) : (
+          <p className="text-sm text-slate-400">
+            {isAr ? 'لم تُقترَح خيارات بعد — لا يوجد أثر زمني / كلفوي.' : 'No options proposed yet — no time / cost impact.'}
+          </p>
+        )}
+      </Card>
+
+      {/* Evidence — snapshot ref + viewer URN. We surface the storage refs
+          (not an inline <img>) because clash snapshots are stored behind the
+          StorageService and have no public file route yet; the PDF carries the
+          same refs so the audit trail is complete either way. */}
+      <Card title={isAr ? 'الدليل' : 'Evidence'} className="lg:col-span-2">
+        {d.snapshotImagePath || d.viewUrn ? (
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+            <Field label={isAr ? 'مسار اللقطة' : 'Snapshot path'} value={d.snapshotImagePath} mono />
+            <Field label={isAr ? 'معرّف العارض (URN)' : 'Viewer URN'} value={d.viewUrn} mono />
+          </dl>
+        ) : (
+          <p className="text-sm text-slate-400">
+            {isAr ? 'لا توجد لقطة أو حالة عارض محفوظة لهذا التضارب.' : 'No snapshot or viewer state captured for this clash.'}
+          </p>
+        )}
+      </Card>
+
+      {/* Decision audit */}
+      <Card title={isAr ? 'سجل القرار' : 'Decision audit'} className="lg:col-span-2">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+          <Field label={isAr ? 'بقرار' : 'Decided by'} value={clash.decidedBy} />
+          <Field
+            label={isAr ? 'التاريخ' : 'Decided at'}
+            value={clash.decidedAt ? new Date(clash.decidedAt).toLocaleString() : null}
+          />
+        </dl>
+      </Card>
+    </div>
+  );
+}
+
+/** One labelled detail field; null/empty values render an em-dash. */
+function Field({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-slate-800/50 py-1 last:border-0">
+      <dt className="text-[11px] uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className={`break-words text-slate-200 ${mono ? 'font-mono text-xs' : 'text-sm'}`} dir="auto">
+        {value && value.length > 0 ? value : '—'}
+      </dd>
     </div>
   );
 }

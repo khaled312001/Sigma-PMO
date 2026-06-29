@@ -7,6 +7,8 @@ import { RequiresCapability } from '../auth/require-capability.decorator';
 import { Alert, DecisionReview, GovernanceDecision, GovernancePolicy, User } from '../canonical/entities';
 import { SettingsService } from '../settings/settings.service';
 import { ConfidenceService } from './confidence.service';
+import { deriveDecisionCategory, isAutoApprovalBlocked } from './decision-category';
+import { DecisionEnvelope, DecisionEnvelopeService } from './decision-envelope.service';
 import { DecisionReviewService, ReviewRecordResult } from './decision-review.service';
 import { DECISION_TEMPLATES, DecisionTemplate } from './decision-templates';
 import { DecideDto } from './dto/decide.dto';
@@ -27,6 +29,7 @@ export class GovernanceController {
     private readonly policies: GovernancePolicyService,
     private readonly decisions: GovernanceDecisionService,
     private readonly reviews: DecisionReviewService,
+    private readonly envelope: DecisionEnvelopeService,
     private readonly trace: GovernanceTraceService,
     private readonly settings: SettingsService,
     @InjectRepository(GovernanceDecision) private readonly decisionRepo: Repository<GovernanceDecision>,
@@ -46,6 +49,19 @@ export class GovernanceController {
   @RequiresCapability('canRead')
   traceForDecision(@Param('id') id: string): Promise<DecisionTrace> {
     return this.trace.forDecision(id);
+  }
+
+  /**
+   * Unified recommendation envelope for one decision (Req R7): confidence +
+   * source evidence + reason + alternatives + the explicit "required human
+   * approval" status. `requiresHumanApproval` is always true; for financial /
+   * contractual / safety decisions `autoApprovalBlocked` is true — the platform
+   * recommends, a human decides, and the system never auto-approves these.
+   */
+  @Get('decisions/:id/envelope')
+  @RequiresCapability('canRead')
+  envelopeForDecision(@Param('id') id: string): Promise<DecisionEnvelope> {
+    return this.envelope.forDecision(id);
   }
 
   /** Full evidence chain for an alert (Cycle 3 acceptance surface). */
@@ -214,17 +230,30 @@ export class GovernanceController {
   private async enrichDecisions(rows: GovernanceDecision[]): Promise<unknown[]> {
     if (rows.length === 0) return [];
 
-    // Resolve which decisions are critical (require dual approval) via the alert join.
+    // Resolve which decisions require dual approval via the alert join: either
+    // critical severity, OR an R7 sensitive category (financial | contractual |
+    // safety) that can never be auto-approved on a single signature. The
+    // category is persisted on the row; derive it for legacy rows from the
+    // alert code + FIDIC clause.
     const alertIds = [...new Set(rows.map((d) => d.alertId))];
     const alerts = await this.alertRepo.find({ where: { id: In(alertIds) } });
     const severityByAlert = new Map(alerts.map((a) => [a.id, a.severity]));
-    const criticalDecisionIds = new Set(
-      rows.filter((d) => severityByAlert.get(d.alertId) === 'critical').map((d) => d.id),
+    const codeByAlert = new Map(alerts.map((a) => [a.id, a.code]));
+    const categoryByDecision = new Map(
+      rows.map((d) => [d.id, d.category ?? deriveDecisionCategory(codeByAlert.get(d.alertId) ?? null, d.fidicClause)]),
+    );
+    const dualApprovalDecisionIds = new Set(
+      rows
+        .filter((d) =>
+          severityByAlert.get(d.alertId) === 'critical' ||
+          isAutoApprovalBlocked(categoryByDecision.get(d.id)),
+        )
+        .map((d) => d.id),
     );
 
     const chainStates = await this.reviews.chainStatesFor(
       rows.map((d) => d.id),
-      criticalDecisionIds,
+      dualApprovalDecisionIds,
     );
 
     const escalateAfterDays = await this.resolveEscalateAfterDays();
@@ -235,8 +264,13 @@ export class GovernanceController {
       const isPending = chain.chainState === 'pending' || chain.chainState === 'awaiting-second-approval';
       const ageDays = Math.floor((now - new Date(d.createdAt).getTime()) / 86_400_000);
       const escalated = isPending && ageDays >= escalateAfterDays;
+      const category = categoryByDecision.get(d.id) ?? null;
       return {
         ...d,
+        category,
+        // R7: the platform recommends, a human decides — always true.
+        requiresHumanApproval: true as const,
+        autoApprovalBlocked: isAutoApprovalBlocked(category),
         chainState: chain.chainState,
         approvals: chain.approvals,
         requiresDualApproval: chain.requiresDualApproval,

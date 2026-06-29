@@ -92,7 +92,16 @@ export class AutodeskApsService implements OnModuleInit {
     const base: AutodeskStatus = {
       enabled: !!creds,
       credentialSource: creds?.source ?? 'none',
+      // UI-friendly alias of `credentialSource` (db→settings): how the connector
+      // is configured, or null when it is not. The encrypted SystemSetting path
+      // is surfaced as 'settings' because that is the /admin/settings screen.
+      configuredVia: creds ? (creds.source === 'db' ? 'settings' : 'env') : null,
       baseUrl: this.config.baseUrl,
+      // The EXACT server-side env vars this Model Derivative pipeline needs.
+      // A callback URL / 3-legged scopes are NOT required for 2-legged
+      // client-credentials translation — only AUTODESK_CLIENT_ID + _SECRET (and
+      // optionally AUTODESK_BASE_URL). The secret value is NEVER returned.
+      requiredEnv: REQUIRED_ENV,
       reachable: null,
       detail: null,
     };
@@ -345,7 +354,11 @@ interface AutodeskConfigResolved {
 export interface AutodeskStatus {
   enabled: boolean;
   credentialSource: 'db' | 'env' | 'none';
+  /** UI-friendly view of `credentialSource`: 'settings' (encrypted DB), 'env', or null. */
+  configuredVia: 'settings' | 'env' | null;
   baseUrl: string;
+  /** Exact server-side env vars this Model Derivative pipeline needs. No secrets are returned. */
+  requiredEnv: string[];
   /** null when not probed; true/false after a live token probe. */
   reachable: boolean | null;
   detail: string | null;
@@ -370,6 +383,13 @@ const VIEWER_SCOPES = ['viewables:read'];
 const DATA_SCOPES = ['data:read', 'data:write', 'data:create', 'bucket:create', 'bucket:read'];
 const TRANSLATE_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 4_000;
+/**
+ * The ONLY server-side env vars the Model Derivative (2-legged client-
+ * credentials) pipeline requires. `AUTODESK_BASE_URL` is optional (defaults to
+ * the public cloud). No callback URL / 3-legged scope vars are needed here —
+ * those are only relevant to a browser SSO flow, which this connector avoids.
+ */
+const REQUIRED_ENV = ['AUTODESK_CLIENT_ID', 'AUTODESK_CLIENT_SECRET'];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

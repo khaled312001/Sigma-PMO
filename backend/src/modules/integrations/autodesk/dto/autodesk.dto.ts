@@ -29,8 +29,14 @@ export class AutodeskStatusDto {
   @ApiProperty({ description: 'Where the credentials came from.', enum: ['db', 'env', 'none'], example: 'none' })
   credentialSource!: string;
 
+  @ApiProperty({ nullable: true, description: 'UI-friendly view of credentialSource: settings (encrypted /admin/settings), env, or null when unconfigured.', enum: ['settings', 'env'], example: null })
+  configuredVia!: 'settings' | 'env' | null;
+
   @ApiProperty({ description: 'APS base host in use.', example: 'https://developer.api.autodesk.com' })
   baseUrl!: string;
+
+  @ApiProperty({ description: 'Exact server-side env vars the Model Derivative pipeline needs (no callback/3-legged vars). Secrets are never returned.', type: [String], example: ['AUTODESK_CLIENT_ID', 'AUTODESK_CLIENT_SECRET'] })
+  requiredEnv!: string[];
 
   @ApiProperty({ nullable: true, description: 'Live token-probe result (null when not probed).', example: null })
   reachable!: boolean | null;

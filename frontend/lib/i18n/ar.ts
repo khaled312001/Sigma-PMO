@@ -27,6 +27,7 @@ export const ar: Dictionary = {
     governance: 'الحوكمة',
     clashes: 'التضاربات',
     drawings: 'المخططات',
+    siteEvidence: 'أدلة الموقع',
     letters: 'الخطابات',
     sources: 'سجل المصادر',
     simulation: 'المحاكاة',

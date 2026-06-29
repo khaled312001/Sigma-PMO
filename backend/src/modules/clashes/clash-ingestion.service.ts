@@ -62,6 +62,10 @@ export interface ClashDetail extends ClashItem {
     clashRef: string;
     severity: string;
     disciplinesInvolved: string[];
+    /** ProjectRecord id of model A — lifted out of `viewState.modelAId` (R4). */
+    modelA: string | null;
+    /** ProjectRecord id of model B — lifted out of `viewState.modelBId` (R4). */
+    modelB: string | null;
     elementGuidA: string | null;
     elementGuidB: string | null;
     location: { x: number; y: number; z: number } | null;
@@ -435,12 +439,21 @@ export class ClashIngestionService {
    */
   async getDetailById(id: string): Promise<ClashDetail> {
     const row = await this.getById(id);
+    // `viewState` carries the two model ids the geometric-detect path stamped
+    // ({ modelAId, modelBId, ... }) — lift them to first-class `modelA`/`modelB`
+    // so the UI + PDF don't have to dig into the opaque JSON (R4). The Excel
+    // ingest path leaves viewState null, so both stay null there.
+    const vs = (row.viewState ?? {}) as { modelAId?: unknown; modelBId?: unknown };
+    const modelA = typeof vs.modelAId === 'string' ? vs.modelAId : null;
+    const modelB = typeof vs.modelBId === 'string' ? vs.modelBId : null;
     return {
       ...row,
       detail: {
         clashRef: row.clashRef,
         severity: row.severity,
         disciplinesInvolved: row.disciplinesInvolved,
+        modelA,
+        modelB,
         elementGuidA: row.elementGuidA,
         elementGuidB: row.elementGuidB,
         location:

@@ -10,6 +10,14 @@ import { DataTable } from '../../components/DataTable';
 import { SkeletonRow } from '../../components/Skeleton';
 import { useI18n } from '../../lib/i18n';
 import { Button, Card, EmptyState, PageHeader, Pill, SeverityBadge } from '../../components/ui';
+import { CategoryBadge, RecommendationEnvelope, type DecisionCategory } from '../approval/RecommendationEnvelope';
+
+/** Governance decision enriched by GET /governance/decisions with R7 category + flags. */
+type EnrichedDecision = GovernanceDecision & {
+  category?: DecisionCategory | null;
+  requiresHumanApproval?: boolean;
+  autoApprovalBlocked?: boolean;
+};
 
 export default function DecisionsPageRoute() {
   return <AuthGate surface="Decisions"><DecisionsPage /></AuthGate>;
@@ -65,6 +73,8 @@ interface DecisionRow {
   alertId: string;
   alertSummary: string;
   template: { title: string; titleAr: string; fidicClause: string | null } | null;
+  category: DecisionCategory | null;
+  autoApprovalBlocked: boolean;
 }
 
 function DecisionsPage() {
@@ -72,13 +82,14 @@ function DecisionsPage() {
   const ar = lang === 'ar';
   const projectKey = useCurrentProjectKey();
   const toast = useToast();
-  const [decisions, setDecisions] = useState<GovernanceDecision[] | null>(null);
+  const [decisions, setDecisions] = useState<EnrichedDecision[] | null>(null);
   const [alerts, setAlerts] = useState<AlertRecord[] | null>(null);
   const [reviewsByDecision, setReviewsByDecision] = useState<Record<string, DecisionReview[]>>({});
   const [filter, setFilter] = useState<'all' | StatusKey | 'critical'>('all');
   const [traceFor, setTraceFor] = useState<string | null>(null);
   const [trace, setTrace] = useState<DecisionTrace | null>(null);
   const [traceLoading, setTraceLoading] = useState(false);
+  const [detailFor, setDetailFor] = useState<string | null>(null);
 
   const openTrace = async (decisionId: string) => {
     if (traceFor === decisionId) { setTraceFor(null); setTrace(null); return; }
@@ -95,7 +106,7 @@ function DecisionsPage() {
   // no project filter — the alert is the project anchor).
   useEffect(() => {
     Promise.all([
-      api<GovernanceDecision[]>('/governance/decisions?limit=500'),
+      api<EnrichedDecision[]>('/governance/decisions?limit=500'),
       api<AlertRecord[]>(`/rules/alerts?limit=500&projectKey=${encodeURIComponent(projectKey)}`),
     ]).then(async ([d, a]) => {
       const inScope = new Set(a.map((x) => x.id));
@@ -137,6 +148,8 @@ function DecisionsPage() {
         alertId: d.alertId,
         alertSummary: al?.summary ?? '',
         template: al?.code ? templateForCode(al.code) : null,
+        category: d.category ?? null,
+        autoApprovalBlocked: d.autoApprovalBlocked ?? false,
       };
     });
   }, [decisions, alertById, reviewsByDecision]);
@@ -224,6 +237,13 @@ function DecisionsPage() {
               hideOnMobile: true,
             },
             {
+              key: 'category', label: ar ? 'النوع' : 'Category', width: '9rem',
+              render: (r) => r.category
+                ? <span className="inline-flex items-center gap-1"><CategoryBadge category={r.category} ar={ar} />{r.autoApprovalBlocked && <span title={ar ? 'لا اعتماد آلي' : 'No auto-approval'} className="text-rose-300">●</span>}</span>
+                : <span className="text-slate-500">—</span>,
+              accessor: (r) => r.category ?? '',
+            },
+            {
               key: 'party', label: t('decisions.headers.party'), width: '8rem',
               render: (r) => <Pill tone="slate">{r.party}</Pill>,
             },
@@ -243,6 +263,14 @@ function DecisionsPage() {
               accessor: (r) => r.status,
             },
             {
+              key: 'details', label: ar ? 'التفاصيل' : 'Details', width: '6rem', align: 'center', sortable: false,
+              render: (r) => (
+                <Button variant="ghost" size="sm" onClick={() => setDetailFor(detailFor === r.id ? null : r.id)}>
+                  {detailFor === r.id ? (ar ? 'إخفاء' : 'Hide') : (ar ? 'التوصية' : 'Why?')}
+                </Button>
+              ),
+            },
+            {
               key: 'trace', label: ar ? 'الإثبات' : 'Trace', width: '6rem', align: 'center', sortable: false,
               render: (r) => (
                 <Button variant="ghost" size="sm" onClick={() => void openTrace(r.id)}>
@@ -255,6 +283,15 @@ function DecisionsPage() {
       ) : (
         <Card padded={false}>
           {Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} cols={5} />)}
+        </Card>
+      )}
+
+      {detailFor && (
+        <Card
+          title={ar ? 'تنسيق التوصية' : 'Recommendation envelope'}
+          hint={ar ? 'المنصّة توصي ولا تقرّر · يتطلب موافقة بشرية' : 'the platform recommends, it does not decide · requires human approval'}
+        >
+          <RecommendationEnvelope key={detailFor} decisionId={detailFor} ar={ar} defaultOpen />
         </Card>
       )}
 

@@ -30,7 +30,53 @@ export default function QuantitySurveyRoute() {
   );
 }
 
-type Tab = 'estimates' | 'classification' | 'traceability' | 'governance';
+type Tab = 'estimates' | 'classification' | 'boq-traceability' | 'traceability' | 'governance';
+
+// ── BOQ traceability panel (Req 5) — per-line provenance: BIM element + cost
+// item classification + pricing source + clash/variation impact + ledger. ──
+interface BoqLineRecord {
+  id: string;
+  itemNumber: string;
+  description: string;
+  unit: string;
+  quantity: string;
+  unitRate: string;
+  amount: string;
+  activityRef: string | null;
+}
+
+interface BoqCurrentResponse {
+  boq: { id: string; businessKey: string; currency: string } | null;
+  items: BoqLineRecord[];
+}
+
+interface BoqImpactRow {
+  kind: 'clash' | 'variation';
+  ref: string;
+  costImpact: number | null;
+  timeImpactDays: number | null;
+  note: string;
+}
+
+interface BoqTraceabilityPanelResponse {
+  item: BoqLineRecord;
+  quantitySource: { originType: string | null; originRef: string | null; bimElementGuid: string | null; method: string | null };
+  classification: { standard: string | null; code: string | null };
+  pricing: { unitRate: string; currency: string; library: string | null; source: string | null };
+  impacts: BoqImpactRow[];
+  ledger: Array<{
+    id: string;
+    dimension: string;
+    stage: string;
+    value: string;
+    unit: string | null;
+    originType: string;
+    originRef: string | null;
+    changeReason: string | null;
+    approvedBy: string | null;
+    createdAt: string;
+  }>;
+}
 
 const PROJECT_TYPES = ['residential', 'commercial_office', 'retail', 'hospitality', 'industrial', 'logistics', 'healthcare', 'education', 'mixed_use'];
 const STANDARDS: ClassificationStandard[] = ['NRM', 'UNIFORMAT', 'MASTERFORMAT', 'CESMM'];
@@ -89,7 +135,7 @@ function QuantitySurveyPage() {
       />
 
       <nav className="flex flex-wrap gap-2" role="tablist">
-        {([['estimates', `${ar ? 'تقديرات التكلفة' : 'Cost Estimates'}${estimates.length ? ` (${estimates.length})` : ''}`], ['classification', ar ? 'إطار التصنيف' : 'Classification Framework'], ['traceability', ar ? 'التتبّع' : 'Traceability'], ['governance', `${ar ? 'الحوكمة' : 'Governance'}${findings.length ? ` (${findings.length})` : ''}`]] as Array<[Tab, string]>).map(([k, label]) => (
+        {([['estimates', `${ar ? 'تقديرات التكلفة' : 'Cost Estimates'}${estimates.length ? ` (${estimates.length})` : ''}`], ['classification', ar ? 'إطار التصنيف' : 'Classification Framework'], ['boq-traceability', ar ? 'تتبّع بنود BOQ' : 'BOQ Traceability'], ['traceability', ar ? 'التتبّع' : 'Traceability'], ['governance', `${ar ? 'الحوكمة' : 'Governance'}${findings.length ? ` (${findings.length})` : ''}`]] as Array<[Tab, string]>).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
             className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${tab === k ? 'border-sky-500/60 bg-sky-500/15 text-sky-100' : 'border-slate-700 text-slate-300 hover:border-slate-500 hover:text-slate-100'}`}>
             {label}
@@ -99,6 +145,7 @@ function QuantitySurveyPage() {
 
       {tab === 'estimates' && <EstimatesTab projectKey={projectKey} estimates={estimates} onChange={refresh} />}
       {tab === 'classification' && <ClassificationTab info={classification} />}
+      {tab === 'boq-traceability' && <BoqTraceabilityTab projectKey={projectKey} />}
       {tab === 'traceability' && <TraceabilityTab projectKey={projectKey} />}
       {tab === 'governance' && <GovernanceTab findings={findings} onChange={refresh} />}
 
@@ -152,6 +199,125 @@ function TraceabilityTab({ projectKey }: { projectKey: string }) {
             ))}
           </div>
         )}
+      </Card>
+    </div>
+  );
+}
+
+// ── BOQ traceability: per-line BIM element + classification + pricing + impact ──
+function BoqTraceabilityTab({ projectKey }: { projectKey: string }) {
+  const { lang } = useI18n();
+  const ar = lang === 'ar';
+  const toast = useToast();
+  const [lines, setLines] = useState<BoqLineRecord[]>([]);
+  const [currency, setCurrency] = useState('AED');
+  const [loaded, setLoaded] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<BoqTraceabilityPanelResponse | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api<BoqCurrentResponse>(`/boq/${encodeURIComponent(projectKey)}/current`)
+      .then((r) => { setLines(r.items ?? []); setCurrency(r.boq?.currency ?? 'AED'); })
+      .catch(() => { setLines([]); })
+      .finally(() => setLoaded(true));
+  }, [projectKey]);
+
+  const trace = async (id: string) => {
+    if (openId === id) { setOpenId(null); setPanel(null); return; }
+    setBusyId(id); setOpenId(id); setPanel(null);
+    try { setPanel(await api<BoqTraceabilityPanelResponse>(`/quantity-survey/boq/${encodeURIComponent(id)}/traceability`)); }
+    catch (e) { toast.error(ar ? 'تعذّر تحميل لوحة التتبّع' : 'Failed to load traceability panel', (e as Error).message); setOpenId(null); }
+    finally { setBusyId(null); }
+  };
+
+  const dash = (v: string | null) => (v === null || v === '' ? '—' : v);
+
+  if (!loaded) return <p className="text-sm text-slate-400">{ar ? 'جارٍ التحميل…' : 'Loading…'}</p>;
+  if (lines.length === 0) {
+    return <EmptyState title={ar ? 'لا يوجد جدول كميات' : 'No BOQ on record'} description={ar ? 'استورد جدول كميات للمشروع لرؤية تتبّع كل بند (عنصر BIM، التصنيف، مصدر التسعير، أثر التعارض/التغيير).' : 'Import a BOQ for this project to trace each line (BIM element, classification, pricing source, clash/variation impact).'} />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card
+        title={ar ? 'لوحة تتبّع بنود جدول الكميات' : 'BOQ line traceability panel'}
+        hint={ar ? 'لكل بند: مصدر الكمية (عنصر BIM) ← رمز التصنيف ← مكتبة/مصدر التسعير ← أثر التعارض أو التغيير على التكلفة ← سلسلة السجلّ.' : 'Per line: quantity source (BIM element) → classification code → pricing library/source → clash/variation cost impact → ledger chain.'}
+      >
+        <div className="space-y-2">
+          {lines.map((l) => (
+            <div key={l.id} className="rounded-xl border border-slate-700/70 bg-slate-900/60">
+              <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <Pill tone="sky">{l.itemNumber}</Pill>
+                <span className="flex-1 truncate text-sm text-slate-100">{l.description}</span>
+                <span className="font-mono text-xs tabular-nums text-slate-300" dir="ltr">{Number(l.quantity).toLocaleString()} {l.unit}</span>
+                <span className="font-mono text-sm tabular-nums text-emerald-300" dir="ltr">{currency} {Number(l.amount).toLocaleString()}</span>
+                <Button variant="ghost" size="sm" disabled={busyId === l.id} onClick={() => trace(l.id)}>
+                  {busyId === l.id ? (ar ? 'جارٍ…' : '…') : openId === l.id ? (ar ? 'إخفاء' : 'Hide') : (ar ? 'أثر/تتبّع' : 'Trace')}
+                </Button>
+              </div>
+              {openId === l.id && panel && (
+                <div className="space-y-3 border-t border-slate-800 px-4 py-3">
+                  {/* Quantity source — BIM element + origin. */}
+                  <section>
+                    <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{ar ? 'مصدر الكمية' : 'Quantity source'}</h4>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-300">
+                      <span>{ar ? 'المصدر' : 'origin'}: <span className="text-slate-100">{dash(panel.quantitySource.originType)}</span></span>
+                      <span>{ar ? 'المرجع' : 'ref'}: <span className="font-mono text-slate-100" dir="ltr">{dash(panel.quantitySource.originRef)}</span></span>
+                      <span>{ar ? 'عنصر BIM' : 'BIM element'}: <span className="font-mono text-sky-300" dir="ltr">{dash(panel.quantitySource.bimElementGuid)}</span></span>
+                      <span>{ar ? 'الطريقة' : 'method'}: <span className="text-slate-100">{dash(panel.quantitySource.method)}</span></span>
+                    </div>
+                  </section>
+                  {/* Classification + pricing. */}
+                  <section className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-300">
+                    <span>{ar ? 'التصنيف' : 'Classification'}: <Pill tone="violet">{dash(panel.classification.standard)}</Pill> <span className="font-mono text-sky-300" dir="ltr">{dash(panel.classification.code)}</span></span>
+                    <span>{ar ? 'السعر' : 'Rate'}: <span className="font-mono text-emerald-300" dir="ltr">{panel.pricing.currency} {Number(panel.pricing.unitRate).toLocaleString()}</span></span>
+                    <span>{ar ? 'مكتبة التسعير' : 'pricing library'}: <span className="text-slate-100">{dash(panel.pricing.library)}</span></span>
+                    <span>{ar ? 'مصدر السعر' : 'price source'}: <span className="text-slate-100">{dash(panel.pricing.source)}</span></span>
+                  </section>
+                  {/* Clash / variation impact on cost. */}
+                  <section>
+                    <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{ar ? 'أثر التعارض / التغيير على التكلفة' : 'Clash / variation impact on cost'}</h4>
+                    {panel.impacts.length === 0 ? (
+                      <p className="text-xs text-slate-500">{ar ? 'لا يوجد أثر مسجّل لهذا البند.' : 'No recorded impact on this line.'}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {panel.impacts.map((im, i) => (
+                          <div key={i} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-700/70 bg-slate-900/60 px-3 py-1.5 text-xs">
+                            <Pill tone={im.kind === 'clash' ? 'rose' : 'amber'}>{im.kind === 'clash' ? (ar ? 'تعارض' : 'clash') : (ar ? 'تغيير' : 'variation')}</Pill>
+                            <span className="font-mono text-slate-300" dir="ltr">{im.ref}</span>
+                            <span className="flex-1 text-slate-300">{im.note}</span>
+                            {im.costImpact !== null && <span className="font-mono text-amber-300" dir="ltr">{currency} {im.costImpact.toLocaleString()}</span>}
+                            {im.timeImpactDays !== null && <span className="text-slate-400" dir="ltr">{im.timeImpactDays} {ar ? 'يوم' : 'd'}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                  {/* Append-only ledger chain. */}
+                  <section>
+                    <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{ar ? 'سلسلة السجلّ' : 'Ledger chain'}</h4>
+                    {panel.ledger.length === 0 ? (
+                      <p className="text-xs text-slate-500">{ar ? 'لا توجد قيود مسجّلة لهذا البند.' : 'No ledger entries recorded for this line.'}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {panel.ledger.map((e) => (
+                          <div key={e.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs">
+                            <Pill tone="slate">{e.dimension}</Pill>
+                            <span className="w-24 text-slate-200">{e.stage}</span>
+                            <span className="font-mono text-emerald-300" dir="ltr">{Number(e.value).toLocaleString()} {e.unit ?? ''}</span>
+                            <span className="text-slate-400">{ar ? 'المصدر' : 'origin'}: {e.originType}</span>
+                            {e.approvedBy && <span className="text-slate-400">{ar ? 'اعتمده' : 'by'}: {e.approvedBy}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );

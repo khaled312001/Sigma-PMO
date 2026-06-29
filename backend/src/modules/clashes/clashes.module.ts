@@ -9,6 +9,7 @@ import { SimulationModule } from '../simulation/simulation.module';
 import { BimController } from './bim.controller';
 import { BimModelService } from './bim-model.service';
 import { ClashIngestionService } from './clash-ingestion.service';
+import { ClashPdfService } from './clash-pdf.service';
 import { ClashSolutionProposer } from './clash-solution-proposer.service';
 import { ClashSolutionProposerController } from './clash-solution-proposer.controller';
 import { ClashesController } from './clashes.controller';
@@ -55,6 +56,7 @@ import { ClashExcelParser } from './parsers/clash-excel.parser';
   controllers: [ClashesController, ClashSolutionProposerController, BimController],
   providers: [
     ClashIngestionService,
+    ClashPdfService,
     ClashExcelParser,
     ClashSolutionProposer,
     BimModelService,

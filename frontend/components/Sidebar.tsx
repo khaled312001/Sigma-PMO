@@ -106,6 +106,7 @@ const DOCS: NavLink[] = [
   { href: '/repository',  labelKey: 'nav.repository', surface: 'input',    icon: IconDatabase,  visible: read },
   { href: '/drawings',    labelKey: 'nav.drawings',   surface: 'input',    icon: IconUpload,    visible: read },
   { href: '/clashes',     labelKey: 'nav.clashes',    surface: 'review',   icon: IconReview,    visible: read },
+  { href: '/site-evidence', labelKey: 'nav.siteEvidence', surface: 'evidence', icon: IconEvidence, badge: 'new', visible: read },
   { href: '/baselines',   labelKey: 'nav.baselines',  surface: 'planning', icon: IconActivity,  visible: read },
   { href: '/simulation',  labelKey: 'nav.simulation', surface: 'planning', icon: IconSparkles,  visible: cap('canSimulate') },
   { href: '/comparison',  labelKey: 'nav.comparison', surface: 'insights', icon: IconSparkles,  visible: govern },

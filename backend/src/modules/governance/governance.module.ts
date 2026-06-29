@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ConfidenceService } from './confidence.service';
+import { DecisionEnvelopeService } from './decision-envelope.service';
 import { DecisionReviewService } from './decision-review.service';
 import { EvidenceService } from './evidence.service';
 import { GovernanceController } from './governance.controller';
@@ -19,6 +20,7 @@ import { GovernanceTraceService } from './governance-trace.service';
     GovernancePolicyService,
     GovernanceDecisionService,
     DecisionReviewService,
+    DecisionEnvelopeService,
     GovernanceTraceService,
   ],
   exports: [
@@ -27,6 +29,7 @@ import { GovernanceTraceService } from './governance-trace.service';
     GovernancePolicyService,
     GovernanceDecisionService,
     DecisionReviewService,
+    DecisionEnvelopeService,
     GovernanceTraceService,
   ],
 })

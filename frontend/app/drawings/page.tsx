@@ -56,8 +56,33 @@ interface BimModelRow {
   };
 }
 
+/** GET /integrations/autodesk/status — UI-friendly connector status (no secrets). */
+interface ApsStatus {
+  enabled: boolean;
+  credentialSource: 'db' | 'env' | 'none';
+  configuredVia: 'settings' | 'env' | null;
+  baseUrl: string;
+  requiredEnv: string[];
+  reachable: boolean | null;
+  detail: string | null;
+}
+
+/** POST /integrations/autodesk/import → { result, record }. */
+interface ApsImportResult {
+  urn: string;
+  status: 'pending' | 'inprogress' | 'success' | 'failed' | 'timeout';
+  objectCount: number;
+  counts: Record<string, number>;
+  categories: Record<string, number>;
+}
+interface ApsImportResponse {
+  result: ApsImportResult;
+  record: { id: string; refNumber: string; projectBusinessKey?: string };
+}
+
 const MAX_BYTES = 24 * 1024 * 1024;
 const MAX_IFC_BYTES = 50 * 1024 * 1024;
+const MAX_APS_BYTES = 50 * 1024 * 1024;
 
 export default function DrawingsRoute() {
   return (
@@ -181,6 +206,13 @@ function DrawingsPage() {
         models={bimModels}
         onUploaded={refresh}
       />
+
+      <AutodeskApsSection
+        projectKey={projectKey}
+        canIngest={canIngest}
+        uploadedBy={me?.user?.displayName ?? null}
+        onImported={refresh}
+      />
     </div>
   );
 }
@@ -240,6 +272,314 @@ function BimSection({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Autodesk APS section — the live DWG/RVT translation path (R3). Shows whether
+ * the connector is configured (ENABLED/DISABLED, never a secret), lets a user
+ * translate a DWG/RVT/IFC via the Model Derivative API, and renders the job
+ * result (urn, status, object/element counts, categories, errors) with links to
+ * the clash + BOQ surfaces once a model lands. When disabled it explains exactly
+ * which env vars to set and that IFC keeps working natively today.
+ */
+function AutodeskApsSection({
+  projectKey,
+  canIngest,
+  uploadedBy,
+  onImported,
+}: {
+  projectKey: string;
+  canIngest: boolean;
+  uploadedBy: string | null;
+  onImported: () => Promise<void> | void;
+}) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
+  const toast = useToast();
+
+  const [status, setStatus] = useState<ApsStatus | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState<ApsImportResult | null>(null);
+  const [resultError, setResultError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
+
+  const loadStatus = useCallback(async () => {
+    setStatusError(null);
+    try {
+      setStatus(await api<ApsStatus>('/integrations/autodesk/status'));
+    } catch (e) {
+      setStatus(null);
+      setStatusError((e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStatus();
+  }, [loadStatus]);
+
+  const enabled = !!status?.enabled;
+  const requiredEnv = status?.requiredEnv ?? ['AUTODESK_CLIENT_ID', 'AUTODESK_CLIENT_SECRET'];
+
+  const setFileSafe = (f: File | null) => {
+    if (!f) { setFile(null); return; }
+    if (!/\.(dwg|rvt|ifc|zip)$/i.test(f.name)) {
+      toast.error(
+        isAr ? 'صيغة غير مدعومة' : 'Unsupported file',
+        isAr
+          ? 'يقبل تحويل APS ملفات DWG / RVT / IFC (أو ‎.zip لمجموعة مرتبطة).'
+          : 'APS translation accepts DWG / RVT / IFC (or .zip for a linked set).',
+      );
+      return;
+    }
+    if (f.size > MAX_APS_BYTES) {
+      toast.error(
+        isAr ? 'الملف أكبر من الحدّ المسموح' : 'File too large',
+        isAr
+          ? `${(f.size / 1024 / 1024).toFixed(1)} ميغابايت تتجاوز حدّ الـ 50 ميغابايت.`
+          : `${(f.size / 1024 / 1024).toFixed(1)} MB exceeds the 50 MB limit.`,
+      );
+      return;
+    }
+    setFile(f);
+  };
+
+  const runImport = async () => {
+    if (!file) return;
+    setImporting(true);
+    setResult(null);
+    setResultError(null);
+    try {
+      const buf = await file.arrayBuffer();
+      let bin = '';
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i]);
+      const r = await api<ApsImportResponse>('/integrations/autodesk/import', {
+        method: 'POST',
+        body: JSON.stringify({ projectKey, filename: file.name, contentBase64: btoa(bin), uploadedBy }),
+      });
+      setResult(r.result);
+      setFile(null);
+      if (r.result.status === 'failed' || r.result.status === 'timeout') {
+        setResultError(
+          isAr
+            ? `انتهى التحويل بالحالة "${r.result.status}". راجع رقم الـ URN لدى Autodesk، أو حاول مجدّداً.`
+            : `Translation ended with status "${r.result.status}". Inspect the URN at Autodesk or retry.`,
+        );
+        toast.error(isAr ? 'فشل التحويل' : 'Translation failed', r.result.status);
+      } else {
+        toast.success(
+          isAr ? 'اكتمل تحويل النموذج' : 'Model translation done',
+          isAr
+            ? `${totalGoverned(r.result.counts)} عنصر محكوم · الحالة ${r.result.status}`
+            : `${totalGoverned(r.result.counts)} governed element(s) · status ${r.result.status}`,
+        );
+      }
+      await onImported();
+    } catch (e) {
+      setResultError((e as Error).message);
+      toast.error(isAr ? 'فشل التحويل' : 'Translation failed', (e as Error).message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 border-t border-slate-800 pt-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">
+            {isAr ? 'Autodesk APS · تحويل DWG·RVT' : 'Autodesk APS · DWG/RVT translation'}
+          </h2>
+          <p className="mt-0.5 max-w-3xl text-sm text-slate-400">
+            {isAr ? (
+              <>
+                استخراج هندسة وكمّيات ملفات <span dir="ltr">DWG</span> و<span dir="ltr">RVT</span> يجري عبر
+                واجهة <span dir="ltr">Model Derivative</span> من Autodesk APS (مصادقة ثنائية الطرف). تُترجَم
+                النماذج إلى عدادات عناصر تُغذّي مسح الكمّيات وجدول الكمّيات (BOQ) والكلفة. أما ملفات
+                <span dir="ltr"> IFC</span> فتعمل محلياً اليوم دون APS.
+              </>
+            ) : (
+              <>
+                Extracting geometry and quantities from <span dir="ltr">DWG</span> and <span dir="ltr">RVT</span> runs
+                through Autodesk APS&rsquo;s <span dir="ltr">Model Derivative</span> API (2-legged OAuth). Models are
+                translated into element counts that feed Quantity Survey, the BOQ and cost. <span dir="ltr">IFC</span>{' '}
+                files already work natively today without APS.
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {status === null ? (
+            <Pill tone="slate">{isAr ? 'جارٍ فحص الحالة…' : 'Checking…'}</Pill>
+          ) : enabled ? (
+            <Pill tone="emerald">{isAr ? 'APS مُهيّأ' : 'APS configured'}</Pill>
+          ) : (
+            <Pill tone="amber">{isAr ? 'APS غير مُهيّأ' : 'APS not configured'}</Pill>
+          )}
+          <Button variant="ghost" size="sm" onClick={() => void loadStatus()}>
+            <IconRefresh className="h-3.5 w-3.5" /> {isAr ? 'تحديث' : 'Refresh'}
+          </Button>
+        </div>
+      </div>
+
+      <ErrorBanner message={statusError} />
+
+      {status && !enabled && (
+        <Card title={isAr ? 'إعداد APS مطلوب' : 'APS configuration required'}>
+          <div className="space-y-2 text-sm text-slate-300">
+            <p>
+              {isAr
+                ? 'لتفعيل تحويل DWG/RVT من جهة الخادم، اضبط متغيّري البيئة التاليين على الخادم (أو من شاشة /admin/settings المشفّرة). لا تُعرض المفاتيح هنا أبداً:'
+                : 'To enable server-side DWG/RVT translation, set the following environment variables on the server (or via the encrypted /admin/settings screen). Keys are never shown here:'}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {requiredEnv.map((v) => (
+                <span key={v} className="inline-flex items-center rounded-md bg-slate-800/70 px-2 py-0.5 font-mono text-[11px] text-slate-200 ring-1 ring-slate-700" dir="ltr">{v}</span>
+              ))}
+            </div>
+            <p className="text-[12px] text-slate-400">
+              {isAr
+                ? 'تُستخدم واجهة Model Derivative بمصادقة ثنائية الطرف (client_credentials)، لذا لا حاجة إلى عنوان رد نداء (callback) ولا إلى نطاقات ثلاثية الطرف. (المتغيّر AUTODESK_BASE_URL اختياري.)'
+                : 'This uses the Model Derivative API with 2-legged (client_credentials) auth, so no callback URL and no 3-legged scopes are needed. (AUTODESK_BASE_URL is optional.)'}
+            </p>
+            <p className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-[12px] text-sky-100">
+              {isAr
+                ? 'حتى يُهيّأ APS، تظلّ ملفات IFC (STEP) تعمل محلياً اليوم: تُحصى العناصر وتُجرى فحوصات التحقّق والتعارضات عبر المحرّك الأصلي.'
+                : 'Until APS is configured, IFC (STEP) files still work natively today: elements are counted and validation + clash checks run on the built-in engine.'}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      <Card
+        title={isAr ? 'تحويل نموذج DWG / RVT / IFC عبر APS' : 'Translate a DWG / RVT / IFC via APS'}
+        hint={
+          enabled
+            ? (isAr ? `يُكتب الناتج في نفس مساحة BIM للمشروع ${projectKey}.` : `Output is written to the same BIM surface for project ${projectKey}.`)
+            : (isAr ? 'مُعطّل حتى تُضبط بيانات اعتماد APS.' : 'Disabled until APS credentials are set.')
+        }
+      >
+        <div className={`flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed px-5 py-5 ${(!canIngest || !enabled) ? 'border-slate-800 bg-slate-900/20 opacity-60' : 'border-slate-700 bg-slate-900/30'}`}>
+          <div className="grid h-11 w-11 place-items-center rounded-full bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30">
+            <IconUpload className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            {file ? (
+              <p className="text-sm font-medium text-slate-100" dir="ltr">{file.name} <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span></p>
+            ) : (
+              <p className="text-sm text-slate-200">{isAr ? 'اختر ملف DWG / RVT / IFC لتحويله عبر APS.' : 'Choose a DWG / RVT / IFC file to translate via APS.'}</p>
+            )}
+          </div>
+          <input ref={fileInput} type="file" accept=".dwg,.rvt,.ifc,.zip" className="hidden" disabled={!canIngest || !enabled}
+            onChange={(e) => setFileSafe(e.target.files?.[0] ?? null)} aria-label={isAr ? 'نموذج للتحويل عبر APS' : 'Model to translate via APS'} />
+          <Button variant="ghost" size="sm" disabled={!canIngest || !enabled} onClick={() => fileInput.current?.click()}>{isAr ? 'تصفّح' : 'Browse'}</Button>
+          <Button variant="primary" size="sm" disabled={!canIngest || !enabled || !file || importing} onClick={runImport}>
+            {importing ? (isAr ? 'جارٍ التحويل…' : 'Translating…') : (isAr ? 'تحويل عبر APS' : 'Translate via APS')}
+          </Button>
+        </div>
+        {importing && (
+          <p className="mt-3 text-[12px] text-slate-400">
+            {isAr
+              ? 'يجري الرفع إلى Autodesk وبدء مهمّة Model Derivative والاستطلاع حتى الاكتمال — قد يستغرق ذلك من ثوانٍ إلى دقائق بحسب حجم النموذج.'
+              : 'Uploading to Autodesk, starting the Model Derivative job and polling until done — this can take seconds to minutes depending on model size.'}
+          </p>
+        )}
+      </Card>
+
+      {resultError && <ErrorBanner message={resultError} />}
+
+      {result && (
+        <ApsResultCard result={result} />
+      )}
+    </div>
+  );
+}
+
+/** Render one APS translation job result: urn, status, counts, categories + links. */
+function ApsResultCard({ result }: { result: ApsImportResult }) {
+  const { lang } = useI18n();
+  const isAr = lang === 'ar';
+  const failed = result.status === 'failed' || result.status === 'timeout';
+  const counts = result.counts ?? {};
+  const categories = Object.entries(result.categories ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const countLabels: [string, string][] = isAr
+    ? [
+        ['storeys', 'الطوابق'], ['spaces', 'الفراغات'], ['walls', 'الجدران'], ['slabs', 'البلاطات'],
+        ['columns', 'الأعمدة'], ['beams', 'الكمرات'], ['doors', 'الأبواب'], ['windows', 'النوافذ'],
+      ]
+    : [
+        ['storeys', 'Storeys'], ['spaces', 'Spaces'], ['walls', 'Walls'], ['slabs', 'Slabs'],
+        ['columns', 'Columns'], ['beams', 'Beams'], ['doors', 'Doors'], ['windows', 'Windows'],
+      ];
+
+  return (
+    <Card padded={false}>
+      <div className="space-y-3 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-slate-100">{isAr ? 'نتيجة مهمّة التحويل' : 'Translation job result'}</span>
+          <Pill tone={failed ? 'rose' : result.status === 'success' ? 'emerald' : 'amber'}>{result.status}</Pill>
+          <Pill tone="slate">{isAr ? `${result.objectCount} كائن` : `${result.objectCount} object(s)`}</Pill>
+          <Pill tone="sky">{isAr ? `${totalGoverned(counts)} عنصر محكوم` : `${totalGoverned(counts)} governed`}</Pill>
+        </div>
+
+        <div className="text-[11px] text-slate-400">
+          <span className="font-semibold text-slate-300">{isAr ? 'معرّف المهمّة (URN):' : 'Job id (URN):'}</span>{' '}
+          <span className="break-all font-mono text-slate-300" dir="ltr">{result.urn}</span>
+        </div>
+
+        {!failed && (
+          <div className="flex flex-wrap gap-1.5">
+            {countLabels.map(([k, l]) => (
+              <span key={k} className="inline-flex items-center gap-1 rounded-md bg-slate-800/70 px-2 py-0.5 text-[11px] text-slate-200 ring-1 ring-slate-700">
+                {l} <span className="font-mono text-slate-400">{counts[k] ?? 0}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {!failed && categories.length > 0 && (
+          <div>
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{isAr ? 'الفئات' : 'Categories'}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map(([name, n]) => (
+                <span key={name} className="inline-flex items-center gap-1 rounded-md bg-slate-800/50 px-2 py-0.5 text-[11px] text-slate-300 ring-1 ring-slate-800" dir="ltr">
+                  {name} <span className="font-mono text-slate-500">{n}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {failed && (
+          <p className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-[12px] text-rose-100">
+            {isAr
+              ? 'لم ينتج التحويل عناصر قابلة للاستخدام. تحقّق من سلامة الملف (DWG/RVT صالح) ومن صحّة بيانات اعتماد APS، ثم أعد المحاولة.'
+              : 'The translation produced no usable elements. Check the file is a valid DWG/RVT and the APS credentials are correct, then retry.'}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <a href="/clashes" className="text-[13px] text-sky-300 underline-offset-2 hover:underline">
+            {isAr ? 'عرض التعارضات' : 'View clashes'}
+          </a>
+          <span className="text-slate-700">·</span>
+          <a href="/quantity-survey" className="text-[13px] text-sky-300 underline-offset-2 hover:underline">
+            {isAr ? 'عرض جدول الكمّيات (BOQ)' : 'View BOQ'}
+          </a>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/** Sum the eight governed BimCounts families (matches the backend totalElements). */
+function totalGoverned(counts: Record<string, number>): number {
+  return ['walls', 'slabs', 'columns', 'beams', 'doors', 'windows', 'spaces'].reduce(
+    (sum, k) => sum + (counts[k] ?? 0),
+    0,
   );
 }
 

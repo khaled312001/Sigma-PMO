@@ -26,6 +26,8 @@ import {
   ClassificationStandard,
 } from './cost-classification';
 import { BoqIntelligenceService } from './boq-intelligence.service';
+import { BoqTraceabilityService } from './boq-traceability.service';
+import type { BoqTraceabilityPanel } from './boq-traceability.service';
 import { MeasurementService } from './measurement.service';
 import { QsGovernanceService } from './qs-governance.service';
 import { QuantitySurveyAgentService } from './quantity-survey-agent.service';
@@ -48,6 +50,7 @@ export class QuantitySurveyController {
   constructor(
     private readonly qs: QuantitySurveyService,
     private readonly boq: BoqIntelligenceService,
+    private readonly boqTraceability: BoqTraceabilityService,
     private readonly measurement: MeasurementService,
     private readonly governance: QsGovernanceService,
     private readonly traceability: TraceabilityService,
@@ -177,6 +180,19 @@ export class QuantitySurveyController {
     bids: Array<{ bidder: string; rates: Record<string, number> }>;
   }): unknown {
     return this.boq.compareBids(body);
+  }
+
+  /**
+   * Per-BOQ-line traceability panel (Req 5, Mr. Ayham): for one line, where the
+   * quantity came from (BIM element / origin), its classification code, the
+   * pricing library/source behind the rate, the clash/variation impacts on its
+   * cost, and the append-only ledger chain. Deterministic; nulls where unknown.
+   */
+  @Get('boq/:boqItemId/traceability')
+  @RequiresCapability('canRead')
+  boqTraceabilityPanel(@Param('boqItemId') boqItemId: string): Promise<BoqTraceabilityPanel> {
+    if (!boqItemId) throw new BadRequestException('boqItemId is required');
+    return this.boqTraceability.panel(boqItemId);
   }
 
   // ── Measurement (post-contract) ──

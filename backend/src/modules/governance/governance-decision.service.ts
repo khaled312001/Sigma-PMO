@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 
 import { daysBetween } from '../../common/dates';
 import { Alert, GovernanceDecision, GovernancePolicy } from '../canonical/entities';
+import { deriveDecisionCategory } from './decision-category';
 import { GovernancePolicyConfig } from './default-policy';
 import { GovernancePolicyService } from './governance-policy.service';
 
@@ -106,6 +107,9 @@ export class GovernanceDecisionService {
     entity.notifyParties = notifyParties;
     entity.interventions = interventions;
     entity.rationale = rationaleParts.join(' ');
+    // R7: classify the decision domain deterministically (alert code + FIDIC
+    // clause). financial | contractual | safety can NEVER be auto-approved.
+    entity.category = deriveDecisionCategory(alert.code, entity.fidicClause);
     return entity;
   }
 }

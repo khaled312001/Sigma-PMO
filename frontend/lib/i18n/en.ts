@@ -25,6 +25,7 @@ export const en: Dictionary = {
     governance: 'Governance',
     clashes: 'Clashes',
     drawings: 'Drawings',
+    siteEvidence: 'Site Evidence',
     letters: 'Letters',
     sources: 'Source registry',
     simulation: 'Simulation',
@@ -539,7 +540,7 @@ export interface Dictionary {
     superSubscriptions: string;
     superRequests: string;
     engineering: string; governance: string;
-    clashes: string; drawings: string; letters: string; sources: string; simulation: string;
+    clashes: string; drawings: string; siteEvidence: string; letters: string; sources: string; simulation: string;
     comparison: string;
     hierarchy: string;
     knowledge: string;

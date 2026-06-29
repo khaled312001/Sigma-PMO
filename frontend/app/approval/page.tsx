@@ -11,6 +11,7 @@ import { DecisionCard } from '../../components/DecisionCard';
 import { useI18n } from '../../lib/i18n';
 import { IconCheck, IconX } from '../../components/Icons';
 import { Button, Card, EmptyState, PageHeader, Pill } from '../../components/ui';
+import { CategoryBadge, HumanApprovalNotice, RecommendationEnvelope, type DecisionCategory } from './RecommendationEnvelope';
 
 /**
  * GovernanceDecision enriched by GET /governance/decisions with the
@@ -26,6 +27,10 @@ type EnrichedDecision = GovernanceDecision & {
   pendingAgeDays?: number | null;
   escalateAfterDays?: number;
   escalated?: boolean;
+  // R7 — decision domain + NO-auto-approval flags (from GET /governance/decisions).
+  category?: DecisionCategory | null;
+  requiresHumanApproval?: boolean;
+  autoApprovalBlocked?: boolean;
 };
 
 interface Row {
@@ -140,6 +145,12 @@ function ApprovalPage() {
               decision={decision}
               latestReview={latestReview}
               actions={<div className="flex w-full flex-col gap-3">
+                {/* R7 — category + "requires human approval / no auto-approval". */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <CategoryBadge category={decision.category} ar={ar} />
+                  <HumanApprovalNotice category={decision.category} autoApprovalBlocked={decision.autoApprovalBlocked} ar={ar} />
+                </div>
+                <RecommendationEnvelope decisionId={decision.id} ar={ar} />
                 <ChainBar decision={decision} ar={ar} />
                 <div className="flex flex-wrap gap-2">
                   <Button variant="success" size="sm" disabled={acting === decision.id} onClick={() => act(decision.id, 'approve')}>

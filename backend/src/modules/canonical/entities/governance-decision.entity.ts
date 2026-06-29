@@ -48,6 +48,17 @@ export class GovernanceDecision extends UuidEntity {
   @Column({ type: 'text' })
   rationale!: string;
 
+  /**
+   * Decision domain (Req R7, Mr. Ayham acceptance) — derived deterministically
+   * from the triggering alert (FIDIC clause / alert code). Drives the
+   * NO-auto-approval guard: `financial` | `contractual` | `safety` can NEVER be
+   * auto-approved and require an explicit human action. Other values
+   * (`schedule` | `quality` | `operational` | `general`) still require human
+   * approval but are not in the hard-blocked set. Null on legacy rows.
+   */
+  @Column({ type: 'varchar', length: 24, nullable: true })
+  category!: string | null;
+
   /** Threads the cross-module journey (sketch → … → decision) together. */
   @Index()
   @Column({ type: 'char', length: 36, nullable: true })

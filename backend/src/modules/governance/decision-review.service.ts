@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { Alert, DecisionReview, GovernanceDecision, User } from '../canonical/entities';
+import { deriveDecisionCategory, isAutoApprovalBlocked } from './decision-category';
 
 const ALLOWED_ACTIONS = new Set(['approve', 'reject', 'acknowledge']);
 
@@ -45,6 +46,16 @@ export interface ReviewRecordResult {
   requiresDualApproval: boolean;
   /** Approvals still needed to reach `approved` (0 when already approved). */
   approvalsRemaining: number;
+  /**
+   * R7 hard block: true for financial | contractual | safety decisions. The
+   * system can NEVER auto-approve these — they always require an explicit human
+   * action (which this very method enforces, since there is no auto-approve
+   * path) AND they require two distinct approvers (dual approval), exactly like
+   * critical-severity decisions.
+   */
+  autoApprovalBlocked: boolean;
+  /** The derived decision domain (financial | contractual | safety | …). */
+  category: string | null;
 }
 
 @Injectable()
@@ -65,6 +76,13 @@ export class DecisionReviewService {
    * `approve` by a DIFFERENT actor lands it in `approved`. A second `approve`
    * by the SAME actor is rejected with 409 — one person cannot self-quorum a
    * critical governance decision.
+   *
+   * R7 NO-auto-approval guard: there is NO auto-approve code path anywhere — an
+   * approval only ever materialises through this method, attributed to an
+   * authenticated human actor. For sensitive categories (financial | contractual
+   * | safety) we additionally require dual approval (two distinct humans), the
+   * same quorum critical decisions demand, so the system can never auto-approve
+   * a money / contract / safety decision on a single signature.
    */
   async record(
     decisionId: string,
@@ -83,7 +101,13 @@ export class DecisionReviewService {
     if (!decision) throw new NotFoundException(`Decision ${decisionId} not found`);
 
     const alert = await this.alerts.findOne({ where: { id: decision.alertId } });
-    const requiresDualApproval = alert?.severity === 'critical';
+    // R7: classify the decision (persisted category, or derive for legacy rows).
+    const category = decision.category ?? deriveDecisionCategory(alert?.code ?? null, decision.fidicClause);
+    const autoApprovalBlocked = isAutoApprovalBlocked(category);
+    // Dual approval applies to critical-severity decisions AND to the sensitive
+    // R7 categories (financial | contractual | safety) — one human can never
+    // self-quorum any of them.
+    const requiresDualApproval = alert?.severity === 'critical' || autoApprovalBlocked;
     const actorDisplay = actor.displayName ?? actor.email;
 
     // Same-actor second-approval guard for the critical dual-approval chain.
@@ -95,7 +119,7 @@ export class DecisionReviewService {
       );
       if (alreadyApprovedBySameActor) {
         throw new ConflictException(
-          'This critical decision already carries your approval; a SECOND, DISTINCT approver is required.',
+          'This decision already carries your approval; a SECOND, DISTINCT approver is required.',
         );
       }
     }
@@ -119,6 +143,8 @@ export class DecisionReviewService {
       approvals: chain.approvals,
       requiresDualApproval,
       approvalsRemaining: chain.approvalsRemaining,
+      autoApprovalBlocked,
+      category,
     };
   }
 
@@ -156,11 +182,17 @@ export class DecisionReviewService {
     approvals: ChainApproval[];
     requiresDualApproval: boolean;
     approvalsRemaining: number;
+    autoApprovalBlocked: boolean;
+    category: string | null;
   }> {
     const decision = await this.decisions.findOne({ where: { id: decisionId } });
     if (!decision) throw new NotFoundException(`Decision ${decisionId} not found`);
     const alert = await this.alerts.findOne({ where: { id: decision.alertId } });
-    const requiresDualApproval = alert?.severity === 'critical';
+    // R7: financial | contractual | safety also require dual approval (no
+    // single-signature auto-approval), in addition to critical severity.
+    const category = decision.category ?? deriveDecisionCategory(alert?.code ?? null, decision.fidicClause);
+    const autoApprovalBlocked = isAutoApprovalBlocked(category);
+    const requiresDualApproval = alert?.severity === 'critical' || autoApprovalBlocked;
     const all = await this.reviews.find({ where: { decisionId }, order: { createdAt: 'DESC' } });
     const chain = computeChainState(all, requiresDualApproval);
     return {
@@ -168,18 +200,21 @@ export class DecisionReviewService {
       approvals: chain.approvals,
       requiresDualApproval,
       approvalsRemaining: chain.approvalsRemaining,
+      autoApprovalBlocked,
+      category,
     };
   }
 
   /**
    * Batch chain-state resolver. One SQL round-trip for the reviews of all
-   * supplied decisions; maps each decisionId to its chain state. Decisions
-   * whose triggering alert is critical require dual approval — `criticalDecisionIds`
-   * carries that classification (resolved by the caller from the alert join).
+   * supplied decisions; maps each decisionId to its chain state. Decisions in
+   * `dualApprovalDecisionIds` require two distinct approvers — that set carries
+   * BOTH critical-severity decisions and the R7 sensitive categories (financial
+   * | contractual | safety), resolved by the caller from the alert/category join.
    */
   async chainStatesFor(
     decisionIds: string[],
-    criticalDecisionIds: Set<string>,
+    dualApprovalDecisionIds: Set<string>,
   ): Promise<Record<string, {
     chainState: DecisionChainState;
     approvals: ChainApproval[];
@@ -195,7 +230,7 @@ export class DecisionReviewService {
     if (decisionIds.length === 0) return out;
     const byDecision = await this.listForDecisionMany(decisionIds);
     for (const id of decisionIds) {
-      const requiresDualApproval = criticalDecisionIds.has(id);
+      const requiresDualApproval = dualApprovalDecisionIds.has(id);
       const chain = computeChainState(byDecision[id] ?? [], requiresDualApproval);
       out[id] = {
         chainState: chain.state,

@@ -5,6 +5,7 @@ import { AiAnalysisModule } from '../ai-analysis/ai-analysis.module';
 import { CanonicalModule } from '../canonical/canonical.module';
 import { OutboxModule } from '../outbox/outbox.module';
 import { BoqIntelligenceService } from './boq-intelligence.service';
+import { BoqTraceabilityService } from './boq-traceability.service';
 import { CostEstimationService } from './cost-estimation.service';
 import { MeasurementService } from './measurement.service';
 import { QsGovernanceService } from './qs-governance.service';
@@ -26,6 +27,7 @@ import { TraceabilityService } from './traceability.service';
   providers: [
     CostEstimationService,
     BoqIntelligenceService,
+    BoqTraceabilityService,
     MeasurementService,
     QsGovernanceService,
     QuantitySurveyService,

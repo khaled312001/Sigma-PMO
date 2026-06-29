@@ -40,4 +40,28 @@ export class BoqItem extends UuidEntity {
   /** Optional link to an `Activity.businessKey` for cross-grounding. */
   @Column({ type: 'varchar', length: 64, nullable: true })
   activityRef!: string | null;
+
+  // ── Provenance columns (Req 5, Mr. Ayham acceptance) — make the per-line
+  // traceability link explicit going forward so the BOQ traceability panel can
+  // answer, deterministically, where each quantity came from, how it was
+  // classified, and which pricing library/source set the rate. All
+  // nullable/additive; populated by the importer + classifier as data arrives.
+  // The assembly endpoint falls back to the lifecycle ledger + CostEstimate
+  // elements when these are null (never fabricates). ──
+
+  /** GUID of the BIM element this quantity was measured from (IFC GlobalId / Revit id). */
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  bimElementGuid!: string | null;
+
+  /** Classification standard the code below belongs to (NRM | UNIFORMAT | MASTERFORMAT | CESMM). */
+  @Column({ type: 'varchar', length: 16, nullable: true })
+  classificationStandard!: string | null;
+
+  /** Classification code within that standard (e.g. NRM "2", UniFormat "B2010"). */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  classificationCode!: string | null;
+
+  /** Which rate/pricing library or source set the `unitRate` (e.g. "sigma-benchmark", "tender"). */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  pricingLibrary!: string | null;
 }
