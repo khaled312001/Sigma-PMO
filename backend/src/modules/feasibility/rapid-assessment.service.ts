@@ -36,9 +36,20 @@ export class RapidAssessmentService {
     private readonly model: FinancialModelService,
   ) {}
 
-  async assess(opportunityId: string, createdBy?: string | null): Promise<FeasibilityAssessment> {
+  async assess(
+    opportunityId: string,
+    createdBy?: string | null,
+    projectBusinessKey?: string | null,
+  ): Promise<FeasibilityAssessment> {
     const opp = await this.opportunities.findOne({ where: { id: opportunityId } });
     if (!opp) throw new NotFoundException(`Opportunity ${opportunityId} not found`);
+
+    // Project scope: explicit arg wins; else inherit from the opportunity's
+    // inputs.projectBusinessKey when the idea is tied to a delivery project.
+    const oppInputs = opp.inputs ?? {};
+    const projectKey =
+      projectBusinessKey ??
+      (typeof oppInputs.projectBusinessKey === 'string' ? oppInputs.projectBusinessKey : null);
 
     const assumptions = PROJECT_TYPE_ASSUMPTIONS[opp.projectType];
     if (!assumptions) {
@@ -137,6 +148,7 @@ export class RapidAssessmentService {
     const assessment = this.assessments.create({
       companyId: currentCompanyId(),
       opportunityId: opp.id,
+      projectBusinessKey: projectKey,
       level: 1,
       inputs: {
         capex: Math.round(capex * 100) / 100,

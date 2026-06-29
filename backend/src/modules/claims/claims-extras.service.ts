@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import { Alert, Claim, ClaimEvidenceLink, ContractClauseRule, Letter, Project } from '../canonical/entities';
+import type { ClaimEvidenceSourceRef } from '../canonical/entities/claim-evidence-link.entity';
 import { EvidenceFile } from '../evidence/evidence-file.entity';
 import { EvidenceItem } from '../evidence/evidence-item.entity';
 import { EvidenceRoom } from '../evidence/evidence-room.entity';
+import { ContractRulesService } from '../contract-rules/contract-rules.service';
+import type { EvaluateResult, ProceduralVerdict } from '../contract-rules/contract-rules.service';
 import { ForensicDelayService } from './forensic-delay.service';
 import type { ForensicDelayReport } from './forensic-delay.service';
 import { EntitlementAssessment, EntitlementService } from './entitlement.service';
@@ -39,6 +43,14 @@ export interface ForensicClaimChain {
   fidicClauseVerdict: {
     clauseRef: string | null;
     rule: ContractClauseRule | null;
+    /** preserved / weak / time_barred / pending / indeterminate — computed
+     *  inline from the claim's event/notice dates + the matched rule, when both
+     *  a rule with daysToAct and an event date are available; else null. */
+    verdict: ProceduralVerdict | null;
+    /** The full deterministic evaluation (deadline, withinTime, basis) when computed. */
+    evaluation: EvaluateResult | null;
+    /** Required procedural period in days from the matched rule (when present). */
+    requiredPeriodDays: number | null;
     note: string;
   };
   legs: ForensicChainLeg[];
@@ -76,6 +88,16 @@ const LEG_ORDER = [
   'letter', 'daily_report', 'baseline', 'update', 'photo', 'video',
   'boq_line', 'payment_cert', 'fidic_clause', 'alert', 'decision', 'evidence_item',
 ];
+
+/** Input to POST /claims/:id/links — one cited-evidence link. */
+export interface CreateClaimLinkInput {
+  linkType: string;
+  targetTable: string;
+  targetId: string;
+  sourceRef?: ClaimEvidenceSourceRef | null;
+  note?: string | null;
+  createdBy?: string | null;
+}
 
 export interface ClaimEntitlementRow {
   claim: Claim;
@@ -152,6 +174,7 @@ export class ClaimsExtrasService {
     @InjectRepository(EvidenceFile) private readonly evidenceFiles: Repository<EvidenceFile>,
     private readonly entitlement: EntitlementService,
     private readonly forensic: ForensicDelayService,
+    private readonly contractRules: ContractRulesService,
   ) {}
 
   /** Entitlement screening for every claim on a project. */
@@ -255,15 +278,42 @@ export class ClaimsExtrasService {
       const needle = normalizeClause(claim.fidicClause);
       rule = rules.find((r) => r.clauseRef && normalizeClause(r.clauseRef) === needle) ?? null;
     }
+
+    // Procedural verdict computed INLINE (Mr. Ayham acceptance 2026-06-28): when
+    // a matched rule carries a daysToAct window and the claim has a delay-event
+    // date (or the earliest linked letter as a proxy), evaluate the notice window
+    // here instead of pointing the user at /contract-rules/evaluate.
+    const eventDate = claim.delayEventDate ?? toIsoDate(letterCtx.earliestLetterDate);
+    const actionDate = claim.noticeServedDate ?? toIsoDate(letterCtx.earliestLetterDate);
+    let evaluation: EvaluateResult | null = null;
+    if (rule && rule.daysToAct != null && eventDate) {
+      try {
+        evaluation = this.contractRules.evaluate({
+          eventDate,
+          actionDate: actionDate ?? null,
+          daysToAct: rule.daysToAct,
+        });
+      } catch {
+        evaluation = null; // malformed date — fall back to descriptive note.
+      }
+    }
+
     const fidicClauseVerdict = {
       clauseRef: claim.fidicClause,
       rule,
-      note: rule
-        ? `Claim cites ${rule.clauseRef ?? claim.fidicClause} (${rule.ruleType.replace('_', ' ')}): ${rule.consequence ?? rule.title}.` +
-          (rule.daysToAct != null ? ` Procedural window ${rule.daysToAct} day(s) — run /contract-rules/evaluate with the event + action dates for a preserved/weak/time-barred verdict.` : '')
-        : claim.fidicClause
-          ? `Claim cites ${claim.fidicClause} but no matching active clause rule is on the project register. Seed a FIDIC preset or add the rule for a procedural verdict.`
-          : 'No FIDIC clause is recorded on this claim.',
+      verdict: evaluation ? evaluation.verdict : null,
+      evaluation,
+      requiredPeriodDays: rule?.daysToAct ?? null,
+      note: evaluation && rule
+        ? `Claim cites ${rule.clauseRef ?? claim.fidicClause} (${rule.ruleType.replace('_', ' ')}, ${rule.daysToAct}-day window, deadline ${evaluation.deadline}): ${evaluation.verdict.replace('_', '-')}. ${evaluation.basis}`
+        : rule
+          ? `Claim cites ${rule.clauseRef ?? claim.fidicClause} (${rule.ruleType.replace('_', ' ')}): ${rule.consequence ?? rule.title}.` +
+            (rule.daysToAct != null
+              ? ` Procedural window ${rule.daysToAct} day(s) — record a delayEventDate on the claim (or link a notice letter) for an inline preserved/weak/time-barred verdict.`
+              : '')
+          : claim.fidicClause
+            ? `Claim cites ${claim.fidicClause} but no matching active clause rule is on the project register. Seed a FIDIC preset or add the rule for a procedural verdict.`
+            : 'No FIDIC clause is recorded on this claim.',
     };
 
     return {
@@ -276,6 +326,40 @@ export class ClaimsExtrasService {
       fidicClauseVerdict,
       legs,
     };
+  }
+
+  /**
+   * Write a single cited-evidence link onto a claim (Mr. Ayham acceptance
+   * 2026-06-28 — closing the cited-evidence leg). The link is the explicit,
+   * document-anchored citation `buildEvidenceChain` reads first, so a leg
+   * populates from a real ClaimEvidenceLink row rather than only the
+   * EvidenceRoom category mapping. Idempotent: an identical (linkType,
+   * targetTable, targetId) link is returned instead of duplicated.
+   */
+  async createLink(claimId: string, input: CreateClaimLinkInput): Promise<ClaimEvidenceLink> {
+    const claim = await this.claims.findOne({ where: { id: claimId } });
+    if (!claim) throw new NotFoundException(`No claim "${claimId}"`);
+    if (!input?.linkType?.trim()) throw new BadRequestException('linkType is required');
+    if (!input?.targetTable?.trim()) throw new BadRequestException('targetTable is required');
+    if (!input?.targetId?.toString().trim()) throw new BadRequestException('targetId is required');
+
+    const targetId = String(input.targetId);
+    const existing = await this.evidenceLinks.findOne({
+      where: { claimId, linkType: input.linkType, targetTable: input.targetTable, targetId },
+    });
+    if (existing) return existing;
+
+    const link = this.evidenceLinks.create({
+      companyId: currentCompanyId(),
+      claimId,
+      linkType: input.linkType,
+      targetTable: input.targetTable,
+      targetId,
+      sourceRef: input.sourceRef ?? null,
+      note: input.note ?? null,
+      createdBy: input.createdBy ?? null,
+    });
+    return this.evidenceLinks.save(link);
   }
 
   /**
@@ -354,9 +438,13 @@ export class ClaimsExtrasService {
       estimatedAmount: claim.estimatedAmount,
       basis: claim.basis,
       claimDate: claim.createdAt,
-      noticeLetterDate: letterCtx.earliestLetterDate,
+      // Notice reference: the claim's served-notice date when recorded, else the
+      // earliest linked letter date — so the notice-within-deadline criterion is
+      // evaluated rather than null-skipped (Mr. Ayham acceptance 2026-06-28).
+      noticeLetterDate: claim.noticeServedDate ?? letterCtx.earliestLetterDate,
       noticeDeadlineDays: letterCtx.deadlineDays,
-      delayEventDate: null, // not separately recorded on the claim row
+      // The real delay-event date now flows in (previously hardcoded null).
+      delayEventDate: claim.delayEventDate ?? null,
     });
   }
 
@@ -426,4 +514,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 function normalizeClause(ref: string): string {
   const m = ref.match(/\d+(?:\.\d+)*/);
   return (m ? m[0] : ref).trim();
+}
+
+/** A Date (or ISO string) → YYYY-MM-DD, or null. */
+function toIsoDate(d: Date | string | null): string | null {
+  if (!d) return null;
+  const date = d instanceof Date ? d : new Date(d);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 }

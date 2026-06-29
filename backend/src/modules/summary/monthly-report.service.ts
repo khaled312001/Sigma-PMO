@@ -12,6 +12,7 @@ import {
   InvestmentOpportunity,
   MonthlyReport,
   Project,
+  SiteEvidence,
 } from '../canonical/entities';
 import { ProjectOwnershipService } from '../canonical/project-ownership.service';
 import { ClaudeService } from '../claude/claude.service';
@@ -133,6 +134,8 @@ export class MonthlyReportService {
     private readonly ownership?: ProjectOwnershipService,
     // Optional (positional-spec compat) — communication evidence for the report.
     @InjectRepository(Communication) private readonly comms?: Repository<Communication>,
+    // Optional (positional-spec compat) — site-evidence captures for the report.
+    @InjectRepository(SiteEvidence) private readonly siteEvidence?: Repository<SiteEvidence>,
   ) {}
 
   /**
@@ -165,12 +168,13 @@ export class MonthlyReportService {
     const project = await this.resolveProject(req.projectKey);
     const snapshot = await this.snapshots.load(project.id);
 
-    const [alertsInWindow, decisionsInWindow, confidenceAverage, boq, commsInWindow] = await Promise.all([
+    const [alertsInWindow, decisionsInWindow, confidenceAverage, boq, commsInWindow, evidenceInWindow] = await Promise.all([
       this.loadAlertsInWindow(snapshot, window.startIso, window.endIso),
       this.loadDecisionsInWindow(snapshot, window.startIso, window.endIso),
       this.averageConfidenceFor(snapshot),
       this.loadCurrentBoq(project.businessKey),
       this.loadCommunicationsInWindow(project.businessKey, window.startIso, window.endIso),
+      this.loadSiteEvidenceInWindow(project.businessKey, window.startIso, window.endIso),
     ]);
 
     // Narrative-type-specific deterministic blocks (loaded only when needed).
@@ -190,6 +194,7 @@ export class MonthlyReportService {
       narrativeType,
     );
     Object.assign(metrics, buildCommunicationMetrics(commsInWindow));
+    Object.assign(metrics, buildSiteEvidenceMetrics(evidenceInWindow));
     const facts =
       composeFacts(
         snapshot,
@@ -207,7 +212,8 @@ export class MonthlyReportService {
         investment: investmentRows,
         portfolio: portfolioRows,
       }) +
-      composeCommunicationsSection(commsInWindow);
+      composeCommunicationsSection(commsInWindow) +
+      composeSiteEvidenceSection(evidenceInWindow);
 
     let narrative = facts;
     let narrativeAr: string | null = facts;
@@ -471,6 +477,34 @@ export class MonthlyReportService {
     return rows.filter((c) => {
       const t = new Date(c.sentAt ?? c.createdAt).getTime();
       return t >= start && t <= end;
+    });
+  }
+
+  /**
+   * Site-evidence input — photo / video / audio / transcript captures registered
+   * in the period (Mr. Ayham acceptance 2026-06-28). Surfaced in the governance
+   * report so on-site evidence — and any safety/quality finding it raised — is
+   * reflected alongside schedule, alerts and decisions. Best-effort: returns []
+   * when the repo isn't wired (positional unit specs). Windowed by `reportDate`
+   * (the daily-rollup date) with `capturedAt` / `createdAt` as fallbacks.
+   */
+  private async loadSiteEvidenceInWindow(
+    projectBusinessKey: string,
+    startIso: string,
+    endIso: string,
+  ): Promise<SiteEvidence[]> {
+    if (!this.siteEvidence) return [];
+    const rows = await this.siteEvidence.find({
+      where: { projectBusinessKey },
+      order: { createdAt: 'DESC' },
+      take: 500,
+    });
+    const start = new Date(startIso).getTime();
+    const end = new Date(endIso).getTime();
+    return rows.filter((e) => {
+      const ref = e.reportDate ?? e.capturedAt ?? e.createdAt;
+      const t = new Date(ref).getTime();
+      return Number.isFinite(t) && t >= start && t <= end;
     });
   }
 
@@ -802,6 +836,80 @@ function buildCommunicationMetrics(comms: Communication[]): Record<string, unkno
     communicationsEscalated: escalated,
     communicationsDisputed: disputed,
     communicationsAckOutstanding: ackOutstanding,
+  };
+}
+
+/**
+ * Site-evidence facts (Mr. Ayham acceptance 2026-06-28). Reflects the on-site
+ * captures registered in the period: counts by media kind, by location/activity,
+ * geotag presence, transcript snippets, and how many were promoted to a
+ * safety/quality finding (with the raised record's id) — the auditable on-site
+ * evidence trail linked to the governance report.
+ */
+function composeSiteEvidenceSection(evidence: SiteEvidence[]): string {
+  if (!evidence.length) return '';
+  const byKind = new Map<string, number>();
+  const byLocation = new Map<string, number>();
+  const byActivity = new Map<string, number>();
+  let geotagged = 0;
+  let safetyFindings = 0;
+  let qualityFindings = 0;
+  for (const e of evidence) {
+    byKind.set(e.mediaKind, (byKind.get(e.mediaKind) ?? 0) + 1);
+    const loc = e.locationLabel ?? 'unlabelled';
+    byLocation.set(loc, (byLocation.get(loc) ?? 0) + 1);
+    if (e.activityKey) byActivity.set(e.activityKey, (byActivity.get(e.activityKey) ?? 0) + 1);
+    if (e.latitude !== null && e.longitude !== null) geotagged++;
+    if (e.findingType === 'safety') safetyFindings++;
+    if (e.findingType === 'quality') qualityFindings++;
+  }
+  const kinds = [...byKind.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ');
+  const locs = [...byLocation.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${k} ${v}`).join(', ');
+  const lines: string[] = [];
+  lines.push('');
+  lines.push('### Site evidence');
+  lines.push(`- Captured in window: ${evidence.length} (by kind: ${kinds}).`);
+  lines.push(`- Locations: ${locs}; geotagged: ${geotagged}; linked activities: ${byActivity.size}.`);
+  lines.push(`- Findings raised: ${safetyFindings} safety, ${qualityFindings} quality.`);
+  // List captures that raised a finding (the governance-relevant ones) first,
+  // then any with a transcript snippet, capped for the deterministic block.
+  const flagged = evidence.filter((e) => e.findingType);
+  for (const e of flagged.slice(0, 8)) {
+    const rec =
+      e.findingType === 'safety'
+        ? e.linkedSafetyRecordId
+        : e.findingType === 'quality'
+          ? e.linkedQualityRecordId
+          : null;
+    const loc = e.locationLabel ? ` @ ${e.locationLabel}` : '';
+    const recRef = rec ? ` [record: ${rec}]` : '';
+    lines.push(`  - ${e.mediaKind} ${e.filename}${loc} → ${e.findingType} finding${recRef}.`);
+  }
+  const transcripts = evidence.filter((e) => e.transcriptText && !e.findingType).slice(0, 3);
+  for (const e of transcripts) {
+    const snippet = (e.transcriptText ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    lines.push(`  - ${e.mediaKind} transcript: "${snippet}".`);
+  }
+  return lines.join('\n');
+}
+
+function buildSiteEvidenceMetrics(evidence: SiteEvidence[]): Record<string, unknown> {
+  const byKind: Record<string, number> = {};
+  let geotagged = 0;
+  let safetyFindings = 0;
+  let qualityFindings = 0;
+  for (const e of evidence) {
+    byKind[e.mediaKind] = (byKind[e.mediaKind] ?? 0) + 1;
+    if (e.latitude !== null && e.longitude !== null) geotagged++;
+    if (e.findingType === 'safety') safetyFindings++;
+    if (e.findingType === 'quality') qualityFindings++;
+  }
+  return {
+    siteEvidenceCount: evidence.length,
+    siteEvidenceByKind: byKind,
+    siteEvidenceGeotagged: geotagged,
+    siteEvidenceSafetyFindings: safetyFindings,
+    siteEvidenceQualityFindings: qualityFindings,
   };
 }
 

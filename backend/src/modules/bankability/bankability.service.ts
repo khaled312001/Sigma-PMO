@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 
 import { FeasibilityAssessment } from '../canonical/entities/feasibility-assessment.entity';
 import { FundingFacility } from '../canonical/entities/funding-facility.entity';
@@ -138,18 +138,42 @@ export class BankabilityService {
   ) {}
 
   /**
-   * The latest feasibility assessment that backs bankability. Level-2 (the
-   * professional study run) is preferred; otherwise the latest run of any level.
+   * The latest feasibility assessment that backs bankability for a project.
+   * Project-scoped (Mr. Ayham acceptance 2026-06-28): an assessment stamped with
+   * `projectBusinessKey = projectKey` is preferred so "bankability for P-1000"
+   * uses the P-1000 opportunity assessment, NOT the globally-latest unrelated
+   * run. When the project has no scoped assessment, falls back to the global
+   * latest (project-agnostic rows, projectBusinessKey null). Within each scope,
+   * Level-2 (the professional study run) wins, else the latest run of any level.
    * Deterministic: ordered by createdAt DESC, tie-broken by id.
    */
-  private async latestAssessment(): Promise<FeasibilityAssessment | null> {
+  private async latestAssessment(projectKey?: string): Promise<FeasibilityAssessment | null> {
+    if (projectKey) {
+      const scopedL2 = await this.assessments.find({
+        where: { projectBusinessKey: projectKey, level: 2 },
+        order: { createdAt: 'DESC' },
+        take: 1,
+      });
+      if (scopedL2[0]) return scopedL2[0];
+      const scopedAny = await this.assessments.find({
+        where: { projectBusinessKey: projectKey },
+        order: { createdAt: 'DESC' },
+        take: 1,
+      });
+      if (scopedAny[0]) return scopedAny[0];
+    }
+    // Global fallback: latest project-agnostic assessment (no project scope set).
     const level2 = await this.assessments.find({
-      where: { level: 2 },
+      where: { projectBusinessKey: IsNull(), level: 2 },
       order: { createdAt: 'DESC' },
       take: 1,
     });
     if (level2[0]) return level2[0];
-    const any = await this.assessments.find({ order: { createdAt: 'DESC' }, take: 1 });
+    const any = await this.assessments.find({
+      where: { projectBusinessKey: IsNull() },
+      order: { createdAt: 'DESC' },
+      take: 1,
+    });
     return any[0] ?? null;
   }
 
@@ -350,7 +374,7 @@ export class BankabilityService {
     facilitiesChecked: number;
   }> {
     const [assessment, facilities] = await Promise.all([
-      this.latestAssessment(),
+      this.latestAssessment(projectKey),
       this.listFacilities(projectKey),
     ]);
     const findings: BankabilityFinding[] = [];
@@ -453,7 +477,7 @@ export class BankabilityService {
    */
   async assess(projectKey: string, asOfDate = '2026-06-12'): Promise<BankabilityAssessment> {
     const [assessment, facilities] = await Promise.all([
-      this.latestAssessment(),
+      this.latestAssessment(projectKey),
       this.listFacilities(projectKey),
     ]);
 

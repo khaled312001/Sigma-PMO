@@ -3,10 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
 import { AgentLayer } from '../../common/enums';
+import { currentCompanyId } from '../../common/tenant/tenant-context';
 import {
   AgentExecution,
   Alert,
   Claim,
+  ClaimEvidenceLink,
   ConfidenceScore,
   GovernanceDecision,
   Project,
@@ -42,6 +44,7 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
     @InjectRepository(Project) private readonly projects: Repository<Project>,
     @InjectRepository(Alert) private readonly alerts: Repository<Alert>,
     @InjectRepository(Claim) private readonly claims: Repository<Claim>,
+    @InjectRepository(ClaimEvidenceLink) private readonly evidenceLinks: Repository<ClaimEvidenceLink>,
     @InjectRepository(GovernanceDecision) private readonly decisions: Repository<GovernanceDecision>,
     private readonly delay: DelayAnalysisService,
     private readonly registry: AgentRegistry,
@@ -90,11 +93,12 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
     const delayEvents = this.delay.fromAlerts(
       alertRows.map((a) => ({ id: a.id, code: a.code, severity: a.severity, context: a.context })),
     );
+    let linksWritten = 0;
     if (delayEvents.length > 0) {
       const totalDays = this.delay.totalDelay(delayEvents);
       const evidenceAlertIds = delayEvents.map((e) => e.alertId);
       const { party, clause } = this.assessResponsibility(evidenceAlertIds, decisionByAlert, 'FIDIC 8.4');
-      await this.upsertClaim(projectKey, {
+      const claim = await this.upsertClaim(projectKey, {
         title: 'Potential extension of time (EOT)',
         type: 'eot',
         basis:
@@ -107,6 +111,7 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
         evidenceRefs: evidenceAlertIds,
         confidence: 0.7,
       });
+      linksWritten += await this.writeEvidenceLinks(claim, evidenceAlertIds, decisionByAlert, clause);
       identified += 1;
     }
 
@@ -115,7 +120,7 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
     if (costAlerts.length > 0) {
       const ids = costAlerts.map((a) => a.id);
       const { party, clause } = this.assessResponsibility(ids, decisionByAlert, 'FIDIC 13');
-      await this.upsertClaim(projectKey, {
+      const claim = await this.upsertClaim(projectKey, {
         title: 'Potential cost / variation claim',
         type: 'cost',
         basis:
@@ -128,20 +133,21 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
         evidenceRefs: ids,
         confidence: 0.65,
       });
+      linksWritten += await this.writeEvidenceLinks(claim, ids, decisionByAlert, clause);
       identified += 1;
     }
 
     const confidence = identified > 0 ? 0.72 : 0.7;
     return {
-      outputRefs: { claimsIdentified: identified, delayEvents: delayEvents.length },
+      outputRefs: { claimsIdentified: identified, delayEvents: delayEvents.length, evidenceLinksWritten: linksWritten },
       confidence: { overall: confidence, breakdown: { rule: 'claims-identification-v1' } },
       outboxEvents: [
         {
           eventType: 'agent.l6.claims.completed',
-          payload: { projectKey, claimsIdentified: identified, delayEvents: delayEvents.length },
+          payload: { projectKey, claimsIdentified: identified, delayEvents: delayEvents.length, evidenceLinksWritten: linksWritten },
         },
       ],
-      summary: `Claims for ${projectKey}: ${identified} potential claim(s) from ${delayEvents.length} delay event(s).`,
+      summary: `Claims for ${projectKey}: ${identified} potential claim(s) from ${delayEvents.length} delay event(s); ${linksWritten} evidence link(s) written.`,
     };
   }
 
@@ -176,12 +182,60 @@ export class ClaimsAgentService extends BaseAgentService implements OnModuleInit
   private async upsertClaim(
     projectKey: string,
     fields: Omit<Partial<Claim>, 'projectBusinessKey'> & { title: string },
-  ): Promise<void> {
+  ): Promise<Claim> {
     const existing = await this.claims.findOne({
       where: { projectBusinessKey: projectKey, title: fields.title, status: 'potential' },
     });
     const row = existing ?? this.claims.create({ projectBusinessKey: projectKey, status: 'potential', agentGenerated: true });
     Object.assign(row, fields, { projectBusinessKey: projectKey });
-    await this.claims.save(row);
+    return this.claims.save(row);
+  }
+
+  /**
+   * Auto-derive ClaimEvidenceLink rows from what the agent already references
+   * (Mr. Ayham acceptance 2026-06-28 — close the cited-evidence leg). Each
+   * substantiating alert becomes an `alert` link; its governance decision (when
+   * present) a `decision` link; and the FIDIC clause a `fidic_clause` link.
+   * These are exactly the legs GET /claims/:id/chain reads first. Idempotent:
+   * an identical (claim, linkType, targetTable, targetId) link is skipped.
+   * Returns the number of new links written.
+   */
+  private async writeEvidenceLinks(
+    claim: Claim,
+    alertIds: string[],
+    decisionByAlert: Map<string, GovernanceDecision>,
+    clause: string | null,
+  ): Promise<number> {
+    const desired: Array<{ linkType: string; targetTable: string; targetId: string; note: string }> = [];
+    for (const alertId of alertIds) {
+      desired.push({ linkType: 'alert', targetTable: 'alert', targetId: alertId, note: 'Substantiating rule-engine alert.' });
+      const d = decisionByAlert.get(alertId);
+      if (d) {
+        desired.push({ linkType: 'decision', targetTable: 'governance_decision', targetId: d.id, note: 'Governance decision on the alert (responsibility + clause).' });
+      }
+    }
+    if (clause) {
+      desired.push({ linkType: 'fidic_clause', targetTable: 'contract_clause_rule', targetId: clause, note: `Claim cites ${clause}.` });
+    }
+
+    const existing = await this.evidenceLinks.find({ where: { claimId: claim.id } });
+    const seen = new Set(existing.map((l) => `${l.linkType}|${l.targetTable}|${l.targetId}`));
+    const toCreate = desired.filter((d) => !seen.has(`${d.linkType}|${d.targetTable}|${d.targetId}`));
+    if (toCreate.length === 0) return 0;
+
+    const rows = toCreate.map((d) =>
+      this.evidenceLinks.create({
+        companyId: currentCompanyId(),
+        claimId: claim.id,
+        linkType: d.linkType,
+        targetTable: d.targetTable,
+        targetId: d.targetId,
+        sourceRef: null,
+        note: d.note,
+        createdBy: 'l6.claims',
+      }),
+    );
+    await this.evidenceLinks.save(rows);
+    return rows.length;
   }
 }

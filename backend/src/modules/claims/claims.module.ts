@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AgentsModule } from '../agents/agents.module';
 import { CanonicalModule } from '../canonical/canonical.module';
+import { ContractRulesModule } from '../contract-rules/contract-rules.module';
 import { Letter } from '../canonical/entities';
 import { EvidenceFile } from '../evidence/evidence-file.entity';
 import { EvidenceItem } from '../evidence/evidence-item.entity';
@@ -28,7 +29,7 @@ import { ForensicDelayService } from './forensic-delay.service';
  * EvidenceModule.
  */
 @Module({
-  imports: [AgentsModule, CanonicalModule, OutboxModule, TypeOrmModule.forFeature([Letter, EvidenceRoom, EvidenceFile, EvidenceItem])],
+  imports: [AgentsModule, CanonicalModule, ContractRulesModule, OutboxModule, TypeOrmModule.forFeature([Letter, EvidenceRoom, EvidenceFile, EvidenceItem])],
   controllers: [ClaimsController],
   providers: [DelayAnalysisService, ClaimsAgentService, EntitlementService, ClaimsExtrasService, ForensicDelayService],
   exports: [ClaimsAgentService, DelayAnalysisService, EntitlementService, ClaimsExtrasService, ForensicDelayService],

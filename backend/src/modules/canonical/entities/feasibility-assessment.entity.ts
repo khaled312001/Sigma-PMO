@@ -22,6 +22,16 @@ export class FeasibilityAssessment extends UuidEntity {
   @Column({ type: 'char', length: 36 })
   opportunityId!: string;
 
+  /**
+   * Project this assessment is scoped to (Mr. Ayham acceptance 2026-06-28):
+   * when the backing opportunity is tied to a delivery project, the run stamps
+   * the project's businessKey so "bankability for P-1000" binds to the P-1000
+   * assessment, not the globally-latest unrelated run. Null = global/legacy.
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  projectBusinessKey!: string | null;
+
   /** 1 = rapid investment assessment, 2 = professional study run. */
   @Column({ type: 'int', default: 1 })
   level!: number;

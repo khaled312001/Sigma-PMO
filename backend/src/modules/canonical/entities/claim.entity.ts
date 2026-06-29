@@ -41,6 +41,19 @@ export class Claim extends UuidEntity {
   @Column({ type: 'varchar', length: 64, nullable: true })
   fidicClause!: string | null;
 
+  /**
+   * The underlying delay / contract-event date (Mr. Ayham acceptance 2026-06-28):
+   * the procedural clock (FIDIC 20.1 notice / time-bar) runs from here. Nullable
+   * — when absent the forensic chain falls back to the earliest linked letter.
+   */
+  @Column({ type: 'date', nullable: true })
+  delayEventDate!: string | null;
+
+  /** When notice of this claim was served (ISO date). Nullable — falls back to
+   *  the earliest linked letter date when the chain evaluates the notice window. */
+  @Column({ type: 'date', nullable: true })
+  noticeServedDate!: string | null;
+
   /** Ids of the evidence that substantiates the claim (alerts/decisions/letters). */
   @Column({ type: 'json' })
   evidenceRefs!: string[];

@@ -2,12 +2,18 @@ import { NotFoundException } from '@nestjs/common';
 import { ObjectLiteral, Repository } from 'typeorm';
 
 import { Claim, ClaimEvidenceLink, ContractClauseRule, Letter, Project } from '../canonical/entities';
+import { ContractRulesService } from '../contract-rules/contract-rules.service';
 import { EvidenceFile } from '../evidence/evidence-file.entity';
 import { EvidenceItem } from '../evidence/evidence-item.entity';
 import { EvidenceRoom } from '../evidence/evidence-room.entity';
 import { ClaimsExtrasService } from './claims-extras.service';
 import { EntitlementService } from './entitlement.service';
 import { ForensicDelayService } from './forensic-delay.service';
+
+/** A real ContractRulesService — only its pure evaluate() is exercised (no I/O). */
+function contractRules(): ContractRulesService {
+  return new ContractRulesService(repo([]) as never, repo([]) as never);
+}
 
 function repo<T extends ObjectLiteral>(rows: T[] = [], one: T | null = null): Repository<T> {
   return {
@@ -60,13 +66,14 @@ describe('ClaimsExtrasService.forensicChain — the forensic evidence chain', ()
       repo([file]),                      // evidenceFiles
       new EntitlementService(),          // entitlement
       forensic,                          // forensic
+      contractRules(),                   // contractRules
     );
   }
 
   it('throws NotFound when the claim does not exist', async () => {
     const svc = new ClaimsExtrasService(
       repo([], null), repo([], null), repo([]), repo([]), repo([]), repo([]), repo([]), repo([]), repo([]),
-      new EntitlementService(), { analyse: jest.fn() } as unknown as ForensicDelayService,
+      new EntitlementService(), { analyse: jest.fn() } as unknown as ForensicDelayService, contractRules(),
     );
     await expect(svc.forensicChain('missing')).rejects.toBeInstanceOf(NotFoundException);
   });
@@ -99,5 +106,69 @@ describe('ClaimsExtrasService.forensicChain — the forensic evidence chain', ()
     const pkg = await svc.claimPackage('claim-1');
     expect(Array.isArray(pkg.evidenceChain)).toBe(true);
     expect(pkg.evidenceChain.some((l) => l.linkType === 'letter')).toBe(true);
+  });
+});
+
+describe('ClaimsExtrasService.createLink — the cited-evidence write-path', () => {
+  const claim = { id: 'claim-1', projectBusinessKey: 'P-1000' } as unknown as Claim;
+
+  function build(existingLink: ClaimEvidenceLink | null = null) {
+    const saved: ClaimEvidenceLink[] = [];
+    const linksRepo = {
+      find: jest.fn(async () => []),
+      findOne: jest.fn(async () => existingLink),
+      create: jest.fn((init: Partial<ClaimEvidenceLink>) => ({ ...init }) as ClaimEvidenceLink),
+      save: jest.fn(async (l: ClaimEvidenceLink) => {
+        l.id = 'cel-new';
+        saved.push(l);
+        return l;
+      }),
+    } as unknown as Repository<ClaimEvidenceLink>;
+
+    const svc = new ClaimsExtrasService(
+      repo([], null),       // projects
+      repo([claim], claim), // claims
+      repo([]),             // alerts
+      repo([]),             // letters
+      linksRepo,            // evidenceLinks
+      repo([]),             // clauseRules
+      repo([]),             // evidenceRooms
+      repo([]),             // evidenceItems
+      repo([]),             // evidenceFiles
+      new EntitlementService(),
+      { analyse: jest.fn() } as unknown as ForensicDelayService,
+      contractRules(),
+    );
+    return { svc, saved, linksRepo };
+  }
+
+  it('persists a ClaimEvidenceLink with linkType, target and sourceRef', async () => {
+    const { svc, saved } = build();
+    const link = await svc.createLink('claim-1', {
+      linkType: 'letter',
+      targetTable: 'letter',
+      targetId: 'L-7',
+      sourceRef: { fileId: 'F-1', page: 2, paragraph: 3, sha256: 'abc' },
+      note: 'Notice of claim',
+    });
+    expect(saved).toHaveLength(1);
+    expect(link.linkType).toBe('letter');
+    expect(link.targetId).toBe('L-7');
+    expect(link.sourceRef).toMatchObject({ fileId: 'F-1', page: 2, sha256: 'abc' });
+  });
+
+  it('is idempotent on (linkType, targetTable, targetId)', async () => {
+    const existing = { id: 'cel-1', claimId: 'claim-1', linkType: 'letter', targetTable: 'letter', targetId: 'L-7' } as unknown as ClaimEvidenceLink;
+    const { svc, saved } = build(existing);
+    const link = await svc.createLink('claim-1', { linkType: 'letter', targetTable: 'letter', targetId: 'L-7' });
+    expect(link.id).toBe('cel-1');
+    expect(saved).toHaveLength(0); // no new row written
+  });
+
+  it('rejects a missing linkType', async () => {
+    const { svc } = build();
+    await expect(
+      svc.createLink('claim-1', { linkType: '', targetTable: 'letter', targetId: 'L-7' }),
+    ).rejects.toThrow(/linkType/);
   });
 });

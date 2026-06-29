@@ -12,6 +12,7 @@ import {
   InvestmentOpportunity,
   MonthlyReport,
   Project,
+  SiteEvidence,
 } from '../canonical/entities';
 import { ClaudeService, PersonaCallResult } from '../claude/claude.service';
 import { SnapshotService } from '../rules/snapshot.service';
@@ -110,6 +111,41 @@ function makeOpportunityRepo(rows: InvestmentOpportunity[] = []) {
 
 function makeAssessmentRepo(rows: FeasibilityAssessment[] = []) {
   return { find: jest.fn(async () => rows) };
+}
+
+function makeSiteEvidenceRepo(rows: SiteEvidence[] = []) {
+  return { find: jest.fn(async () => rows) };
+}
+
+function makeSiteEvidence(overrides: Partial<SiteEvidence> = {}): SiteEvidence {
+  return {
+    id: 'se-1',
+    createdAt: new Date('2026-06-28T08:00:00Z'),
+    companyId: null,
+    projectBusinessKey: 'P-1000',
+    mediaKind: 'photo',
+    filename: 'capture.jpg',
+    mimeType: 'image/jpeg',
+    bytes: 1024,
+    sha256: 'a'.repeat(64),
+    storedPath: 'site-evidence/P-1000/capture.jpg',
+    capturedAt: new Date('2026-06-28T08:00:00Z'),
+    reportDate: '2026-06-28',
+    latitude: '24.4500000',
+    longitude: '54.3700000',
+    locationLabel: 'Level 3 slab',
+    activityKey: 'A-100',
+    workerName: 'Ali',
+    workerId: 'W-1',
+    deviceId: 'D-1',
+    deviceType: 'smart_glasses',
+    transcriptText: null,
+    findingType: null,
+    linkedSafetyRecordId: null,
+    linkedQualityRecordId: null,
+    capturedBy: 'foreman',
+    ...overrides,
+  } as SiteEvidence;
 }
 
 function makeSnapshotService(snapshot: ProjectSnapshot): SnapshotService {
@@ -298,6 +334,7 @@ function buildService(opts: {
   decisions?: GovernanceDecision[];
   boq?: BoQ | null;
   confidence?: ConfidenceScore[];
+  siteEvidence?: SiteEvidence[];
 }) {
   const reportRepo = opts.reportRepo ?? makeReportRepo();
   const projectRepo = makeProjectRepo(makeProject());
@@ -307,6 +344,7 @@ function buildService(opts: {
   const boqRepo = makeBoqRepo(opts.boq === undefined ? makeBoq() : opts.boq);
   const opportunityRepo = makeOpportunityRepo();
   const assessmentRepo = makeAssessmentRepo();
+  const siteEvidenceRepo = makeSiteEvidenceRepo(opts.siteEvidence ?? []);
   const snapshots = makeSnapshotService(makeSnapshot());
   const pdf = makePdfService();
   const service = new MonthlyReportService(
@@ -322,6 +360,9 @@ function buildService(opts: {
     opts.claude,
     opts.sources,
     pdf,
+    undefined, // ProjectOwnershipService (optional)
+    undefined, // Communication repo (optional)
+    siteEvidenceRepo as unknown as Repository<SiteEvidence>,
   );
   return { service, reportRepo, projectRepo, alertRepo, decisionRepo, boqRepo, pdf };
 }
@@ -480,6 +521,87 @@ describe('MonthlyReportService', () => {
         audience: 'pd',
       });
       expect((row.metrics as { alertCount: number }).alertCount).toBe(1);
+    });
+  });
+
+  describe('site-evidence section (Mr. Ayham acceptance 2026-06-28)', () => {
+    it('includes a Site evidence block + metrics for captures in the daily window', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const quality = makeSiteEvidence({
+        id: 'se-q',
+        mediaKind: 'photo',
+        filename: 'crack.jpg',
+        reportDate: '2026-06-28',
+        findingType: 'quality',
+        linkedQualityRecordId: 'QR-1',
+        locationLabel: 'Column C4',
+      });
+      const safety = makeSiteEvidence({
+        id: 'se-s',
+        mediaKind: 'video',
+        filename: 'fall-hazard.mp4',
+        reportDate: '2026-06-28',
+        findingType: 'safety',
+        linkedSafetyRecordId: 'SR-9',
+        locationLabel: 'Edge protection N face',
+      });
+      const { service } = buildService({ claude, sources, siteEvidence: [quality, safety] });
+
+      const row = await service.generatePeriodic({
+        projectKey: 'P-1000',
+        cadence: 'day',
+        periodKey: '2026-06-28',
+        audience: 'owner',
+      });
+
+      // Facts carry a Site evidence section naming both captures + record keys.
+      expect(row.narrative).toContain('### Site evidence');
+      expect(row.narrative).toContain('Captured in window: 2');
+      expect(row.narrative).toContain('1 safety, 1 quality');
+      expect(row.narrative).toContain('QR-1');
+      expect(row.narrative).toContain('SR-9');
+
+      // Metrics carry the site-evidence counts.
+      const m = row.metrics as Record<string, unknown>;
+      expect(m.siteEvidenceCount).toBe(2);
+      expect(m.siteEvidenceSafetyFindings).toBe(1);
+      expect(m.siteEvidenceQualityFindings).toBe(1);
+      expect((m.siteEvidenceByKind as Record<string, number>).photo).toBe(1);
+      expect((m.siteEvidenceByKind as Record<string, number>).video).toBe(1);
+      expect(m.siteEvidenceGeotagged).toBe(2);
+      expect(claude.callPersona).not.toHaveBeenCalled();
+    });
+
+    it('excludes captures outside the window', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const inDay = makeSiteEvidence({ id: 'in', reportDate: '2026-06-28' });
+      const outDay = makeSiteEvidence({ id: 'out', reportDate: '2026-06-30' });
+      const { service } = buildService({ claude, sources, siteEvidence: [inDay, outDay] });
+
+      const row = await service.generatePeriodic({
+        projectKey: 'P-1000',
+        cadence: 'day',
+        periodKey: '2026-06-28',
+        audience: 'owner',
+      });
+      expect((row.metrics as { siteEvidenceCount: number }).siteEvidenceCount).toBe(1);
+    });
+
+    it('omits the Site evidence section when there are no captures', async () => {
+      const claude = makeClaudeService({ enabled: false });
+      const sources = makeSourcesService(new Set());
+      const { service } = buildService({ claude, sources, siteEvidence: [] });
+
+      const row = await service.generatePeriodic({
+        projectKey: 'P-1000',
+        cadence: 'day',
+        periodKey: '2026-06-28',
+        audience: 'owner',
+      });
+      expect(row.narrative).not.toContain('### Site evidence');
+      expect((row.metrics as { siteEvidenceCount: number }).siteEvidenceCount).toBe(0);
     });
   });
 

@@ -1,10 +1,11 @@
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
-import { Claim } from '../canonical/entities';
+import { Claim, ClaimEvidenceLink, User } from '../canonical/entities';
 import { ClaimsAgentService } from './claims-agent.service';
 import { ClaimsExtrasService } from './claims-extras.service';
+import type { CreateClaimLinkInput } from './claims-extras.service';
 import { ForensicDelayService } from './forensic-delay.service';
 import { ForensicChainResponseDto } from './dto/forensic-chain-response.dto';
 
@@ -75,5 +76,25 @@ export class ClaimsController {
   @ApiResponse({ status: 200, type: ForensicChainResponseDto, description: 'The forensic evidence chain for the claim.' })
   chain(@Param('id') id: string) {
     return this.extras.forensicChain(id);
+  }
+
+  /**
+   * Write a cited-evidence link onto a claim (Mr. Ayham acceptance 2026-06-28 —
+   * closing the cited-evidence leg). The link carries linkType (chain leg) +
+   * targetTable/targetId (the cited canonical row) + sourceRef
+   * {fileId,page,paragraph,sha256}. It then drives GET /claims/:id/chain, which
+   * reads explicit links first. Idempotent on (linkType,targetTable,targetId).
+   */
+  @Post(':id/links')
+  @HttpCode(201)
+  @RequiresCapability('canIngestLetter')
+  @ApiParam({ name: 'id', description: 'Claim id.', example: 'clm-44…' })
+  @ApiResponse({ status: 201, description: 'The persisted ClaimEvidenceLink row.' })
+  createLink(
+    @Param('id') id: string,
+    @Body() body: CreateClaimLinkInput,
+    @Req() req: { user?: User },
+  ): Promise<ClaimEvidenceLink> {
+    return this.extras.createLink(id, { ...body, createdBy: body?.createdBy ?? req.user?.displayName ?? null });
   }
 }
