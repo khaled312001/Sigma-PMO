@@ -242,7 +242,7 @@ function BoqTraceabilityTab({ projectKey }: { projectKey: string }) {
     <div className="space-y-4">
       <Card
         title={ar ? 'لوحة تتبّع بنود جدول الكميات' : 'BOQ line traceability panel'}
-        hint={ar ? 'لكل بند: مصدر الكمية (عنصر BIM) ← رمز التصنيف ← مكتبة/مصدر التسعير ← أثر التعارض أو التغيير على التكلفة ← سلسلة السجلّ.' : 'Per line: quantity source (BIM element) → classification code → pricing library/source → clash/variation cost impact → ledger chain.'}
+        hint={ar ? 'لكل بند: مصدر الكمية (عنصر BIM) ← رمز التصنيف ← مكتبة/مصدر التسعير ← أثر التعارض أو التغيير على التكلفة ← سلسلة السجلّ. معرّف البند للـAPI يأتي من GET /boq/{project}/current — وليس معرّف تقدير التكلفة.' : 'Per line: quantity source (BIM element) → classification code → pricing library/source → clash/variation cost impact → ledger chain. The API item id comes from GET /boq/{project}/current — not a cost-estimate id.'}
       >
         <div className="space-y-2">
           {lines.map((l) => (
@@ -252,6 +252,15 @@ function BoqTraceabilityTab({ projectKey }: { projectKey: string }) {
                 <span className="flex-1 truncate text-sm text-slate-100">{l.description}</span>
                 <span className="font-mono text-xs tabular-nums text-slate-300" dir="ltr">{Number(l.quantity).toLocaleString()} {l.unit}</span>
                 <span className="font-mono text-sm tabular-nums text-emerald-300" dir="ltr">{currency} {Number(l.amount).toLocaleString()}</span>
+                <button
+                  type="button"
+                  title={ar ? 'نسخ معرّف البند للـAPI' : 'Copy the API item id'}
+                  onClick={() => { void navigator.clipboard?.writeText(l.id); toast.success(ar ? 'تم نسخ المعرّف' : 'Item id copied', l.id); }}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 font-mono text-[11px] text-slate-300 transition hover:border-sky-500/50 hover:text-sky-200"
+                  dir="ltr"
+                >
+                  id:{l.id.slice(0, 8)}… ⧉
+                </button>
                 <Button variant="ghost" size="sm" disabled={busyId === l.id} onClick={() => trace(l.id)}>
                   {busyId === l.id ? (ar ? 'جارٍ…' : '…') : openId === l.id ? (ar ? 'إخفاء' : 'Hide') : (ar ? 'أثر/تتبّع' : 'Trace')}
                 </Button>

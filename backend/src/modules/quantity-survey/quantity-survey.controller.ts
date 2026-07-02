@@ -9,6 +9,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import {
@@ -190,9 +191,21 @@ export class QuantitySurveyController {
    */
   @Get('boq/:boqItemId/traceability')
   @RequiresCapability('canRead')
-  boqTraceabilityPanel(@Param('boqItemId') boqItemId: string): Promise<BoqTraceabilityPanel> {
+  @ApiOperation({
+    summary: 'Per-BOQ-line traceability panel (quantity source → BIM element → classification → pricing → clash impact → ledger).',
+    description:
+      'The path segment is a BOQ ITEM id — obtain it from GET /boq/:projectKey/current → items[].id ' +
+      '(NOT a cost-estimate id). Alternatively pass a plain item number (e.g. "1.1") together with ' +
+      '?projectKey=… and it resolves within that project\'s current BoQ.',
+  })
+  @ApiParam({ name: 'boqItemId', example: 'dae66b2b-87ca-4514-ada7-3f777800516c', description: 'BoqItem UUID (items[].id) or an itemNumber when ?projectKey is supplied.' })
+  @ApiQuery({ name: 'projectKey', required: false, example: 'P-1000', description: 'Required only when boqItemId is an item number rather than a UUID.' })
+  boqTraceabilityPanel(
+    @Param('boqItemId') boqItemId: string,
+    @Query('projectKey') projectKey?: string,
+  ): Promise<BoqTraceabilityPanel> {
     if (!boqItemId) throw new BadRequestException('boqItemId is required');
-    return this.boqTraceability.panel(boqItemId);
+    return this.boqTraceability.panel(boqItemId, projectKey);
   }
 
   // ── Measurement (post-contract) ──

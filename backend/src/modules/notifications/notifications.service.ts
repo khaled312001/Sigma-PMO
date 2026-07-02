@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { EmailService } from '../integrations/email/email.service';
+import { EmailService, EmailStatus } from '../integrations/email/email.service';
 
 export interface NotificationMessage {
   channel: 'email' | 'slack' | 'teams' | 'log';
@@ -9,6 +9,12 @@ export interface NotificationMessage {
   subject?: string;
   body: string;
   context?: Record<string, unknown>;
+}
+
+export interface NotificationsStatus {
+  email: EmailStatus;
+  slackEnabled: boolean;
+  teamsEnabled: boolean;
 }
 
 /**
@@ -59,6 +65,61 @@ export class NotificationsService {
       `notify[${message.channel}] to=${message.to} subject=${message.subject ?? ''} ` +
         `delivered=${delivered} body=${message.body.slice(0, 200)}`,
     );
+  }
+
+  /** Delivery-channel status for the /notifications/status surface (no secrets). */
+  getStatus(): NotificationsStatus {
+    return {
+      email: this.email.getStatus(),
+      slackEnabled: this.slackWebhook.length > 0,
+      teamsEnabled: this.teamsWebhook.length > 0,
+    };
+  }
+
+  /**
+   * Send a one-off test email to prove the SMTP pathway end-to-end. Returns
+   * whether it was accepted by the transport. Throws only when email is not
+   * configured at all (so the controller can answer 400 with a clear message).
+   */
+  async sendTestEmail(to: string): Promise<boolean> {
+    if (!this.email.isEnabled()) {
+      throw new Error('SMTP not configured — set EMAIL_SMTP_URL or the /admin/settings email SMTP URL.');
+    }
+    const delivered = await this.email.send({
+      to,
+      subject: 'Sigma PMO — SMTP test email',
+      text:
+        'This is a test email from Sigma PMO confirming the outbound SMTP channel is working.\n' +
+        'رسالة اختبار من منصّة Sigma PMO تؤكد أن قناة البريد SMTP تعمل.',
+    });
+    this.logger.log(`notify[test-email] to=${to} delivered=${delivered}`);
+    return delivered;
+  }
+
+  /**
+   * Email a rendered report as a PDF attachment (the "prove sending a report
+   * from the platform" path). Throws when SMTP is not configured so the caller
+   * can answer 400 with a clear message.
+   */
+  async emailReport(
+    recipients: string[],
+    subject: string,
+    filename: string,
+    pdf: Buffer,
+    bodyText: string,
+  ): Promise<{ delivered: boolean; to: string[] }> {
+    if (!this.email.isEnabled()) {
+      throw new Error('SMTP not configured — set EMAIL_SMTP_URL or the /admin/settings email SMTP URL.');
+    }
+    const to = recipients.map((r) => r.trim()).filter(Boolean);
+    const delivered = await this.email.send({
+      to: to.join(', '),
+      subject,
+      text: bodyText,
+      attachments: [{ filename, content: pdf, contentType: 'application/pdf' }],
+    });
+    this.logger.log(`notify[email-report] to=${to.join(',')} file=${filename} delivered=${delivered}`);
+    return { delivered, to };
   }
 
   private async postWebhook(url: string, payload: unknown): Promise<boolean> {

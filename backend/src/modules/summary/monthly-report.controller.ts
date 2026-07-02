@@ -1,7 +1,8 @@
 import { createReadStream } from 'node:fs';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -12,10 +13,12 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
 import type { Response } from 'express';
 
 import { RequiresCapability } from '../auth/require-capability.decorator';
 import { MonthlyReport } from '../canonical/entities';
+import { NotificationsService } from '../notifications/notifications.service';
 import { GenerateMonthlyReportDto } from './dto/generate-monthly-report.dto';
 import { GeneratePeriodicReportDto } from './dto/generate-periodic-report.dto';
 import { MonthlyReportService, PeriodicCadence } from './monthly-report.service';
@@ -34,7 +37,10 @@ import { MonthlyReportService, PeriodicCadence } from './monthly-report.service'
  */
 @Controller('reports/monthly')
 export class MonthlyReportController {
-  constructor(private readonly service: MonthlyReportService) {}
+  constructor(
+    private readonly service: MonthlyReportService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   @Post('generate')
   @HttpCode(200)
@@ -119,5 +125,52 @@ export class MonthlyReportController {
     );
     if (size !== null) res.setHeader('Content-Length', String(size));
     createReadStream(absolutePath).pipe(res);
+  }
+
+  /**
+   * Email the rendered report PDF to one or more recipients — the "prove
+   * sending a report from the platform" path (Mr. Ayham acceptance 2026-07-01).
+   * Renders the PDF, attaches it, and sends via the SMTP channel. Answers 400
+   * when SMTP is not configured, 404 when the report id is unknown.
+   */
+  @Post(':id/email')
+  @HttpCode(200)
+  @RequiresCapability('canGenerateSummary')
+  @ApiOperation({
+    summary: 'Email this report as a PDF attachment to the given recipients (proves the SMTP send path).',
+  })
+  async email(
+    @Param('id') id: string,
+    @Body() body: { to?: string[] | string; lang?: string },
+  ): Promise<{ delivered: boolean; to: string[] }> {
+    const recipients = (Array.isArray(body?.to) ? body.to : [body?.to])
+      .filter((r): r is string => typeof r === 'string' && r.trim().length > 0)
+      .map((r) => r.trim());
+    if (recipients.length === 0 || !recipients.every((r) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r))) {
+      throw new BadRequestException('At least one valid recipient email is required in "to".');
+    }
+    const language: 'ar' | 'en' = body?.lang === 'en' ? 'en' : 'ar';
+    const { row, absolutePath } = await this.service.renderPdf(id, language);
+    let pdf: Buffer;
+    try {
+      pdf = await readFile(absolutePath);
+    } catch {
+      throw new NotFoundException(`Rendered PDF for monthly report ${id} not found on disk`);
+    }
+    const cadenceTag = row.cadence ?? 'monthly';
+    const periodTag = row.periodKey ?? row.month;
+    const filename = `${cadenceTag}-${row.projectBusinessKey}-${periodTag}-${row.audience}-${language}.pdf`;
+    const subject = `Sigma PMO — ${cadenceTag} report ${periodTag} — ${row.projectBusinessKey}`;
+    try {
+      return await this.notifications.emailReport(
+        recipients,
+        subject,
+        filename,
+        pdf,
+        `Attached: ${cadenceTag} report for ${row.projectBusinessKey} (${periodTag}, ${row.audience}).`,
+      );
+    } catch (error) {
+      throw new BadRequestException((error as Error).message);
+    }
   }
 }

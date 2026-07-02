@@ -31,6 +31,7 @@ export const en: Dictionary = {
     simulation: 'Simulation',
     comparison: 'AI vs Human',
     hierarchy: 'Governance hierarchy',
+    journey: 'Project Journey',
     knowledge: 'Knowledge & Rules',
     analytics: 'Analytics & EVM',
     risk: 'Risk register',
@@ -543,6 +544,7 @@ export interface Dictionary {
     clashes: string; drawings: string; siteEvidence: string; letters: string; sources: string; simulation: string;
     comparison: string;
     hierarchy: string;
+    journey: string;
     knowledge: string;
     analytics: string;
     risk: string;

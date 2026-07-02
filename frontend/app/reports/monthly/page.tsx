@@ -637,6 +637,7 @@ function ReportDetail({ row }: { row: MonthlyReportRow }) {
         <span className="flex items-center gap-2">
           <PrintButton />
           <PdfLink rowId={row.id} variant="button" hasEnglish={!!row.narrativeEn} />
+          <EmailReportButton rowId={row.id} />
         </span>
       }
       className="print:!border-0 print:!bg-white print:!shadow-none print:!p-0"
@@ -888,6 +889,50 @@ function PdfLink({
         ? t('reportsMonthly.pdf.downloading')
         : t('reportsMonthly.pdf.label')}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+//  Email report — POSTs the rendered PDF to recipients via the SMTP channel.
+//  When SMTP is not configured the backend answers 400 with a clear message,
+//  surfaced here as a toast (no silent failure).
+// ---------------------------------------------------------------------------
+
+function EmailReportButton({ rowId }: { rowId: string }) {
+  const { lang } = useI18n();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const ar = lang === 'ar';
+
+  const doEmail = useCallback(async () => {
+    const to = typeof window !== 'undefined'
+      ? window.prompt(ar ? 'البريد الإلكتروني للمستلم:' : 'Recipient email address:')
+      : null;
+    if (!to || !to.trim()) return;
+    setBusy(true);
+    try {
+      const res = await api<{ delivered: boolean; to: string[] }>(
+        `/reports/monthly/${rowId}/email`,
+        { method: 'POST', body: JSON.stringify({ to: to.trim(), lang }) },
+      );
+      toast.success(
+        ar ? 'تم إرسال التقرير' : 'Report emailed',
+        ar ? `أُرسل إلى ${res.to.join(', ')}` : `Sent to ${res.to.join(', ')}`,
+      );
+    } catch (err) {
+      toast.error(
+        ar ? 'تعذّر الإرسال' : 'Email failed',
+        (err as Error).message,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [rowId, lang, ar, toast]);
+
+  return (
+    <Button variant="ghost" size="sm" onClick={() => void doEmail()} disabled={busy}>
+      {busy ? (ar ? 'جارٍ الإرسال…' : 'Sending…') : ar ? '✉️ إرسال بالبريد' : '✉️ Email'}
+    </Button>
   );
 }
 

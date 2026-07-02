@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 
 import {
@@ -56,6 +56,7 @@ describe('BoqTraceabilityService', () => {
   const boq = {
     id: 'boq-1',
     businessKey: `boq:${projectKey}`,
+    isCurrent: true,
     currency: 'AED',
   } as BoQ;
 
@@ -239,7 +240,26 @@ describe('BoqTraceabilityService', () => {
     expect(clash?.costImpact).toBe(8200);
   });
 
-  it('throws NotFound for an unknown BOQ item id', async () => {
-    await expect(build().panel('missing')).rejects.toBeInstanceOf(NotFoundException);
+  it('throws NotFound for an unknown BOQ item UUID', async () => {
+    await expect(
+      build().panel('00000000-0000-4000-8000-000000000000'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('gives a helpful NotFound when a cost-estimate id is passed instead of a BOQ item id', async () => {
+    const estId = '11111111-1111-4111-8111-111111111111';
+    const svc = build({ estimates: [{ id: estId } as CostEstimate] });
+    await expect(svc.panel(estId)).rejects.toThrow(/cost-estimate id, not a BOQ item id/);
+  });
+
+  it('requires ?projectKey (400) when a non-UUID item number is passed alone', async () => {
+    await expect(build().panel('2.1')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('resolves by itemNumber + projectKey to the same line as the id path', async () => {
+    const byNumber = await build().panel('2.1', projectKey);
+    const byId = await build().panel('item-1');
+    expect(byNumber.item.id).toBe(byId.item.id);
+    expect(byNumber.item.itemNumber).toBe('2.1');
   });
 });

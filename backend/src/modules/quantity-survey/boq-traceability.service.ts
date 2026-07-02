@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -74,14 +74,64 @@ export class BoqTraceabilityService {
   ) {}
 
   /**
+   * Resolve the BOQ line the caller means, tolerating the most common mistake
+   * (passing a cost-estimate id instead of a BOQ-item id). Accepts either:
+   *   - a BoqItem UUID (the `items[].id` from `GET /boq/:projectKey/current`); or
+   *   - a plain `itemNumber` (e.g. "1.1") together with `?projectKey=` — resolved
+   *     within that project's CURRENT BoQ.
+   * Throws a 400/404 with an explicit, actionable message so the id is never
+   * silently wrong (Mr. Ayham acceptance 2026-07-01, BOQ-traceability clarity).
+   */
+  private async resolveItem(idOrNumber: string, projectKey?: string): Promise<BoqItem> {
+    // 1. Direct id lookup first — the happy path (items[].id from /boq/current).
+    const byId = await this.items.findOne({ where: { id: idOrNumber } });
+    if (byId) return byId;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrNumber);
+    if (isUuid) {
+      // A UUID that is not a BOQ item — the common mix-up is a cost-estimate id.
+      const estimate = await this.estimates.findOne({ where: { id: idOrNumber } });
+      if (estimate) {
+        throw new NotFoundException(
+          `"${idOrNumber}" is a cost-estimate id, not a BOQ item id. BOQ item ids come from ` +
+            `GET /boq/:projectKey/current → items[].id. (Cost estimates live at GET /quantity-survey/estimates/:id.)`,
+        );
+      }
+      throw new NotFoundException(
+        `BOQ item "${idOrNumber}" not found. BOQ item ids come from GET /boq/:projectKey/current → items[].id.`,
+      );
+    }
+
+    // 2. Not a UUID and not a known id → treat as an itemNumber; needs the project.
+    if (!projectKey) {
+      throw new BadRequestException(
+        `"${idOrNumber}" is not a BOQ item id (UUID). To look up by item number, add ?projectKey=… ` +
+          `(e.g. /quantity-survey/boq/${idOrNumber}/traceability?projectKey=P-1000).`,
+      );
+    }
+    const boq = await this.boqs.findOne({
+      where: { businessKey: `${BOQ_BUSINESS_KEY_PREFIX}${projectKey}`, isCurrent: true },
+    });
+    if (!boq) {
+      throw new NotFoundException(`No current BoQ for project "${projectKey}".`);
+    }
+    const byNumber = await this.items.findOne({ where: { boqId: boq.id, itemNumber: idOrNumber } });
+    if (byNumber) return byNumber;
+    const available = await this.items.find({ where: { boqId: boq.id }, order: { itemNumber: 'ASC' } });
+    throw new NotFoundException(
+      `BOQ item number "${idOrNumber}" not found in project "${projectKey}". ` +
+        `Available item numbers: ${available.map((i) => i.itemNumber).join(', ') || '(none)'}.`,
+    );
+  }
+
+  /**
    * Build the traceability panel for one BOQ line. Resolves the owning BoQ to
    * derive the project key (from `boq:<projectKey>`), then assembles every
    * section from the canonical stores. Match keys, in priority order, are the
    * line's `itemNumber` and its `activityRef`.
    */
-  async panel(boqItemId: string): Promise<BoqTraceabilityPanel> {
-    const item = await this.items.findOne({ where: { id: boqItemId } });
-    if (!item) throw new NotFoundException(`BOQ item "${boqItemId}" not found`);
+  async panel(idOrNumber: string, projectKeyHint?: string): Promise<BoqTraceabilityPanel> {
+    const item = await this.resolveItem(idOrNumber, projectKeyHint);
 
     const boq = await this.boqs.findOne({ where: { id: item.boqId } });
     const projectKey = boq?.businessKey?.startsWith(BOQ_BUSINESS_KEY_PREFIX)

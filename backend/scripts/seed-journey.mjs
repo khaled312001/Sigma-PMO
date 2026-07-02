@@ -255,34 +255,100 @@ async function seedP1000() {
   } else skip('monthly reports');
 }
 
-/** A STALLED demo project: partial prior-stage data + forensic-delay slip. */
+/** True when the project already carries governance decisions (idempotency guard). */
+async function hasGovernance(key) {
+  const j = await get(`/journey/${key}`);
+  const dec = (j.json?.legs ?? []).find((l) => (l.stage ?? l.leg) === 'decision');
+  return !!(dec && dec.present && (dec.count ?? 0) > 0);
+}
+
+/** Ingest the shared delivery chain (drawings + BIM + native clash + BoQ + cost) for a demo project. */
+async function seedDeliveryChain(key, opts) {
+  if (await count(`/drawings?projectKey=${key}`) === 0) {
+    for (const [n, t] of opts.drawings) {
+      await post('/drawings/upload', { projectKey: key, filename: n, contentBase64: makePdf(t).toString('base64') }, 'drawings');
+    }
+  } else skip(`drawings ${key}`);
+
+  let modelA = null; let modelB = null;
+  if (await count(`/bim?projectKey=${key}`) < 2) {
+    const a = await post('/bim/upload', { projectKey: key, filename: `${opts.slug}-MEP.ifc`, contentBase64: makeIfc(`${opts.slug}-MEP.ifc`, 'mechanical', 0).toString('base64') }, 'bim');
+    const b = await post('/bim/upload', { projectKey: key, filename: `${opts.slug}-STR.ifc`, contentBase64: makeIfc(`${opts.slug}-STR.ifc`, 'structural', 200).toString('base64') }, 'bim');
+    modelA = a.json?.modelId || a.json?.id || a.json?.bimModelId;
+    modelB = b.json?.modelId || b.json?.id || b.json?.bimModelId;
+  } else skip(`bim ${key}`);
+  if (modelA && modelB) await post('/clashes/detect', { projectKey: key, modelAId: modelA, modelBId: modelB }, 'clash-detect');
+  else skip(`clash detect ${key}`);
+
+  if (await count(`/boq/${key}/versions`) === 0) {
+    await post('/boq/upload', { projectBusinessKey: key, filename: `${opts.slug}-boq.xlsx`, contentBase64: (await makeBoqXlsx()).toString('base64') }, 'boq');
+  } else skip(`boq ${key}`);
+
+  // Area-benchmark estimate only for building types (CAPEX/infrastructure has no per-m² rate).
+  if (opts.areaSqm && (await count(`/quantity-survey/estimates?projectKey=${key}`) === 0)) {
+    await post('/quantity-survey/estimates', { projectKey: key, stage: 'cost-plan', projectType: opts.projectType, areaSqm: opts.areaSqm, currency: 'AED', title: opts.estimateTitle }, 'estimate');
+  } else skip(`estimate ${key}`);
+}
+
+/** A STALLED demo project: delivery started (drawings→BIM→clash→BoQ→cost) then stalled;
+ *  the governance workflow surfaces the stall as decisions awaiting action + a report. */
 async function seedStalled() {
   const KEY2 = 'P-2000';
   console.log(`\n══ STALLED demo project ${KEY2} ══`);
-  const created = await ensureProject(KEY2, {
+  await ensureProject(KEY2, {
     name: 'Riverside Mall (stalled)', clientName: 'Riverside Holdings', currency: 'AED',
     scenarioType: 'stalled', plannedStart: '2024-01-01', plannedFinish: '2025-06-30',
     status: 'stalled', budgetAtCompletion: '180000000.00',
   });
-  if (!created) return;
-  // Partial prior-stage data: a couple of drawings + one report, no funding/claims.
-  await post('/drawings/upload', { projectKey: KEY2, filename: 'RM-ARCH-L01.pdf', contentBase64: makePdf('RM-ARCH-L01 Riverside Mall Architectural').toString('base64') }, 'drawings');
-  await post('/reports/monthly/generate', { projectKey: KEY2, monthIso: '2025-03', audience: 'owner' }, 'monthly');
+  await seedDeliveryChain(KEY2, {
+    slug: 'RiversideMall', projectType: 'retail', areaSqm: 55000, estimateTitle: 'Riverside Mall cost plan',
+    drawings: [['RM-ARCH-L01.pdf', 'RM-ARCH-L01 Riverside Mall Architectural'], ['RM-STR-L01.pdf', 'RM-STR-L01 Riverside Mall Structural']],
+  });
+  // Governance layer: evaluate → decide + the L1→L8 pipeline (risks etc.). The
+  // "stalled" story = a chain that progressed then froze, with findings awaiting a human.
+  if (!(await hasGovernance(KEY2))) {
+    await post('/rules/workflows/run', { projectKey: KEY2 }, 'workflow');
+    await post('/agents/pipeline/run', { nodeBusinessKey: KEY2 }, 'pipeline');
+  } else skip('governance P-2000');
+  if (await count(`/reports/monthly?projectKey=${KEY2}`) === 0) {
+    await post('/reports/monthly/generate', { projectKey: KEY2, monthIso: '2025-03', audience: 'owner' }, 'monthly');
+  } else skip('report P-2000');
 }
 
-/** A DISPUTED demo project: claims + evidence room + clause rules → populated chain. */
+/** A DISPUTED demo project: full engineering chain + FIDIC clauses + governance +
+ *  claims + an evidence room + a legal hold — the dispute-readiness scenario. */
 async function seedDisputed() {
   const KEY3 = 'P-3000';
   console.log(`\n══ DISPUTED demo project ${KEY3} ══`);
-  const created = await ensureProject(KEY3, {
+  await ensureProject(KEY3, {
     name: 'Marina Bridge (disputed)', clientName: 'Coastal Authority', currency: 'AED',
     scenarioType: 'disputed', plannedStart: '2025-01-01', plannedFinish: '2026-09-30',
     status: 'active', budgetAtCompletion: '95000000.00',
   });
-  if (!created) return;
-  // Clause rules + a claim so /claims/:id/chain is populated.
-  await post('/contract-rules/apply-preset', { projectKey: KEY3, presetKey: 'fidic-red-1999' }, 'fidic');
-  await post('/agents/l6.claims/run', { nodeBusinessKey: KEY3 }, 'claims');
+  await seedDeliveryChain(KEY3, {
+    // Infrastructure (bridge) is CAPEX-driven — no per-m² area estimate; BoQ carries the cost.
+    slug: 'MarinaBridge',
+    drawings: [['MB-CIV-L01.pdf', 'MB-CIV-L01 Marina Bridge Civil'], ['MB-STR-L01.pdf', 'MB-STR-L01 Marina Bridge Structural']],
+  });
+  if (await count(`/contract-rules?projectKey=${KEY3}`) === 0) {
+    await post('/contract-rules/apply-preset', { projectKey: KEY3, presetKey: 'fidic-red-1999' }, 'fidic');
+  } else skip('fidic P-3000');
+  // Governance + claims: evaluate→decide + pipeline generate the alerts→decisions the
+  // L6 claims agent then turns into a substantiated claim (claim→alert→decision→source).
+  if (!(await hasGovernance(KEY3))) {
+    await post('/rules/workflows/run', { projectKey: KEY3 }, 'workflow');
+    await post('/agents/pipeline/run', { nodeBusinessKey: KEY3 }, 'pipeline');
+  } else skip('governance P-3000');
+  if (await count(`/claims?projectKey=${KEY3}`) === 0) {
+    await post('/agents/l6.claims/run', { nodeBusinessKey: KEY3 }, 'claims');
+  } else skip('claims P-3000');
+  // Dispute evidence: an evidence room + a legal hold preserving the record set.
+  if (await count(`/evidence/rooms?projectKey=${KEY3}`) === 0) {
+    await post('/evidence/rooms', { projectKey: KEY3, title: 'Marina Bridge — dispute evidence', kind: 'dispute' }, 'evidence-room');
+  } else skip('evidence-room P-3000');
+  if (await count(`/legal-holds?projectKey=${KEY3}`) === 0) {
+    await post('/legal-holds', { targetTable: 'project', targetId: KEY3, reason: 'Active dispute — preserve all project records', projectKey: KEY3, targetLabel: 'Marina Bridge' }, 'legal-hold');
+  } else skip('legal-hold P-3000');
 }
 
 async function main() {

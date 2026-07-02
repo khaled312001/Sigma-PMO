@@ -58,6 +58,7 @@ const WORKSPACE: NavLink[] = [
   { href: '/input',           labelKey: 'nav.input',          surface: 'input',    icon: IconUpload,    badge: 'new', visible: cap('canIngestSchedule') },
   { href: '/projects',        labelKey: 'projects.title',     surface: 'overview', icon: IconFolder,    visible: read },
   { href: '/hierarchy',       labelKey: 'nav.hierarchy',      surface: 'overview', icon: IconFolder,    visible: govern },
+  { href: '/journey',         labelKey: 'nav.journey',        surface: 'overview', icon: IconActivity,  badge: 'new', visible: read },
   { href: '/review',          labelKey: 'nav.review',         surface: 'review',   icon: IconReview,    visible: cap('canEvaluateRules') },
   { href: '/communications',  labelKey: 'nav.communications', surface: 'evidence', icon: IconEvidence,  badge: 'new', visible: read },
   { href: '/reports/monthly', labelKey: 'nav.reports',        surface: 'evidence', icon: IconEvidence,  visible: govern },

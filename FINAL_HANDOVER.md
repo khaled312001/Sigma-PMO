@@ -103,8 +103,9 @@ response schema) is the **Swagger UI at `/api/v1/docs`**. Grouped overview:
   BOQ provenance and governance-decision category. **`DB_SYNCHRONIZE=false` everywhere.**
 
 ## 7. Roles & access control
-Six application roles (source of truth `backend/src/modules/auth/roles.enum.ts`, mirrored for the UI in
-`frontend/lib/capabilities.ts`) plus a platform **super-admin**:
+**15 application roles** (source of truth `backend/src/modules/auth/roles.enum.ts`, mirrored for the UI
+in `frontend/lib/capabilities.ts`) plus the platform-level **super-admin** capability (`canManagePlatform`).
+The six **core delivery/governance** roles carry the day-to-day operating surface:
 - **Sigma Admin** — full platform control (only role that edits personas/settings/Computer Use).
 - **Client** — governance owner; reads all, edits policy, manages hierarchy, approves letters/baselines.
 - **Sigma Reviewer** — read-only auditor (`canReadAll`, evaluate, summarize; no writes).
@@ -112,8 +113,11 @@ Six application roles (source of truth `backend/src/modules/auth/roles.enum.ts`,
 - **Contractor** — uploads schedule/BoQ/own letters; scoped to own slice; cannot approve.
 - **Subcontractor** — most restricted; activity-scoped, fails closed.
 
-Enforcement is on the **backend** (`ApiKeyGuard` + `@RequiresCapability`), so the UI gating cannot be
-bypassed by a hand-crafted request. Full matrix: `docs/roles-permissions.md`.
+The remaining nine are **stakeholder/tenant personas** for the multi-tenant investment-governance model
+(each with a tailored capability set): **owner, operator, investor, lender, pmo, governance_board, bank,
+government_regulator, asset_manager**. Enforcement is on the **backend** (`ApiKeyGuard` +
+`@RequiresCapability`), so UI gating cannot be bypassed by a hand-crafted request. Full core-role matrix:
+`docs/roles-permissions.md`.
 
 ## 8. Security
 - Secrets **only** via host environment or the encrypted `/admin/settings` store — never in source,

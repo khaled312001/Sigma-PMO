@@ -33,6 +33,7 @@ export const ar: Dictionary = {
     simulation: 'المحاكاة',
     comparison: 'AI مقابل الإنسان',
     hierarchy: 'هيكل الحوكمة',
+    journey: 'رحلة المشروع',
     knowledge: 'المعرفة والقواعد',
     analytics: 'التحليلات والقيمة المكتسبة',
     risk: 'سجل المخاطر',

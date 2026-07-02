@@ -175,6 +175,8 @@ export interface AppConfiguration {
   corsOrigins: string;
   /** Outbound notification channels (optional). */
   emailSmtpUrl: string;
+  /** From-address for outbound email (e.g. info@sigma-pmo.com). */
+  emailFrom: string;
   slackWebhookUrl: string;
   teamsWebhookUrl: string;
   /** Required `x-bootstrap-token` header value for bootstrap-mode writes in prod. */
@@ -243,6 +245,7 @@ export default (): AppConfiguration => {
   samplesDir: process.env.SAMPLES_DIR ?? '../data/samples',
   corsOrigins: process.env.CORS_ORIGINS ?? '',
   emailSmtpUrl: process.env.EMAIL_SMTP_URL ?? '',
+  emailFrom: process.env.EMAIL_FROM ?? '',
   slackWebhookUrl: process.env.SLACK_WEBHOOK_URL ?? '',
   teamsWebhookUrl: process.env.TEAMS_WEBHOOK_URL ?? '',
   bootstrapToken: process.env.BOOTSTRAP_TOKEN ?? '',
